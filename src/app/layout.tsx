@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import { Outfit } from "next/font/google";
+import { Poppins } from "next/font/google";
 
-const outfit = Outfit({
+const poppins = Poppins({
   subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
+  weight: ["300", "400", "500", "600", "700"],
 });
 
 export const metadata: Metadata = {
@@ -20,7 +20,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`antialiased ${outfit.className} relative overflow-x-hidden`}
+        className={`antialiased ${poppins.className} relative overflow-x-hidden custom-scrollbar`}
       >
         {children}
       </body>
