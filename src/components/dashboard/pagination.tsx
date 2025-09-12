@@ -13,7 +13,7 @@ export function Pagination({ currentPage, totalPages, onPageChange }: Pagination
         <button
           onClick={() => onPageChange(currentPage - 1)}
           disabled={currentPage === 1}
-          className="bg-[#00b7fb] hover:bg-[#0099d4] disabled:bg-gray-300 disabled:cursor-not-allowed text-white px-6 cursor-pointer py-2 rounded-md text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="bg-[#00b7fb] hover:bg-[#0099d4] disabled:bg-gray-300 disabled:cursor-not-allowed text-white px-6 cursor-pointer py-2 rounded-md text-sm font-medium transition-colors focus:outline-none"
         >
           Previous
         </button>
@@ -25,7 +25,7 @@ export function Pagination({ currentPage, totalPages, onPageChange }: Pagination
         <button
           onClick={() => onPageChange(currentPage + 1)}
           disabled={currentPage === totalPages}
-          className="bg-[#00b7fb] hover:bg-[#0099d4] disabled:bg-gray-300 disabled:cursor-not-allowed text-white px-6 cursor-pointer py-2 rounded-md text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="bg-[#00b7fb] hover:bg-[#0099d4] disabled:bg-gray-300 disabled:cursor-not-allowed text-white px-6 cursor-pointer py-2 rounded-md text-sm font-medium transition-colors focus:outline-none"
         >
           Next
         </button>

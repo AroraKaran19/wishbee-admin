@@ -23,7 +23,7 @@ export function Input({ icon, rightIcon, className, variant = 'default', ...prop
       )}
       <input
         className={cn(
-          'w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent',
+          'w-full px-3 py-2 border rounded-lg focus:outline-none focus:border-gray-400',
           variants[variant],
           icon && 'pl-10',
           rightIcon && 'pr-10',

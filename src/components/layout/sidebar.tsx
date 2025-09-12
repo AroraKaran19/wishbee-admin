@@ -50,7 +50,7 @@ export function Sidebar() {
         <ul className="space-y-1">
           {navigationItems.map((item) => {
             const IconComponent = iconMap[item.icon as keyof typeof iconMap];
-            const isActive = pathname === item.href;
+            const isActive = pathname === item.href || (item.href === '/inventory' && pathname.startsWith('/inventory'));
             
             return (
               <li key={item.id}>

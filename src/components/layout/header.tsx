@@ -52,7 +52,7 @@ export function Header() {
               </div>
               
               <button 
-                className="bg-[#00b7fb] hover:bg-[#0099d4] text-white p-3 cursor-pointer transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="bg-[#00b7fb] hover:bg-[#0099d4] text-white p-3 cursor-pointer transition-colors focus:outline-none"
                 aria-label="Search"
               >
                 <Search className="w-5 h-5" />

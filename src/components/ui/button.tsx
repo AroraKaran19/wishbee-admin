@@ -16,15 +16,15 @@ export function Button({
   className,
   ...props
 }: ButtonProps) {
-  const baseClasses = 'inline-flex items-center justify-center font-medium rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none cursor-pointer';
+  const baseClasses = 'inline-flex items-center justify-center font-medium rounded-lg transition-colors focus:outline-none disabled:opacity-50 disabled:pointer-events-none cursor-pointer';
   
   const variants = {
-    primary: 'bg-primary text-white hover:bg-primary-hover focus:ring-primary',
-    secondary: 'bg-secondary text-primary hover:bg-primary-light focus:ring-primary',
-    danger: 'bg-danger text-white hover:bg-danger-hover focus:ring-danger',
-    warning: 'bg-warning text-gray-900 hover:bg-warning-hover focus:ring-warning',
-    success: 'bg-success text-white hover:bg-success-hover focus:ring-success',
-    muted: 'bg-muted text-text-primary hover:bg-muted-hover focus:ring-gray-500'
+    primary: 'bg-primary text-white hover:bg-primary-hover',
+    secondary: 'bg-secondary text-primary hover:bg-primary-light',
+    danger: 'bg-danger text-white hover:bg-danger-hover',
+    warning: 'bg-warning text-gray-900 hover:bg-warning-hover',
+    success: 'bg-success text-white hover:bg-success-hover',
+    muted: 'bg-muted text-text-primary hover:bg-muted-hover'
   };
   
   const sizes = {

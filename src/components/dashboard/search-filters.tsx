@@ -15,7 +15,7 @@ export function SearchFilters() {
           <input
             type="text"
             placeholder="Search by: Product Name, Category, Brand"
-            className="w-full pl-10 pr-20 py-3 bg-gray-100 border-0 rounded-lg text-gray-700 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-colors"
+            className="w-full pl-10 pr-20 py-3 bg-gray-100 border-0 rounded-lg text-gray-700 placeholder-gray-500 focus:outline-none focus:bg-white transition-colors"
           />
           
           <div className="absolute right-12 top-1/2 transform -translate-y-1/2 w-px h-6 bg-gray-300"></div>
@@ -27,7 +27,7 @@ export function SearchFilters() {
       </div>
       
       <button 
-        className="bg-[#d9f4ff] hover:text-[#00b8fbc9] hover:bg-[#00b8fb28] hover:bg-opacity-20 text-[#00b7fb] p-3 rounded-lg cursor-pointer transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 relative"
+        className="bg-[#d9f4ff] hover:text-[#00b8fbc9] hover:bg-[#00b8fb28] hover:bg-opacity-20 text-[#00b7fb] p-3 rounded-lg cursor-pointer transition-colors focus:outline-none relative"
         aria-label="Filter options"
       >
         <SlidersHorizontal className="w-5 h-5" />
