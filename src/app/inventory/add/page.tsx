@@ -2,15 +2,16 @@
 
 import React, { useState } from 'react';
 import Image from 'next/image';
+import { useRouter } from 'next/navigation';
 import { DashboardLayout } from '@/components/layout/dashboard-layout';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Image as ImageIcon, ArrowLeft, ScanBarcode, FileText, DollarSign, Calendar, Upload } from 'lucide-react';
-import Link from 'next/link';
 
 export default function InventoryAddProductPage() {
     const [uploadedImage, setUploadedImage] = useState<string | null>(null);
+    const router = useRouter();
 
     const handleDragOver = (e: React.DragEvent) => {
         e.preventDefault();
@@ -58,9 +59,13 @@ export default function InventoryAddProductPage() {
             <div className="space-y-6">
                 <div>
                     <div className="flex items-center gap-3 mb-2">
-                        <Link href="/inventory">
+                        <button 
+                            onClick={() => router.push('/inventory')}
+                            className="p-1 hover:bg-gray-100 cursor-pointer rounded-md transition-colors"
+                            aria-label="Go back to dashboard"
+                        >
                             <ArrowLeft className="w-4 h-4" />
-                        </Link>
+                        </button>
                         <h1 className="text-xl font-semibold text-gray-900">Add Product</h1>
                     </div>
                     <p className="text-gray-500 mt-1 text-sm">Add new items to your inventory with complete details.</p>

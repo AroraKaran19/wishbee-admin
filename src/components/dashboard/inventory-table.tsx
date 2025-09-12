@@ -31,7 +31,7 @@ export function InventoryTable({ products, currentPage, totalPages, onPageChange
                 Stock Qty
               </th>
               <th className="px-6 py-4 text-center text-sm font-semibold text-gray-900 border-r border-blue-200">
-                Last Sold Dat
+                Last Sold Date
               </th>
               <th className="px-6 py-4 text-center text-sm font-semibold text-gray-900 border-r border-blue-200">
                 Expiry Date
