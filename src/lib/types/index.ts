@@ -43,5 +43,14 @@ export interface OutOfStockItem {
   supplierName: string;
 }
 
+export interface LowQuantityItem {
+  id: string;
+  productName: string;
+  availableQuantity: number;
+  thresholdLevel: number;
+  supplierName: string;
+  unit: string;
+}
+
 // Re-export table types for convenience
 export * from './table';

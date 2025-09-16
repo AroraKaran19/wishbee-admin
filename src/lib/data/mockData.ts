@@ -1,4 +1,4 @@
-import { Product, InventorySummary, NavItem, OutOfStockItem } from '../types';
+import { Product, InventorySummary, NavItem, OutOfStockItem, LowQuantityItem } from '../types';
 
 export const mockProducts: Product[] = [
   {
@@ -304,5 +304,81 @@ export const outOfStockItems: OutOfStockItem[] = [
     category: 'Dairy',
     lastStockDate: '22 June 2026',
     supplierName: 'Amul India Ltd.'
+  }
+];
+
+// Low Quantity Items Data
+export const lowQuantityItems: LowQuantityItem[] = [
+  {
+    id: '1',
+    productName: 'Tata Salt 1kg',
+    availableQuantity: 6,
+    thresholdLevel: 10,
+    supplierName: 'Tata Consumer Ltd.',
+    unit: 'Packet'
+  },
+  {
+    id: '2',
+    productName: 'Lux Soap (Pack of 4)',
+    availableQuantity: 3,
+    thresholdLevel: 10,
+    supplierName: 'HUL Supplies',
+    unit: 'Packet'
+  },
+  {
+    id: '3',
+    productName: 'Aashirvaad Atta 5kg',
+    availableQuantity: 13,
+    thresholdLevel: 15,
+    supplierName: 'ITC Wholesalers',
+    unit: 'Packet'
+  },
+  {
+    id: '4',
+    productName: 'Tata Salt 1kg',
+    availableQuantity: 8,
+    thresholdLevel: 10,
+    supplierName: 'Tata Consumer Ltd.',
+    unit: 'Packet'
+  },
+  {
+    id: '5',
+    productName: 'Lux Soap (Pack of 4)',
+    availableQuantity: 5,
+    thresholdLevel: 10,
+    supplierName: 'HUL Supplies',
+    unit: 'Packet'
+  },
+  {
+    id: '6',
+    productName: 'Aashirvaad Atta 5kg',
+    availableQuantity: 12,
+    thresholdLevel: 15,
+    supplierName: 'ITC Wholesalers',
+    unit: 'Packet'
+  },
+  {
+    id: '7',
+    productName: 'Tata Salt 1kg',
+    availableQuantity: 4,
+    thresholdLevel: 10,
+    supplierName: 'Tata Consumer Ltd.',
+    unit: 'Packet'
+  },
+  {
+    id: '8',
+    productName: 'Lux Soap (Pack of 4)',
+    availableQuantity: 7,
+    thresholdLevel: 10,
+    supplierName: 'HUL Supplies',
+    unit: 'Packet'
+  },
+  {
+    id: '9',
+    productName: 'Aashirvaad Atta 5kg',
+    availableQuantity: 9,
+    thresholdLevel: 15,
+    supplierName: 'ITC Wholesalers',
+    unit: 'Packet'
   }
 ];

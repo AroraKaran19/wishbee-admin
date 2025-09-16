@@ -22,11 +22,11 @@ const bannerConfig = {
         icon: AlertTriangle
     },
     danger: {
-        bgColor: 'bg-danger',
-        borderColor: 'border-danger',
-        iconColor: 'text-red-600',
+        bgColor: 'bg-[#f9e5e3]',
+        borderColor: 'border-[#f9e5e3]',
+        iconColor: 'text-[#d65144]',
         textColor: 'text-red-800',
-        icon: XCircle
+        icon: AlertTriangle
     },
     success: {
         bgColor: 'bg-success',
