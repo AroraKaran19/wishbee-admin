@@ -1,4 +1,4 @@
-import { Product, InventorySummary, NavItem, OutOfStockItem, LowQuantityItem } from '../types';
+import { Product, InventorySummary, NavItem, OutOfStockItem, LowQuantityItem, ExpiredItem } from '../types';
 
 export const mockProducts: Product[] = [
   {
@@ -380,5 +380,81 @@ export const lowQuantityItems: LowQuantityItem[] = [
     thresholdLevel: 15,
     supplierName: 'ITC Wholesalers',
     unit: 'Packet'
+  }
+];
+
+// Expired Items Data
+export const expiredItems: ExpiredItem[] = [
+  {
+    id: '1',
+    productName: 'Amul Butter 500g',
+    expiryDate: '15 Jul 2025',
+    quantity: 12,
+    unit: 'Units',
+    status: 'expired'
+  },
+  {
+    id: '2',
+    productName: 'Parle-G Biscuits',
+    expiryDate: '12 Jul 2025',
+    quantity: 20,
+    unit: 'Packs',
+    status: 'expired'
+  },
+  {
+    id: '3',
+    productName: 'Dabur Honey 250ml',
+    expiryDate: '10 Jul 2025',
+    quantity: 5,
+    unit: 'Bottles',
+    status: 'expired'
+  },
+  {
+    id: '4',
+    productName: 'Tata Salt 1kg',
+    expiryDate: '08 Jul 2025',
+    quantity: 8,
+    unit: 'Packets',
+    status: 'expired'
+  },
+  {
+    id: '5',
+    productName: 'Lux Soap (Pack of 4)',
+    expiryDate: '05 Jul 2025',
+    quantity: 15,
+    unit: 'Packs',
+    status: 'expired'
+  },
+  {
+    id: '6',
+    productName: 'Aashirvaad Atta 5kg',
+    expiryDate: '03 Jul 2025',
+    quantity: 3,
+    unit: 'Packets',
+    status: 'expired'
+  },
+  {
+    id: '7',
+    productName: 'Amul Butter 500g',
+    expiryDate: '01 Jul 2025',
+    quantity: 7,
+    unit: 'Units',
+    status: 'expired'
+  },
+  {
+    id: '8',
+    productName: 'Parle-G Biscuits',
+    expiryDate: '28 Jun 2025',
+    quantity: 25,
+    unit: 'Packs',
+    status: 'expired'
+  },
+  {
+    id: '9',
+    productName: 'Dabur Honey 250ml',
+    expiryDate: '25 Jun 2025',
+    quantity: 4,
+    unit: 'Bottles',
+    status: 'expired'
   }
 ];

@@ -52,5 +52,14 @@ export interface LowQuantityItem {
   unit: string;
 }
 
+export interface ExpiredItem {
+  id: string;
+  productName: string;
+  expiryDate: string;
+  quantity: number;
+  unit: string;
+  status: 'expired';
+}
+
 // Re-export table types for convenience
 export * from './table';
