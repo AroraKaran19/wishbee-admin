@@ -61,5 +61,14 @@ export interface ExpiredItem {
   status: 'expired';
 }
 
+export interface ShortExpiryItem {
+  id: string;
+  productName: string;
+  expiryDate: string;
+  remainingDays: number;
+  quantity: number;
+  unit: string;
+}
+
 // Re-export table types for convenience
 export * from './table';

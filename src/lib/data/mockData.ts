@@ -1,4 +1,4 @@
-import { Product, InventorySummary, NavItem, OutOfStockItem, LowQuantityItem, ExpiredItem } from '../types';
+import { Product, InventorySummary, NavItem, OutOfStockItem, LowQuantityItem, ExpiredItem, ShortExpiryItem } from '../types';
 
 export const mockProducts: Product[] = [
   {
@@ -456,5 +456,81 @@ export const expiredItems: ExpiredItem[] = [
     quantity: 4,
     unit: 'Bottles',
     status: 'expired'
+  }
+];
+
+// Short Expiry Items Data
+export const shortExpiryItems: ShortExpiryItem[] = [
+  {
+    id: '1',
+    productName: 'Amul Cheese Slices',
+    expiryDate: '18 Aug 2025',
+    remainingDays: 28,
+    quantity: 22,
+    unit: 'Packs'
+  },
+  {
+    id: '2',
+    productName: 'Real Mango Juice',
+    expiryDate: '10 Aug 2025',
+    remainingDays: 20,
+    quantity: 18,
+    unit: 'Bottles'
+  },
+  {
+    id: '3',
+    productName: 'Harvest Bread Loaf',
+    expiryDate: '25 Jul 2025',
+    remainingDays: 4,
+    quantity: 12,
+    unit: 'Units'
+  },
+  {
+    id: '4',
+    productName: 'Amul Cheese Slices',
+    expiryDate: '15 Aug 2025',
+    remainingDays: 25,
+    quantity: 15,
+    unit: 'Packs'
+  },
+  {
+    id: '5',
+    productName: 'Real Mango Juice',
+    expiryDate: '12 Aug 2025',
+    remainingDays: 22,
+    quantity: 20,
+    unit: 'Bottles'
+  },
+  {
+    id: '6',
+    productName: 'Harvest Bread Loaf',
+    expiryDate: '28 Jul 2025',
+    remainingDays: 7,
+    quantity: 8,
+    unit: 'Units'
+  },
+  {
+    id: '7',
+    productName: 'Amul Cheese Slices',
+    expiryDate: '20 Aug 2025',
+    remainingDays: 30,
+    quantity: 25,
+    unit: 'Packs'
+  },
+  {
+    id: '8',
+    productName: 'Real Mango Juice',
+    expiryDate: '08 Aug 2025',
+    remainingDays: 18,
+    quantity: 16,
+    unit: 'Bottles'
+  },
+  {
+    id: '9',
+    productName: 'Harvest Bread Loaf',
+    expiryDate: '30 Jul 2025',
+    remainingDays: 9,
+    quantity: 10,
+    unit: 'Units'
   }
 ];

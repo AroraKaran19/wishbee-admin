@@ -34,7 +34,7 @@ export function ExpiredTable({
         title: 'Product Name',
         align: 'center',
         render: (value) => (
-          <div className="text-sm text-gray-900 font-medium">
+          <div className="text-sm text-gray-900">
             {value}
           </div>
         )
