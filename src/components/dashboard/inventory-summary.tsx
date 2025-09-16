@@ -2,24 +2,41 @@
 
 import React, { useState } from 'react';
 import { MetricCard } from './metric-card';
-import { SearchFilters } from './search-filters';
-import { ActionButtons } from './action-buttons';
+import { SearchBar } from '@/components/ui/search-bar';
 import { InventoryTable } from './inventory-table';
 import { mockProducts, mockInventorySummary } from '@/lib/data/mockData';
 import { formatCurrency, formatPercentage } from '@/lib/utils';
+import { exportProductsToCSV } from '@/lib/utils/csv-export';
+import { Plus, Download } from 'lucide-react';
 
 export function InventorySummary() {
   const [currentPage, setCurrentPage] = useState(1);
+  const [searchQuery, setSearchQuery] = useState('');
   const itemsPerPage = 10;
-  const totalPages = Math.ceil(mockProducts.length / itemsPerPage);
+  
+  const filteredProducts = mockProducts.filter(product => 
+    product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    product.category.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+  
+  const totalPages = Math.ceil(filteredProducts.length / itemsPerPage);
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
   };
 
+  const handleSearch = (query: string) => {
+    setSearchQuery(query);
+    setCurrentPage(1);
+  };
+
+  const handleExportCSV = () => {
+    exportProductsToCSV(filteredProducts, 'inventory-products');
+  };
+
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
-  const currentProducts = mockProducts.slice(startIndex, endIndex);
+  const currentProducts = filteredProducts.slice(startIndex, endIndex);
 
   return (
     <div className="space-y-6 h-full flex flex-col">
@@ -51,9 +68,29 @@ export function InventorySummary() {
         />
       </div>
 
-      <div className="flex-shrink-0 flex items-center justify-between mb-6">
-        <SearchFilters />
-        <ActionButtons />
+      <div className="flex-shrink-0 mb-4">
+        <SearchBar
+          placeholder="Search by: Product Name, Category, Brand"
+          onSearch={handleSearch}
+          onSearchChange={setSearchQuery}
+          actions={[
+            {
+              key: 'add',
+              label: 'Add Products',
+              icon: <Plus className="w-4 h-4" />,
+              href: '/inventory/add',
+              variant: 'primary',
+              onClick: () => {}
+            },
+            {
+              key: 'export',
+              label: 'Export CSV',
+              icon: <Download className="w-4 h-4" />,
+              onClick: handleExportCSV,
+              variant: 'danger'
+            }
+          ]}
+        />
       </div>
 
       <div className="flex-1 min-h-0">

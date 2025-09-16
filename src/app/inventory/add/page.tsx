@@ -141,21 +141,21 @@ export default function InventoryAddProductPage() {
                                 </div>
                                 <div className="space-y-2 md:col-span-1">
                                     <label className="text-sm font-medium text-gray-700">Product Description</label>
-                                    <Input variant='muted' icon={<FileText className="w-4 h-4" />} className='text-sm' placeholder="Enter product Description" />
+                                    <Input variant='muted' icon={<FileText className="w-4 h-4" />} className='text-sm' placeholder="Enter product description" />
                                 </div>
                                 <div className="space-y-2">
-                                    <label className="text-sm font-medium text-gray-700">Buying price</label>
+                                    <label className="text-sm font-medium text-gray-700">Buying Price</label>
                                     <Input variant='muted' icon={<DollarSign className="w-4 h-4" />} className='text-sm' placeholder="Enter buying price" />
                                 </div>
                                 <div className="space-y-2">
-                                    <label className="text-sm font-medium text-gray-700">Product category</label>
+                                    <label className="text-sm font-medium text-gray-700">Product Category</label>
                                     <div className="relative">
                                         <Input variant='muted' icon={<FileText className="w-4 h-4" />} className='text-sm' placeholder="Select product category" />
                                     </div>
                                 </div>
                                 <div className="space-y-2">
-                                    <label className="text-sm font-medium text-gray-700">Expiry date</label>
-                                    <Input variant='muted' icon={<Calendar className="w-4 h-4" />} className='text-sm' placeholder="Enter Product expiry date" />
+                                    <label className="text-sm font-medium text-gray-700">Expiry Date</label>
+                                    <Input variant='muted' icon={<Calendar className="w-4 h-4" />} className='text-sm' placeholder="Enter product expiry date" />
                                 </div>
                                 <div className="space-y-2">
                                     <label className="text-sm font-medium text-gray-700">Quantity</label>

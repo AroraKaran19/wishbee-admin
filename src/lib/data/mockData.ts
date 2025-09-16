@@ -1,6 +1,5 @@
-import { Product, InventorySummary, NavItem } from '../types';
+import { Product, InventorySummary, NavItem, OutOfStockItem } from '../types';
 
-// Mock Products Data
 export const mockProducts: Product[] = [
   {
     id: '1',
@@ -138,8 +137,40 @@ export const navigationItems: NavItem[] = [
     id: 'inventory',
     label: 'Inventory',
     icon: 'ShoppingCart',
-    href: '/inventory'
-    // hasDropdown: true
+    href: '/inventory',
+    hasDropdown: true,
+    subItems: [
+      {
+        id: 'out-of-stock',
+        label: 'Out of stock',
+        href: '/inventory/out-of-stock'
+      },
+      {
+        id: 'low-quantity-stock',
+        label: 'Low quantity stock',
+        href: '/inventory/low-quantity-stock'
+      },
+      {
+        id: 'expired-stock',
+        label: 'Expired stock',
+        href: '/inventory/expired-stock'
+      },
+      {
+        id: 'short-expiry-stock',
+        label: 'Short expiry stock',
+        href: '/inventory/short-expiry-stock'
+      },
+      {
+        id: 'long-unsold-stock',
+        label: 'Long unsold stock',
+        href: '/inventory/long-unsold-stock'
+      },
+      {
+        id: 'most-sold-stock',
+        label: 'Most sold stock',
+        href: '/inventory/most-sold-stock'
+      }
+    ]
   },
   {
     id: 'orders',
@@ -207,4 +238,71 @@ export const categories = [
   'Health',
   'Beauty',
   'Food & Beverages'
+];
+
+// Out of Stock Items Data
+export const outOfStockItems: OutOfStockItem[] = [
+  {
+    id: '1',
+    productName: 'Parle-G Biscuit 1kg',
+    category: 'Snacks & Bakery',
+    lastStockDate: '22 June 2026',
+    supplierName: 'Parle Distributor'
+  },
+  {
+    id: '2',
+    productName: 'Surf Excel 1kg',
+    category: 'Home Essentials',
+    lastStockDate: '22 June 2026',
+    supplierName: 'HUL Supplies'
+  },
+  {
+    id: '3',
+    productName: 'Amul Milk 1L',
+    category: 'Dairy',
+    lastStockDate: '22 June 2026',
+    supplierName: 'Amul India Ltd.'
+  },
+  {
+    id: '4',
+    productName: 'Parle-G Biscuit 1kg',
+    category: 'Personal Care',
+    lastStockDate: '22 June 2026',
+    supplierName: 'Parle Distributor'
+  },
+  {
+    id: '5',
+    productName: 'Surf Excel 1kg',
+    category: 'Grocery',
+    lastStockDate: '22 June 2026',
+    supplierName: 'HUL Supplies'
+  },
+  {
+    id: '6',
+    productName: 'Amul Milk 1L',
+    category: 'Dairy',
+    lastStockDate: '11 August 2026',
+    supplierName: 'Amul India Ltd.'
+  },
+  {
+    id: '7',
+    productName: 'Parle-G Biscuit 1kg',
+    category: 'Personal Care',
+    lastStockDate: '22 June 2026',
+    supplierName: 'Parle Distributor'
+  },
+  {
+    id: '8',
+    productName: 'Surf Excel 1kg',
+    category: 'Grocery',
+    lastStockDate: '22 June 2026',
+    supplierName: 'HUL Supplies'
+  },
+  {
+    id: '9',
+    productName: 'Amul Milk 1L',
+    category: 'Dairy',
+    lastStockDate: '22 June 2026',
+    supplierName: 'Amul India Ltd.'
+  }
 ];

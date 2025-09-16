@@ -26,4 +26,22 @@ export interface NavItem {
   icon: string;
   href: string;
   hasDropdown?: boolean;
+  subItems?: NavSubItem[];
 }
+
+export interface NavSubItem {
+  id: string;
+  label: string;
+  href: string;
+}
+
+export interface OutOfStockItem {
+  id: string;
+  productName: string;
+  category: string;
+  lastStockDate: string;
+  supplierName: string;
+}
+
+// Re-export table types for convenience
+export * from './table';

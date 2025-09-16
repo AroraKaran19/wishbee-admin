@@ -16,7 +16,7 @@ export function Button({
   className,
   ...props
 }: ButtonProps) {
-  const baseClasses = 'inline-flex items-center justify-center font-medium rounded-lg transition-colors focus:outline-none disabled:opacity-50 disabled:pointer-events-none cursor-pointer';
+  const baseClasses = 'inline-flex items-center justify-center font-medium rounded-lg transition-colors focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer';
   
   const variants = {
     primary: 'bg-primary text-white hover:bg-primary-hover',
