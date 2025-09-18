@@ -29,8 +29,8 @@ const bannerConfig = {
         icon: AlertTriangle
     },
     success: {
-        bgColor: 'bg-success',
-        borderColor: 'border-success',
+        bgColor: 'bg-[#e6ffe3]',
+        borderColor: 'border-[#e6ffe3]',
         iconColor: 'text-green-600',
         textColor: 'text-green-800',
         icon: CheckCircle

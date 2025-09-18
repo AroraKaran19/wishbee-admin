@@ -145,6 +145,11 @@ export function DataTable<T = any>({ data, config }: DataTableProps<T>) {
                         {actions.map((action) => {
                           const isDisabled = action.disabled ? action.disabled(record) : false;
                           
+                          // Don't render disabled buttons at all
+                          if (isDisabled) {
+                            return null;
+                          }
+                          
                           return (
                             <Button
                               key={action.key}
@@ -154,8 +159,7 @@ export function DataTable<T = any>({ data, config }: DataTableProps<T>) {
                               }}
                               variant={action.variant || 'secondary'}
                               size={action.size || 'sm'}
-                              disabled={isDisabled}
-                              className={`${action.className || ''} ${isDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+                              className={action.className || ''}
                             >
                               {action.icon && <span className="mr-2">{action.icon}</span>}
                               {action.label}

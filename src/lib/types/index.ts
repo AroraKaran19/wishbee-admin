@@ -70,5 +70,25 @@ export interface ShortExpiryItem {
   unit: string;
 }
 
+export interface LongUnsoldItem {
+  id: string;
+  productName: string;
+  daysSinceLastSale: number | string;
+  stockQty: number;
+  unit: string;
+  price: number;
+  suggestedAction: 'discount' | 'combo';
+}
+
+export interface TopSellingItem {
+  id: string;
+  productName: string;
+  soldQuantity: number;
+  unit: string;
+  revenue: number;
+  remainingQuantity: number;
+  suggestedAction: 'boost' | 'trends';
+}
+
 // Re-export table types for convenience
 export * from './table';

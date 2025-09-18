@@ -1,4 +1,4 @@
-import { Product, InventorySummary, NavItem, OutOfStockItem, LowQuantityItem, ExpiredItem, ShortExpiryItem } from '../types';
+import { Product, InventorySummary, NavItem, OutOfStockItem, LowQuantityItem, ExpiredItem, ShortExpiryItem, LongUnsoldItem, TopSellingItem } from '../types';
 
 export const mockProducts: Product[] = [
   {
@@ -166,9 +166,9 @@ export const navigationItems: NavItem[] = [
         href: '/inventory/long-unsold-stock'
       },
       {
-        id: 'most-sold-stock',
-        label: 'Most sold stock',
-        href: '/inventory/most-sold-stock'
+        id: 'top-selling-stock',
+        label: 'Top selling stock',
+        href: '/inventory/top-selling-stock'
       }
     ]
   },
@@ -532,5 +532,175 @@ export const shortExpiryItems: ShortExpiryItem[] = [
     remainingDays: 9,
     quantity: 10,
     unit: 'Units'
+  }
+];
+
+// Long Unsold Items Data
+export const longUnsoldItems: LongUnsoldItem[] = [
+  {
+    id: '1',
+    productName: 'Patanjali Dant Kanti',
+    daysSinceLastSale: 75,
+    stockQty: 32,
+    unit: 'Units',
+    price: 45,
+    suggestedAction: 'discount'
+  },
+  {
+    id: '2',
+    productName: 'Kellogg\'s Chocos',
+    daysSinceLastSale: 92,
+    stockQty: 15,
+    unit: 'Boxes',
+    price: 155,
+    suggestedAction: 'combo'
+  },
+  {
+    id: '3',
+    productName: 'Vim Dish Gel',
+    daysSinceLastSale: 68,
+    stockQty: 40,
+    unit: 'Bottles',
+    price: 99,
+    suggestedAction: 'discount'
+  },
+  {
+    id: '4',
+    productName: 'Amul Cheese Slices',
+    daysSinceLastSale: '18 Aug 2025',
+    stockQty: 22,
+    unit: 'Packs',
+    price: 85,
+    suggestedAction: 'combo'
+  },
+  {
+    id: '5',
+    productName: 'Real Mango Juice',
+    daysSinceLastSale: '10 Aug 2025',
+    stockQty: 18,
+    unit: 'Bottles',
+    price: 65,
+    suggestedAction: 'discount'
+  },
+  {
+    id: '6',
+    productName: 'Harvest Bread Loaf',
+    daysSinceLastSale: '25 Jul 2025',
+    stockQty: 12,
+    unit: 'Units',
+    price: 35,
+    suggestedAction: 'combo'
+  },
+  {
+    id: '7',
+    productName: 'Tata Tea Gold',
+    daysSinceLastSale: 85,
+    stockQty: 25,
+    unit: 'Packs',
+    price: 120,
+    suggestedAction: 'discount'
+  },
+  {
+    id: '8',
+    productName: 'Dabur Honey',
+    daysSinceLastSale: 78,
+    stockQty: 8,
+    unit: 'Bottles',
+    price: 180,
+    suggestedAction: 'combo'
+  },
+  {
+    id: '9',
+    productName: 'Britannia Biscuits',
+    daysSinceLastSale: 95,
+    stockQty: 30,
+    unit: 'Packs',
+    price: 55,
+    suggestedAction: 'discount'
+  }
+];
+
+// Top Selling Items Data
+export const topSellingItems: TopSellingItem[] = [
+  {
+    id: '1',
+    productName: 'Amul Milk 1L',
+    soldQuantity: 1250,
+    unit: 'Units',
+    revenue: 93750,
+    remainingQuantity: 120,
+    suggestedAction: 'boost'
+  },
+  {
+    id: '2',
+    productName: 'Tata Salt 1kg',
+    soldQuantity: 920,
+    unit: 'Units',
+    revenue: 36800,
+    remainingQuantity: 85,
+    suggestedAction: 'trends'
+  },
+  {
+    id: '3',
+    productName: 'Aashirvaad Atta 5kg',
+    soldQuantity: 870,
+    unit: 'Units',
+    revenue: 195750,
+    remainingQuantity: 40,
+    suggestedAction: 'boost'
+  },
+  {
+    id: '4',
+    productName: 'Parle-G Biscuits',
+    soldQuantity: 750,
+    unit: 'Packs',
+    revenue: 11250,
+    remainingQuantity: 95,
+    suggestedAction: 'trends'
+  },
+  {
+    id: '5',
+    productName: 'Maggi Noodles',
+    soldQuantity: 680,
+    unit: 'Packs',
+    revenue: 10200,
+    remainingQuantity: 60,
+    suggestedAction: 'boost'
+  },
+  {
+    id: '6',
+    productName: 'Colgate Toothpaste',
+    soldQuantity: 520,
+    unit: 'Units',
+    revenue: 41600,
+    remainingQuantity: 45,
+    suggestedAction: 'trends'
+  },
+  {
+    id: '7',
+    productName: 'Surf Excel 1kg',
+    soldQuantity: 480,
+    unit: 'Units',
+    revenue: 38400,
+    remainingQuantity: 35,
+    suggestedAction: 'boost'
+  },
+  {
+    id: '8',
+    productName: 'Dettol Handwash',
+    soldQuantity: 420,
+    unit: 'Units',
+    revenue: 50400,
+    remainingQuantity: 50,
+    suggestedAction: 'trends'
+  },
+  {
+    id: '9',
+    productName: 'Lux Soap',
+    soldQuantity: 380,
+    unit: 'Units',
+    revenue: 19000,
+    remainingQuantity: 25,
+    suggestedAction: 'boost'
   }
 ];

@@ -73,3 +73,29 @@ export function exportOutOfStockToCSV(items: any[], filename = 'out-of-stock-ite
   
   exportToCSV(items, filename, columns);
 }
+
+export function exportLongUnsoldToCSV(items: any[], filename = 'long-unsold-items') {
+  const columns = [
+    { key: 'productName', label: 'Product Name' },
+    { key: 'daysSinceLastSale', label: 'Days Since Last Sale' },
+    { key: 'stockQty', label: 'Stock Quantity' },
+    { key: 'unit', label: 'Unit' },
+    { key: 'price', label: 'Price (₹)' },
+    { key: 'suggestedAction', label: 'Suggested Action' }
+  ];
+  
+  exportToCSV(items, filename, columns);
+}
+
+export function exportTopSellingToCSV(items: any[], filename = 'top-selling-items') {
+  const columns = [
+    { key: 'productName', label: 'Product Name' },
+    { key: 'soldQuantity', label: 'Sold Quantity (Last 30 Days)' },
+    { key: 'unit', label: 'Unit' },
+    { key: 'revenue', label: 'Revenue (₹)' },
+    { key: 'remainingQuantity', label: 'Remaining Quantity' },
+    { key: 'suggestedAction', label: 'Suggested Action' }
+  ];
+  
+  exportToCSV(items, filename, columns);
+}
