@@ -1,10 +1,10 @@
-import { PlaceholderPage } from '@/components/dashboard/placeholder-page';
+import { DashboardLayout } from '@/components/layout/dashboard-layout';
+import { OrderPage } from '@/components/orders/order-page';
 
 export default function OrdersPage() {
   return (
-    <PlaceholderPage 
-      title="Orders" 
-      description="Manage and track all your customer orders."
-    />
+    <DashboardLayout>
+      <OrderPage />
+    </DashboardLayout>
   );
 }

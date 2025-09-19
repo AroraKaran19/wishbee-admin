@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Mic, Filter, Download } from 'lucide-react';
+import { Mic, Filter, Upload } from 'lucide-react';
 
 export function OutOfStockFilters() {
   const [searchTerm, setSearchTerm] = useState('');
@@ -47,7 +47,7 @@ export function OutOfStockFilters() {
         variant="danger"
         className="flex items-center space-x-2"
       >
-        <Download className="h-4 w-4" />
+        <Upload className="h-4 w-4" />
         <span>Export CSV</span>
       </Button>
     </div>

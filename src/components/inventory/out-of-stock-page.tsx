@@ -6,7 +6,7 @@ import { SearchBar } from '@/components/ui/search-bar';
 import { OutOfStockTable } from './out-of-stock-table';
 import { outOfStockItems } from '@/lib/data/mockData';
 import { exportOutOfStockToCSV } from '@/lib/utils/csv-export';
-import { Download } from 'lucide-react';
+import { Upload } from 'lucide-react';
 
 export function OutOfStockPage() {
   const [currentPage, setCurrentPage] = useState(1);
@@ -58,7 +58,7 @@ export function OutOfStockPage() {
               {
                 key: 'export',
                 label: 'Export CSV',
-                icon: <Download className="w-4 h-4" />,
+                icon: <Upload className="w-4 h-4" />,
                 onClick: handleExportCSV,
                 variant: 'danger'
               }

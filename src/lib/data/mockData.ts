@@ -1,4 +1,4 @@
-import { Product, InventorySummary, NavItem, OutOfStockItem, LowQuantityItem, ExpiredItem, ShortExpiryItem, LongUnsoldItem, TopSellingItem, ProductDetail } from '../types';
+import { Product, InventorySummary, NavItem, OutOfStockItem, LowQuantityItem, ExpiredItem, ShortExpiryItem, LongUnsoldItem, TopSellingItem, ProductDetail, Customer, Order, OrderSummary } from '../types';
 
 export const mockProducts: Product[] = [
   {
@@ -1555,3 +1555,443 @@ export const productDetails: ProductDetail[] = [
     }
   }
 ];
+
+// Customer Data
+export const mockCustomers: Customer[] = [
+  {
+    id: 'cust-1',
+    name: 'Aniket',
+    phone: '+91-9876XXX123',
+    email: 'aniket@example.com',
+    customerId: 'CUST001',
+    totalSpend: 12000,
+    loyaltyTier: 'Gold',
+    lastOrder: '12 Jul 2025',
+    status: 'Active',
+    registrationDate: '15 Jan 2024',
+    totalOrders: 25,
+    averageOrderValue: 480,
+    preferredCategories: ['Grocery', 'Dairy', 'Personal Care'],
+    address: {
+      street: '123 Main Street',
+      city: 'Mumbai',
+      state: 'Maharashtra',
+      pincode: '400001'
+    }
+  },
+  {
+    id: 'cust-2',
+    name: 'Tanya Singh',
+    phone: '+91-9876XXX123',
+    email: 'tanya@example.com',
+    customerId: 'CUST002',
+    totalSpend: 6750,
+    loyaltyTier: 'Bronze',
+    lastOrder: '08 Jul 2025',
+    status: 'Active',
+    registrationDate: '22 Mar 2024',
+    totalOrders: 12,
+    averageOrderValue: 562,
+    preferredCategories: ['Personal Care', 'Health'],
+    address: {
+      street: '456 Park Avenue',
+      city: 'Delhi',
+      state: 'Delhi',
+      pincode: '110001'
+    }
+  },
+  {
+    id: 'cust-3',
+    name: 'Rajesh Kumar',
+    phone: '+91-9876XXX123',
+    email: 'rajesh@example.com',
+    customerId: 'CUST003',
+    totalSpend: 18500,
+    loyaltyTier: 'Platinum',
+    lastOrder: '15 Jul 2025',
+    status: 'Active',
+    registrationDate: '10 Dec 2023',
+    totalOrders: 45,
+    averageOrderValue: 411,
+    preferredCategories: ['Grocery', 'Dairy', 'Home Essentials'],
+    address: {
+      street: '789 Garden Road',
+      city: 'Bangalore',
+      state: 'Karnataka',
+      pincode: '560001'
+    }
+  },
+  {
+    id: 'cust-4',
+    name: 'Priya Sharma',
+    phone: '+91-9876XXX123',
+    email: 'priya@example.com',
+    customerId: 'CUST004',
+    totalSpend: 8900,
+    loyaltyTier: 'Silver',
+    lastOrder: '10 Jul 2025',
+    status: 'Active',
+    registrationDate: '05 Feb 2024',
+    totalOrders: 18,
+    averageOrderValue: 494,
+    preferredCategories: ['Personal Care', 'Beauty'],
+    address: {
+      street: '321 Lake View',
+      city: 'Chennai',
+      state: 'Tamil Nadu',
+      pincode: '600001'
+    }
+  },
+  {
+    id: 'cust-5',
+    name: 'Vikram Patel',
+    phone: '+91-9876XXX123',
+    email: 'vikram@example.com',
+    customerId: 'CUST005',
+    totalSpend: 15200,
+    loyaltyTier: 'Gold',
+    lastOrder: '18 Jul 2025',
+    status: 'Active',
+    registrationDate: '28 Nov 2023',
+    totalOrders: 32,
+    averageOrderValue: 475,
+    preferredCategories: ['Grocery', 'Dairy', 'Snacks'],
+    address: {
+      street: '654 Hill Station',
+      city: 'Pune',
+      state: 'Maharashtra',
+      pincode: '411001'
+    }
+  },
+  {
+    id: 'cust-6',
+    name: 'Sneha Reddy',
+    phone: '+91-9876XXX123',
+    email: 'sneha@example.com',
+    customerId: 'CUST006',
+    totalSpend: 4200,
+    loyaltyTier: 'Bronze',
+    lastOrder: '05 Jul 2025',
+    status: 'Inactive',
+    registrationDate: '15 Apr 2024',
+    totalOrders: 8,
+    averageOrderValue: 525,
+    preferredCategories: ['Health', 'Personal Care'],
+    address: {
+      street: '987 Tech Park',
+      city: 'Hyderabad',
+      state: 'Telangana',
+      pincode: '500001'
+    }
+  },
+  {
+    id: 'cust-7',
+    name: 'Amit Gupta',
+    phone: '+91-9876XXX123',
+    email: 'amit@example.com',
+    customerId: 'CUST007',
+    totalSpend: 22100,
+    loyaltyTier: 'Platinum',
+    lastOrder: '20 Jul 2025',
+    status: 'Active',
+    registrationDate: '03 Sep 2023',
+    totalOrders: 52,
+    averageOrderValue: 425,
+    preferredCategories: ['Grocery', 'Home Essentials', 'Dairy'],
+    address: {
+      street: '147 Business District',
+      city: 'Gurgaon',
+      state: 'Haryana',
+      pincode: '122001'
+    }
+  },
+  {
+    id: 'cust-8',
+    name: 'Kavya Nair',
+    phone: '+91-9876XXX123',
+    email: 'kavya@example.com',
+    customerId: 'CUST008',
+    totalSpend: 7300,
+    loyaltyTier: 'Silver',
+    lastOrder: '14 Jul 2025',
+    status: 'Active',
+    registrationDate: '20 Jan 2024',
+    totalOrders: 15,
+    averageOrderValue: 486,
+    preferredCategories: ['Personal Care', 'Beauty', 'Health'],
+    address: {
+      street: '258 Coastal Road',
+      city: 'Kochi',
+      state: 'Kerala',
+      pincode: '682001'
+    }
+  },
+  {
+    id: 'cust-9',
+    name: 'Rohit Verma',
+    phone: '+91-9876XXX123',
+    email: 'rohit@example.com',
+    customerId: 'CUST009',
+    totalSpend: 9600,
+    loyaltyTier: 'Silver',
+    lastOrder: '16 Jul 2025',
+    status: 'Active',
+    registrationDate: '12 Mar 2024',
+    totalOrders: 20,
+    averageOrderValue: 480,
+    preferredCategories: ['Grocery', 'Dairy', 'Snacks'],
+    address: {
+      street: '369 University Road',
+      city: 'Kolkata',
+      state: 'West Bengal',
+      pincode: '700001'
+    }
+  },
+  {
+    id: 'cust-10',
+    name: 'Deepika Joshi',
+    phone: '+91-9876XXX123',
+    email: 'deepika@example.com',
+    customerId: 'CUST010',
+    totalSpend: 13500,
+    loyaltyTier: 'Gold',
+    lastOrder: '19 Jul 2025',
+    status: 'Active',
+    registrationDate: '08 Oct 2023',
+    totalOrders: 28,
+    averageOrderValue: 482,
+    preferredCategories: ['Personal Care', 'Beauty', 'Health'],
+    address: {
+      street: '741 Heritage Lane',
+      city: 'Jaipur',
+      state: 'Rajasthan',
+      pincode: '302001'
+    }
+  }
+];
+
+// Order Data
+export const mockOrders: Order[] = [
+  {
+    id: 'order-1',
+    orderId: '#12345',
+    amount: 250,
+    customer: 'Raj',
+    status: 'Delivered',
+    payment: 'UPI',
+    deliveryDate: '12 July 2025',
+    orderDate: '10 July 2025',
+    items: [
+      { productName: 'Dettol Handwash', quantity: 2, price: 120 },
+      { productName: 'Tata Salt 1kg', quantity: 1, price: 25 }
+    ],
+    address: {
+      street: '123 Main Street',
+      city: 'Mumbai',
+      state: 'Maharashtra',
+      pincode: '400001'
+    },
+    trackingNumber: 'TRK123456789'
+  },
+  {
+    id: 'order-2',
+    orderId: '#12346',
+    amount: 450,
+    customer: 'Tanya',
+    status: 'Pending',
+    payment: 'COD',
+    deliveryDate: '14 July 2025',
+    orderDate: '12 July 2025',
+    items: [
+      { productName: 'Aashirvaad Atta 5kg', quantity: 1, price: 250 },
+      { productName: 'Amul Milk 1L', quantity: 2, price: 60 }
+    ],
+    address: {
+      street: '456 Park Avenue',
+      city: 'Delhi',
+      state: 'Delhi',
+      pincode: '110001'
+    }
+  },
+  {
+    id: 'order-3',
+    orderId: '#12347',
+    amount: 180,
+    customer: 'Raj',
+    status: 'Cancelled',
+    payment: 'UPI',
+    deliveryDate: '15 July 2025',
+    orderDate: '13 July 2025',
+    items: [
+      { productName: 'Colgate Toothpaste', quantity: 1, price: 80 },
+      { productName: 'Lux Soap', quantity: 2, price: 50 }
+    ],
+    address: {
+      street: '123 Main Street',
+      city: 'Mumbai',
+      state: 'Maharashtra',
+      pincode: '400001'
+    }
+  },
+  {
+    id: 'order-4',
+    orderId: '#12348',
+    amount: 320,
+    customer: 'Priya',
+    status: 'Pending',
+    payment: 'Card',
+    deliveryDate: '16 July 2025',
+    orderDate: '14 July 2025',
+    items: [
+      { productName: 'Surf Excel 1kg', quantity: 1, price: 180 },
+      { productName: 'Rice 5kg', quantity: 1, price: 300 }
+    ],
+    address: {
+      street: '321 Lake View',
+      city: 'Chennai',
+      state: 'Tamil Nadu',
+      pincode: '600001'
+    }
+  },
+  {
+    id: 'order-5',
+    orderId: '#12349',
+    amount: 150,
+    customer: 'Vikram',
+    status: 'Pending',
+    payment: 'UPI',
+    deliveryDate: '17 July 2025',
+    orderDate: '15 July 2025',
+    items: [
+      { productName: 'Maggi Noodles', quantity: 3, price: 45 },
+      { productName: 'Bread', quantity: 2, price: 25 }
+    ],
+    address: {
+      street: '654 Hill Station',
+      city: 'Pune',
+      state: 'Maharashtra',
+      pincode: '411001'
+    },
+    trackingNumber: 'TRK987654321'
+  },
+  {
+    id: 'order-6',
+    orderId: '#12350',
+    amount: 280,
+    customer: 'Sneha',
+    status: 'Delivered',
+    payment: 'COD',
+    deliveryDate: '18 July 2025',
+    orderDate: '16 July 2025',
+    items: [
+      { productName: 'Dabur Honey 250ml', quantity: 1, price: 120 },
+      { productName: 'Amul Butter 500g', quantity: 2, price: 60 }
+    ],
+    address: {
+      street: '987 Tech Park',
+      city: 'Hyderabad',
+      state: 'Telangana',
+      pincode: '500001'
+    },
+    trackingNumber: 'TRK456789123'
+  },
+  {
+    id: 'order-7',
+    orderId: '#12351',
+    amount: 400,
+    customer: 'Amit',
+    status: 'Pending',
+    payment: 'Net Banking',
+    deliveryDate: '19 July 2025',
+    orderDate: '17 July 2025',
+    items: [
+      { productName: 'Lux Soap (Pack of 4)', quantity: 2, price: 80 },
+      { productName: 'Tata Tea Gold', quantity: 1, price: 120 }
+    ],
+    address: {
+      street: '147 Business District',
+      city: 'Gurgaon',
+      state: 'Haryana',
+      pincode: '122001'
+    }
+  },
+  {
+    id: 'order-8',
+    orderId: '#12352',
+    amount: 220,
+    customer: 'Kavya',
+    status: 'Delivered',
+    payment: 'UPI',
+    deliveryDate: '20 July 2025',
+    orderDate: '18 July 2025',
+    items: [
+      { productName: 'Real Mango Juice', quantity: 2, price: 60 },
+      { productName: 'Harvest Bread Loaf', quantity: 3, price: 35 }
+    ],
+    address: {
+      street: '258 Coastal Road',
+      city: 'Kochi',
+      state: 'Kerala',
+      pincode: '682001'
+    },
+    trackingNumber: 'TRK789123456'
+  },
+  {
+    id: 'order-9',
+    orderId: '#12353',
+    amount: 350,
+    customer: 'Rohit',
+    status: 'Cancelled',
+    payment: 'COD',
+    deliveryDate: '21 July 2025',
+    orderDate: '19 July 2025',
+    items: [
+      { productName: 'Patanjali Dant Kanti', quantity: 1, price: 45 },
+      { productName: 'Kellogg\'s Chocos', quantity: 1, price: 155 }
+    ],
+    address: {
+      street: '369 University Road',
+      city: 'Kolkata',
+      state: 'West Bengal',
+      pincode: '700001'
+    }
+  },
+  {
+    id: 'order-10',
+    orderId: '#12354',
+    amount: 190,
+    customer: 'Deepika',
+    status: 'Pending',
+    payment: 'Card',
+    deliveryDate: '22 July 2025',
+    orderDate: '20 July 2025',
+    items: [
+      { productName: 'Vim Dish Gel', quantity: 1, price: 99 },
+      { productName: 'Britannia Biscuits', quantity: 2, price: 55 }
+    ],
+    address: {
+      street: '741 Heritage Lane',
+      city: 'Jaipur',
+      state: 'Rajasthan',
+      pincode: '302001'
+    },
+    trackingNumber: 'TRK321654987'
+  }
+];
+
+// Order Summary Data
+export const mockOrderSummary: OrderSummary = {
+  totalOrders: 868,
+  totalReceived: 808,
+  totalReturned: 10,
+  onTheWay: 22,
+  revenue: 25000,
+  returnAmount: 2500,
+  onTheWayCost: 23200,
+  trends: {
+    totalOrders: { value: 868, percentage: 12 },
+    totalReceived: { value: 808, percentage: 8 },
+    totalReturned: { value: 10, percentage: -5 },
+    onTheWay: { value: 22, percentage: 15 }
+  }
+};

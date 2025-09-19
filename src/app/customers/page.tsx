@@ -1,10 +1,10 @@
-import { PlaceholderPage } from '@/components/dashboard/placeholder-page';
+import { DashboardLayout } from '@/components/layout/dashboard-layout';
+import { CustomerPage } from '@/components/customers/customer-page';
 
 export default function CustomersPage() {
   return (
-    <PlaceholderPage 
-      title="Customers" 
-      description="View and manage your customer database."
-    />
+    <DashboardLayout>
+      <CustomerPage />
+    </DashboardLayout>
   );
 }

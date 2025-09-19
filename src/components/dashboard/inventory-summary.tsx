@@ -7,7 +7,7 @@ import { InventoryTable } from './inventory-table';
 import { mockProducts, mockInventorySummary } from '@/lib/data/mockData';
 import { formatCurrency, formatPercentage } from '@/lib/utils';
 import { exportProductsToCSV } from '@/lib/utils/csv-export';
-import { Plus, Download } from 'lucide-react';
+import { Plus, Upload } from 'lucide-react';
 
 export function InventorySummary() {
   const [currentPage, setCurrentPage] = useState(1);
@@ -85,7 +85,7 @@ export function InventorySummary() {
             {
               key: 'export',
               label: 'Export CSV',
-              icon: <Download className="w-4 h-4" />,
+              icon: <Upload className="w-4 h-4" />,
               onClick: handleExportCSV,
               variant: 'danger'
             }

@@ -117,5 +117,66 @@ export interface ProductDetail {
   };
 }
 
+export interface Customer {
+  id: string;
+  name: string;
+  phone: string;
+  email: string;
+  customerId: string;
+  totalSpend: number;
+  loyaltyTier: 'Bronze' | 'Silver' | 'Gold' | 'Platinum';
+  lastOrder: string;
+  status: 'Active' | 'Inactive' | 'Suspended';
+  registrationDate: string;
+  totalOrders: number;
+  averageOrderValue: number;
+  preferredCategories: string[];
+  address?: {
+    street: string;
+    city: string;
+    state: string;
+    pincode: string;
+  };
+}
+
+export interface Order {
+  id: string;
+  orderId: string;
+  amount: number;
+  customer: string;
+  status: 'Delivered' | 'Pending' | 'Cancelled';
+  payment: 'UPI' | 'COD' | 'Card' | 'Net Banking';
+  deliveryDate: string;
+  orderDate: string;
+  items: {
+    productName: string;
+    quantity: number;
+    price: number;
+  }[];
+  address: {
+    street: string;
+    city: string;
+    state: string;
+    pincode: string;
+  };
+  trackingNumber?: string;
+}
+
+export interface OrderSummary {
+  totalOrders: number;
+  totalReceived: number;
+  totalReturned: number;
+  onTheWay: number;
+  revenue: number;
+  returnAmount: number;
+  onTheWayCost: number;
+  trends: {
+    totalOrders: { value: number; percentage: number };
+    totalReceived: { value: number; percentage: number };
+    totalReturned: { value: number; percentage: number };
+    onTheWay: { value: number; percentage: number };
+  };
+}
+
 // Re-export table types for convenience
 export * from './table';
