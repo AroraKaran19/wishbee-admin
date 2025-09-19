@@ -4,6 +4,7 @@ import React from 'react';
 import { DataTable } from '@/components/ui/data-table';
 import { ExpiredItem, TableConfig } from '@/lib/types';
 import { Trash2, Bookmark, CircleX } from 'lucide-react';
+import Link from 'next/link';
 
 interface ExpiredTableProps {
   items: ExpiredItem[];
@@ -33,10 +34,13 @@ export function ExpiredTable({
         key: 'productName',
         title: 'Product Name',
         align: 'center',
-        render: (value) => (
-          <div className="text-sm text-gray-900">
+        render: (value, record) => (
+          <Link 
+            href={`/inventory/product/${record.id}`}
+            className="text-sm text-gray-900 hover:text-gray-700 font-medium transition-colors"
+          >
             {value}
-          </div>
+          </Link>
         )
       },
       {

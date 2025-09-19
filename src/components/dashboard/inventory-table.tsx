@@ -4,6 +4,7 @@ import React from 'react';
 import { DataTable } from '@/components/ui/data-table';
 import { Product, TableConfig } from '@/lib/types';
 import { formatCurrency } from '@/lib/utils';
+import Link from 'next/link';
 interface InventoryTableProps {
   products: Product[];
   currentPage: number;
@@ -18,10 +19,13 @@ export function InventoryTable({ products, currentPage, totalPages, onPageChange
         key: 'name',
         title: 'Product Name',
         align: 'center',
-        render: (value) => (
-          <div className="text-sm text-gray-900">
+        render: (value, record) => (
+          <Link 
+            href={`/inventory/product/${record.id}`}
+            className="text-sm text-gray-900 hover:text-gray-700 font-medium transition-colors"
+          >
             {value}
-          </div>
+          </Link>
         )
       },
       {

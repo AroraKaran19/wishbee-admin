@@ -90,5 +90,32 @@ export interface TopSellingItem {
   suggestedAction: 'boost' | 'trends';
 }
 
+export interface ProductDetail {
+  id: string;
+  productName: string;
+  productDescription: string;
+  productId: string;
+  buyingPrice: number;
+  productCategory: string;
+  expiryDate: string;
+  quantity: number;
+  thresholdValue: number;
+  supplier: {
+    name: string;
+    contactNumber: string;
+  };
+  stockLocations: {
+    storeName: string;
+    stockInHand: number;
+  }[];
+  images: string[];
+  stockOverview: {
+    openingStock: number;
+    remainingStock: number;
+    onTheWay: number;
+    thresholdValue: number;
+  };
+}
+
 // Re-export table types for convenience
 export * from './table';
