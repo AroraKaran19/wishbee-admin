@@ -6,7 +6,7 @@ import { SearchBar } from '@/components/ui/search-bar';
 import { ShortExpiryTable } from './short-expiry-table';
 import { shortExpiryItems } from '@/lib/data/mockData';
 import { exportToCSV } from '@/lib/utils/csv-export';
-import { Download } from 'lucide-react';
+import { Upload } from 'lucide-react';
 import { ShortExpiryItem } from '@/lib/types';
 
 export function ShortExpiryPage() {
@@ -66,7 +66,7 @@ export function ShortExpiryPage() {
               {
                 key: 'export',
                 label: 'Export CSV',
-                icon: <Download className="w-4 h-4" />,
+                icon: <Upload className="w-4 h-4" />,
                 onClick: handleExportCSV,
                 variant: 'danger'
               }

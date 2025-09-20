@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Search, Mic, SlidersHorizontal, Download, Plus } from 'lucide-react';
+import { Search, Mic, SlidersHorizontal, Upload, Plus } from 'lucide-react';
 import { Button } from './button';
 
 export interface SearchBarAction {
@@ -71,7 +71,7 @@ export function SearchBar({
     {
       key: 'export',
       label: 'Export CSV',
-      icon: <Download className="w-4 h-4" />,
+      icon: <Upload className="w-4 h-4" />,
       variant: 'danger',
       onClick: () => console.log('Export CSV clicked')
     }

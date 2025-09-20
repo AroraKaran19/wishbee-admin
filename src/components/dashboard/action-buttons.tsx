@@ -1,6 +1,6 @@
 import React from 'react';
 import Link from 'next/link';
-import { Plus, Download } from 'lucide-react';
+import { Plus, Upload } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 export function ActionButtons() {
@@ -16,7 +16,7 @@ export function ActionButtons() {
       </Link>
       <Button 
         variant="danger" 
-        icon={<Download className="w-4 h-4" />}
+        icon={<Upload className="w-4 h-4" />}
       >
         Export CSV
       </Button>

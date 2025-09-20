@@ -6,7 +6,7 @@ import { SearchBar } from '@/components/ui/search-bar';
 import { TopSellingTable } from './top-selling-table';
 import { topSellingItems } from '@/lib/data/mockData';
 import { exportTopSellingToCSV } from '@/lib/utils/csv-export';
-import { Download } from 'lucide-react';
+import { Upload } from 'lucide-react';
 
 export function TopSellingPage() {
   const [currentPage, setCurrentPage] = useState(1);
@@ -57,7 +57,7 @@ export function TopSellingPage() {
               {
                 key: 'export',
                 label: 'Export CSV',
-                icon: <Download className="w-4 h-4" />,
+                icon: <Upload className="w-4 h-4" />,
                 onClick: handleExportCSV,
                 variant: 'danger'
               }

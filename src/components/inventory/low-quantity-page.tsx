@@ -6,7 +6,7 @@ import { SearchBar } from '@/components/ui/search-bar';
 import { LowQuantityTable } from './low-quantity-table';
 import { lowQuantityItems } from '@/lib/data/mockData';
 import { exportToCSV } from '@/lib/utils/csv-export';
-import { Download } from 'lucide-react';
+import { Upload } from 'lucide-react';
 import { LowQuantityItem } from '@/lib/types';
 
 export function LowQuantityPage() {
@@ -66,7 +66,7 @@ export function LowQuantityPage() {
               {
                 key: 'export',
                 label: 'Export CSV',
-                icon: <Download className="w-4 h-4" />,
+                icon: <Upload className="w-4 h-4" />,
                 onClick: handleExportCSV,
                 variant: 'danger'
               }

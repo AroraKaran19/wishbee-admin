@@ -6,7 +6,7 @@ import { SearchBar } from '@/components/ui/search-bar';
 import { LongUnsoldTable } from './long-unsold-table';
 import { longUnsoldItems } from '@/lib/data/mockData';
 import { exportLongUnsoldToCSV } from '@/lib/utils/csv-export';
-import { Download } from 'lucide-react';
+import { Upload } from 'lucide-react';
 
 export function LongUnsoldPage() {
   const [currentPage, setCurrentPage] = useState(1);
@@ -57,7 +57,7 @@ export function LongUnsoldPage() {
               {
                 key: 'export',
                 label: 'Export CSV',
-                icon: <Download className="w-4 h-4" />,
+                icon: <Upload className="w-4 h-4" />,
                 onClick: handleExportCSV,
                 variant: 'danger'
               }
