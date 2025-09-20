@@ -21,7 +21,7 @@ export function InventoryTable({ products, currentPage, totalPages, onPageChange
         align: 'center',
         render: (value, record) => (
           <Link 
-            href={`/inventory/product/${record.id}`}
+            href={`/inventory/product/${record._id}`}
             className="text-sm text-gray-900 hover:text-gray-700 font-medium transition-colors"
           >
             {value}
@@ -34,63 +34,55 @@ export function InventoryTable({ products, currentPage, totalPages, onPageChange
         align: 'center',
         render: (value) => (
           <div className="text-sm text-gray-900">
+            {value.name}
+          </div>
+        )
+      },
+      {
+        key: 'price',
+        title: 'Price',
+        align: 'center',
+        render: (value) => (
+          <div className="text-sm text-gray-900">
+            {formatCurrency(value.single)}
+          </div>
+        )
+      },
+      {
+        key: 'stock',
+        title: 'Stock',
+        align: 'center',
+        render: (value) => (
+          <div className="text-sm text-gray-900">
+            {value} units
+          </div>
+        )
+      },
+      {
+        key: 'sku',
+        title: 'SKU',
+        align: 'center',
+        render: (value) => (
+          <div className="text-sm text-gray-500 font-mono">
             {value}
           </div>
         )
       },
       {
-        key: 'buyingPrice',
-        title: 'Buying Price',
-        align: 'center',
-        render: (value) => (
-          <div className="text-sm text-gray-900">
-            {formatCurrency(value)}
-          </div>
-        )
-      },
-      {
-        key: 'stockQuantity',
-        title: 'Stock Qty',
-        align: 'center',
-        render: (value) => (
-          <div className="text-sm text-gray-900">
-            {value} Pieces
-          </div>
-        )
-      },
-      {
-        key: 'lastSoldDate',
-        title: 'Last Sold Date',
-        align: 'center',
-        render: (value) => (
-          <div className="text-sm text-gray-900">
-            {value}
-          </div>
-        )
-      },
-      {
-        key: 'expiryDate',
-        title: 'Expiry Date',
-        align: 'center',
-        render: (value) => (
-          <div className="text-sm text-gray-900">
-            {value}
-          </div>
-        )
-      },
-      {
-        key: 'availabilityStatus',
-        title: 'Availability',
+        key: 'status',
+        title: 'Status',
         align: 'center',
         render: (value) => (
           <span 
-            className={`text-sm ${
-              value === 'in-stock' 
-                ? 'text-success' 
-                : 'text-danger'
+            className={`text-sm px-2 py-1 rounded-full ${
+              value === 'ACTIVE' 
+                ? 'bg-green-100 text-green-800' 
+                : value === 'OUT_OF_STOCK'
+                ? 'bg-red-100 text-red-800'
+                : 'bg-gray-100 text-gray-800'
             }`}
           >
-            {value === 'in-stock' ? 'In Stock' : 'Out of stock'}
+            {value === 'ACTIVE' ? 'Active' : value === 'OUT_OF_STOCK' ? 'Out of Stock' : 'Discontinued'}
           </span>
         )
       }

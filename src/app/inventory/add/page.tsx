@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useForm, useFieldArray, Controller } from "react-hook-form";
@@ -24,13 +24,16 @@ import {
   X,
 } from "lucide-react";
 import { Product } from "@/lib/types/product";
+import { productApi } from "@/lib/api/products";
+import { categoryApi, subcategoryApi } from "@/lib/api/categories";
+import toast from "react-hot-toast";
 
 type ProductFormData = Omit<
   Product,
-  "_id" | "createdAt" | "updatedAt" | "reviews" | "categoryId" | "subCategory"
+  "_id" | "createdAt" | "updatedAt" | "reviews" | "category" | "subCategory"
 > & {
   categoryId: string;
-  subCategory: string;
+  subCategoryId: string;
   highlights: string[];
   metaKeywords: string[];
   collection: {
@@ -88,7 +91,7 @@ export default function InventoryAddProductPage() {
       metaKeywords: [],
       slug: "",
       categoryId: "",
-      subCategory: "",
+      subCategoryId: "",
       collection: [],
     },
   });
@@ -108,6 +111,56 @@ export default function InventoryAddProductPage() {
 
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitSuccess, setSubmitSuccess] = useState(false);
+  const [categories, setCategories] = useState<any[]>([]);
+  const [subcategories, setSubcategories] = useState<any[]>([]);
+  const [loadingCategories, setLoadingCategories] = useState(false);
+  const [loadingSubcategories, setLoadingSubcategories] = useState(false);
+  const [showCategoryModal, setShowCategoryModal] = useState(false);
+  const [showSubcategoryModal, setShowSubcategoryModal] = useState(false);
+
+  // Load categories on component mount
+  useEffect(() => {
+    const loadCategories = async () => {
+      try {
+        setLoadingCategories(true);
+        const response = await categoryApi.getAll({ isActive: true });
+        setCategories(response.data || response);
+      } catch (error) {
+        console.error("Error loading categories:", error);
+        const errorMessage = "Failed to load categories. Please refresh the page.";
+        setSubmitError(errorMessage);
+        toast.error(errorMessage);
+      } finally {
+        setLoadingCategories(false);
+      }
+    };
+
+    loadCategories();
+  }, []);
+
+  // Load subcategories when category changes
+  useEffect(() => {
+    const selectedCategoryId = watch("categoryId");
+    if (selectedCategoryId) {
+      const loadSubcategories = async () => {
+        try {
+          setLoadingSubcategories(true);
+          const response = await subcategoryApi.getByCategory(selectedCategoryId);
+          setSubcategories(response.data || response);
+        } catch (error) {
+          console.error("Error loading subcategories:", error);
+          setSubcategories([]);
+          toast.error("Failed to load subcategories");
+        } finally {
+          setLoadingSubcategories(false);
+        }
+      };
+
+      loadSubcategories();
+    } else {
+      setSubcategories([]);
+    }
+  }, [watch("categoryId")]);
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
@@ -211,6 +264,49 @@ export default function InventoryAddProductPage() {
     );
   };
 
+  // Category creation
+  const handleCreateCategory = async (data: {
+    name: string;
+    description: string;
+    slug: string;
+    image?: string;
+  }) => {
+    try {
+      const newCategory = await categoryApi.create(data);
+      setCategories(prev => [...prev, newCategory]);
+      setShowCategoryModal(false);
+      setSubmitError(null);
+      toast.success("Category created successfully!");
+    } catch (error) {
+      console.error("Error creating category:", error);
+      const errorMessage = error instanceof Error ? error.message : "Failed to create category";
+      setSubmitError(errorMessage);
+      toast.error(errorMessage);
+    }
+  };
+
+  // Subcategory creation
+  const handleCreateSubcategory = async (data: {
+    name: string;
+    description: string;
+    parentCategoryId: string;
+    slug: string;
+    image?: string;
+  }) => {
+    try {
+      const newSubcategory = await subcategoryApi.create(data);
+      setSubcategories(prev => [...prev, newSubcategory]);
+      setShowSubcategoryModal(false);
+      setSubmitError(null);
+      toast.success("Sub-category created successfully!");
+    } catch (error) {
+      console.error("Error creating subcategory:", error);
+      const errorMessage = error instanceof Error ? error.message : "Failed to create subcategory";
+      setSubmitError(errorMessage);
+      toast.error(errorMessage);
+    }
+  };
+
   const validateFormData = (data: ProductFormData): string[] => {
     const errors: string[] = [];
 
@@ -219,7 +315,7 @@ export default function InventoryAddProductPage() {
     if (!data.name?.trim()) errors.push("Product name is required");
     if (!data.description?.trim()) errors.push("Description is required");
     if (!data.categoryId?.trim()) errors.push("Category is required");
-    if (!data.subCategory?.trim()) errors.push("Sub-category is required");
+    if (!data.subCategoryId?.trim()) errors.push("Sub-category is required");
     if (data.images.length === 0)
       errors.push("At least one product image is required");
 
@@ -299,7 +395,7 @@ export default function InventoryAddProductPage() {
         description: data.description.trim(),
         highlights: data.highlights,
         categoryId: data.categoryId,
-        subCategory: data.subCategory,
+        subCategory: data.subCategoryId,
         images: data.images,
         status: data.status,
         isOrganic: data.isOrganic,
@@ -338,28 +434,11 @@ export default function InventoryAddProductPage() {
       };
 
       // Submit to backend
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_BACKEND_URL}/product`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(productData),
-        }
-      );
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(
-          errorData.message || `HTTP error! status: ${response.status}`
-        );
-      }
-
-      const result = await response.json();
+      const result = await productApi.create(productData);
       console.log("Product created successfully:", result);
 
       setSubmitSuccess(true);
+      toast.success("Product created successfully!");
 
       // Redirect to inventory page after successful submission
       setTimeout(() => {
@@ -367,9 +446,9 @@ export default function InventoryAddProductPage() {
       }, 2000);
     } catch (error) {
       console.error("Error submitting form:", error);
-      setSubmitError(
-        error instanceof Error ? error.message : "An unexpected error occurred"
-      );
+      const errorMessage = error instanceof Error ? error.message : "An unexpected error occurred";
+      setSubmitError(errorMessage);
+      toast.error(errorMessage);
     }
   };
 
@@ -548,18 +627,36 @@ export default function InventoryAddProductPage() {
                       )}
                     </div>
                     <div className="space-y-2">
-                      <label className="text-sm font-medium text-gray-700">
-                        Category *
-                      </label>
-                      <Input
-                        variant="muted"
-                        icon={<Tag className="w-4 h-4" />}
-                        className="text-sm"
-                        placeholder="Enter category ID"
+                      <div className="flex items-center justify-between">
+                        <label className="text-sm font-medium text-gray-700">
+                          Category *
+                        </label>
+                        <Button
+                          type="button"
+                          variant="secondary"
+                          size="sm"
+                          onClick={() => setShowCategoryModal(true)}
+                          icon={<Plus className="w-3 h-3" />}
+                        >
+                          New
+                        </Button>
+                      </div>
+                      <select
+                        className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-gray-400 bg-muted text-sm"
                         {...register("categoryId", {
                           required: "Category is required",
                         })}
-                      />
+                        disabled={loadingCategories}
+                      >
+                        <option value="">
+                          {loadingCategories ? "Loading categories..." : "Select a category"}
+                        </option>
+                        {categories.map((category) => (
+                          <option key={category._id} value={category._id}>
+                            {category.name}
+                          </option>
+                        ))}
+                      </select>
                       {errors.categoryId && (
                         <p className="text-red-500 text-xs mt-1">
                           {errors.categoryId.message}
@@ -567,21 +664,44 @@ export default function InventoryAddProductPage() {
                       )}
                     </div>
                     <div className="space-y-2">
-                      <label className="text-sm font-medium text-gray-700">
-                        Sub-category *
-                      </label>
-                      <Input
-                        variant="muted"
-                        icon={<Tag className="w-4 h-4" />}
-                        className="text-sm"
-                        placeholder="Enter sub-category ID"
-                        {...register("subCategory", {
+                      <div className="flex items-center justify-between">
+                        <label className="text-sm font-medium text-gray-700">
+                          Sub-category *
+                        </label>
+                        <Button
+                          type="button"
+                          variant="secondary"
+                          size="sm"
+                          onClick={() => setShowSubcategoryModal(true)}
+                          disabled={!watch("categoryId")}
+                          icon={<Plus className="w-3 h-3" />}
+                        >
+                          New
+                        </Button>
+                      </div>
+                      <select
+                        className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-gray-400 bg-muted text-sm"
+                        {...register("subCategoryId", {
                           required: "Sub-category is required",
                         })}
-                      />
-                      {errors.subCategory && (
+                        disabled={loadingSubcategories || !watch("categoryId")}
+                      >
+                        <option value="">
+                          {loadingSubcategories 
+                            ? "Loading subcategories..." 
+                            : !watch("categoryId") 
+                            ? "Select a category first" 
+                            : "Select a sub-category"}
+                        </option>
+                        {subcategories.map((subcategory) => (
+                          <option key={subcategory._id} value={subcategory._id}>
+                            {subcategory.name}
+                          </option>
+                        ))}
+                      </select>
+                      {errors.subCategoryId && (
                         <p className="text-red-500 text-xs mt-1">
-                          {errors.subCategory.message}
+                          {errors.subCategoryId.message}
                         </p>
                       )}
                     </div>
@@ -1261,7 +1381,308 @@ export default function InventoryAddProductPage() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Category Creation Modal */}
+        {showCategoryModal && (
+          <CreateCategoryModal
+            onClose={() => setShowCategoryModal(false)}
+            onSubmit={handleCreateCategory}
+          />
+        )}
+
+        {/* Subcategory Creation Modal */}
+        {showSubcategoryModal && (
+          <CreateSubcategoryModal
+            categories={categories}
+            selectedCategoryId={watch("categoryId")}
+            onClose={() => setShowSubcategoryModal(false)}
+            onSubmit={handleCreateSubcategory}
+          />
+        )}
       </div>
     </DashboardLayout>
+  );
+}
+
+// Category Creation Modal Component
+function CreateCategoryModal({ 
+  onClose, 
+  onSubmit 
+}: { 
+  onClose: () => void; 
+  onSubmit: (data: { name: string; description: string; slug: string; image?: string }) => void;
+}) {
+  const [formData, setFormData] = useState({
+    name: "",
+    description: "",
+    slug: "",
+    image: "",
+  });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formData.name || !formData.description || !formData.slug) return;
+
+    try {
+      setIsSubmitting(true);
+      await onSubmit(formData);
+    } catch (error) {
+      console.error("Error creating category:", error);
+      toast.error(error instanceof Error ? error.message : "Failed to create category");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const generateSlug = (name: string) => {
+    return name
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/(^-|-$)/g, '');
+  };
+
+  const handleNameChange = (name: string) => {
+    setFormData(prev => ({
+      ...prev,
+      name,
+      slug: generateSlug(name)
+    }));
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4">
+        <h2 className="text-lg font-semibold mb-4">Create Category</h2>
+        
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Name *
+            </label>
+            <Input
+              variant="muted"
+              value={formData.name}
+              onChange={(e) => handleNameChange(e.target.value)}
+              placeholder="Enter category name"
+              required
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Description *
+            </label>
+            <textarea
+              className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-gray-400 bg-muted text-sm"
+              value={formData.description}
+              onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+              placeholder="Enter category description"
+              rows={3}
+              required
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Slug *
+            </label>
+            <Input
+              variant="muted"
+              value={formData.slug}
+              onChange={(e) => setFormData(prev => ({ ...prev, slug: e.target.value }))}
+              placeholder="Enter URL slug"
+              required
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Image URL
+            </label>
+            <Input
+              variant="muted"
+              value={formData.image}
+              onChange={(e) => setFormData(prev => ({ ...prev, image: e.target.value }))}
+              placeholder="Enter image URL (optional)"
+            />
+          </div>
+
+          <div className="flex justify-end gap-3 pt-4">
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={onClose}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              variant="primary"
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? "Creating..." : "Create Category"}
+            </Button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+// Subcategory Creation Modal Component
+function CreateSubcategoryModal({ 
+  categories,
+  selectedCategoryId,
+  onClose, 
+  onSubmit 
+}: { 
+  categories: any[];
+  selectedCategoryId: string;
+  onClose: () => void; 
+  onSubmit: (data: { name: string; description: string; parentCategoryId: string; slug: string; image?: string }) => void;
+}) {
+  const [formData, setFormData] = useState({
+    name: "",
+    description: "",
+    parentCategoryId: selectedCategoryId || "",
+    slug: "",
+    image: "",
+  });
+
+  // Update parentCategoryId when selectedCategoryId changes
+  useEffect(() => {
+    if (selectedCategoryId) {
+      setFormData(prev => ({ ...prev, parentCategoryId: selectedCategoryId }));
+    }
+  }, [selectedCategoryId]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formData.name || !formData.description || !formData.parentCategoryId || !formData.slug) return;
+
+    try {
+      setIsSubmitting(true);
+      await onSubmit(formData);
+    } catch (error) {
+      console.error("Error creating subcategory:", error);
+      toast.error(error instanceof Error ? error.message : "Failed to create subcategory");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const generateSlug = (name: string) => {
+    return name
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/(^-|-$)/g, '');
+  };
+
+  const handleNameChange = (name: string) => {
+    setFormData(prev => ({
+      ...prev,
+      name,
+      slug: generateSlug(name)
+    }));
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4">
+        <h2 className="text-lg font-semibold mb-4">Create Sub-category</h2>
+        
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Parent Category *
+            </label>
+            <select
+              className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-gray-400 bg-muted text-sm"
+              value={formData.parentCategoryId}
+              onChange={(e) => setFormData(prev => ({ ...prev, parentCategoryId: e.target.value }))}
+              required
+            >
+              <option value="">Select a category</option>
+              {categories.map((category) => (
+                <option key={category._id} value={category._id}>
+                  {category.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Name *
+            </label>
+            <Input
+              variant="muted"
+              value={formData.name}
+              onChange={(e) => handleNameChange(e.target.value)}
+              placeholder="Enter sub-category name"
+              required
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Description *
+            </label>
+            <textarea
+              className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-gray-400 bg-muted text-sm"
+              value={formData.description}
+              onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+              placeholder="Enter sub-category description"
+              rows={3}
+              required
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Slug *
+            </label>
+            <Input
+              variant="muted"
+              value={formData.slug}
+              onChange={(e) => setFormData(prev => ({ ...prev, slug: e.target.value }))}
+              placeholder="Enter URL slug"
+              required
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Image URL
+            </label>
+            <Input
+              variant="muted"
+              value={formData.image}
+              onChange={(e) => setFormData(prev => ({ ...prev, image: e.target.value }))}
+              placeholder="Enter image URL (optional)"
+            />
+          </div>
+
+          <div className="flex justify-end gap-3 pt-4">
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={onClose}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              variant="primary"
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? "Creating..." : "Create Sub-category"}
+            </Button>
+          </div>
+        </form>
+      </div>
+    </div>
   );
 }

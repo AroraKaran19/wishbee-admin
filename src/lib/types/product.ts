@@ -1,14 +1,14 @@
-import mongoose from "mongoose";
+import { Category } from "./category";
 
 export interface Product {
   // Basic Details
   _id?: string;
-  sku: string; // Stock Keeping Unit for barcode value
+  sku: string;
   name: string;
   description: string;
   highlights: string[];
-  categoryId: mongoose.Types.ObjectId;
-  subCategory: mongoose.Types.ObjectId;
+  category: Category;
+  subCategory: Category;
   images: string[];
   status: "ACTIVE" | "OUT_OF_STOCK" | "DISCONTINUED";
   isOrganic: boolean;
@@ -18,7 +18,7 @@ export interface Product {
   };
 
   // Reviews
-  reviews: mongoose.Types.ObjectId[];
+  reviews: [];
 
   // Discount
   discount: {
@@ -35,11 +35,11 @@ export interface Product {
   weight: {
     single: {
       value: number;
-      unit: string; // let the admin decide the unit example packet, kg, etc
+      unit: string;
     };
     bulk: {
       value: number;
-      unit: string; // let the admin decide the unit example packet, kg, etc
+      unit: string;
     };
   };
   reviewsCount: number;
@@ -49,8 +49,8 @@ export interface Product {
   collection?: {
     quantity: number;
     price: number;
-    unit?: string; // let the admin decide the unit example packet, kg, etc
-  }[]; // if the product is also available in collection like 5kg, 2 packets, etc
+    unit?: string;
+  }[];
 
   // SEO
   metaTitle?: string;

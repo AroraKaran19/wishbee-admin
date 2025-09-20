@@ -106,8 +106,8 @@ export function Sidebar() {
                             toggleExpanded(item.id);
                           }}
                           className={cn(
-                            'p-1 rounded hover:bg-black hover:bg-opacity-10 transition-colors cursor-pointer',
-                            isActive ? 'text-white hover:bg-white hover:bg-opacity-20' : 'text-text-primary'
+                            'p-1 rounded hover:bg-black/10 transition-colors cursor-pointer',
+                            isActive ? 'text-white hover:bg-white/20' : 'text-text-primary'
                           )}
                         >
                           {isExpanded ? (

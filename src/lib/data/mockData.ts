@@ -7,8 +7,24 @@ export const mockProducts: Product[] = [
     name: 'Dettol Handwash',
     description: 'Antibacterial handwash for effective hand hygiene',
     highlights: ['Kills 99.9% germs', 'Moisturizing formula', 'Dermatologically tested'],
-    categoryId: "12345678" as any,
-    subCategory: "12345678" as any,
+    category: {
+      _id: "12345678",
+      name: "Personal Care",
+      description: "Personal hygiene and care products",
+      slug: "personal-care",
+      isActive: true,
+      createdAt: new Date('2024-01-01'),
+      updatedAt: new Date('2024-01-01')
+    },
+    subCategory: {
+      _id: "12345679",
+      name: "Hand Care",
+      description: "Hand hygiene and care products",
+      slug: "hand-care",
+      isActive: true,
+      createdAt: new Date('2024-01-01'),
+      updatedAt: new Date('2024-01-01')
+    },
     images: ['/images/dettol-handwash-1.jpg', '/images/dettol-handwash-2.jpg'],
     status: "ACTIVE",
     isOrganic: false,
@@ -16,10 +32,6 @@ export const mockProducts: Product[] = [
       single: 120,
       bulk: 100
     },
-    multiQuantity: [
-      { value: 3, discount: 'percentage', discountValue: 10 },
-      { value: 6, discount: 'fixed', discountValue: 50 }
-    ],
     reviews: [],
     discount: {
       type: 'percentage',
@@ -47,8 +59,24 @@ export const mockProducts: Product[] = [
     name: 'Aashirvaad Atta 5kg',
     description: 'Premium whole wheat flour for healthy rotis and breads',
     highlights: ['100% whole wheat', 'No preservatives', 'Rich in fiber'],
-    categoryId: "12345678" as any,
-    subCategory: "12345678" as any,
+    category: {
+      _id: "12345678",
+      name: "Personal Care",
+      description: "Personal hygiene and care products",
+      slug: "personal-care",
+      isActive: true,
+      createdAt: new Date('2024-01-01'),
+      updatedAt: new Date('2024-01-01')
+    },
+    subCategory: {
+      _id: "12345679",
+      name: "Hand Care",
+      description: "Hand hygiene and care products",
+      slug: "hand-care",
+      isActive: true,
+      createdAt: new Date('2024-01-01'),
+      updatedAt: new Date('2024-01-01')
+    },
     images: ['/images/aashirvaad-atta-1.jpg'],
     status: "ACTIVE",
     isOrganic: false,
@@ -56,9 +84,6 @@ export const mockProducts: Product[] = [
       single: 250,
       bulk: 220
     },
-    multiQuantity: [
-      { value: 2, discount: 'percentage', discountValue: 5 }
-    ],
     reviews: [],
     discount: {
       type: 'percentage',
@@ -86,8 +111,24 @@ export const mockProducts: Product[] = [
     name: 'Amul Butter 500g',
     description: 'Pure and fresh butter made from cow\'s milk',
     highlights: ['Pure cow\'s milk', 'No preservatives', 'Rich taste'],
-    categoryId: "12345678" as any,
-    subCategory: "12345678" as any,
+    category: {
+      _id: "12345678",
+      name: "Personal Care",
+      description: "Personal hygiene and care products",
+      slug: "personal-care",
+      isActive: true,
+      createdAt: new Date('2024-01-01'),
+      updatedAt: new Date('2024-01-01')
+    },
+    subCategory: {
+      _id: "12345679",
+      name: "Hand Care",
+      description: "Hand hygiene and care products",
+      slug: "hand-care",
+      isActive: true,
+      createdAt: new Date('2024-01-01'),
+      updatedAt: new Date('2024-01-01')
+    },
     images: ['/images/amul-butter-1.jpg'],
     status: "OUT_OF_STOCK",
     isOrganic: false,
@@ -122,8 +163,24 @@ export const mockProducts: Product[] = [
     name: 'Maggi Noodles',
     description: 'Instant noodles ready in 2 minutes',
     highlights: ['Ready in 2 minutes', 'Tasty masala', 'No preservatives'],
-    categoryId: "12345678" as any,
-    subCategory: "12345678" as any,
+    category: {
+      _id: "12345678",
+      name: "Personal Care",
+      description: "Personal hygiene and care products",
+      slug: "personal-care",
+      isActive: true,
+      createdAt: new Date('2024-01-01'),
+      updatedAt: new Date('2024-01-01')
+    },
+    subCategory: {
+      _id: "12345679",
+      name: "Hand Care",
+      description: "Hand hygiene and care products",
+      slug: "hand-care",
+      isActive: true,
+      createdAt: new Date('2024-01-01'),
+      updatedAt: new Date('2024-01-01')
+    },
     images: ['/images/maggi-noodles-1.jpg'],
     status: "ACTIVE",
     isOrganic: false,
@@ -131,9 +188,6 @@ export const mockProducts: Product[] = [
       single: 15,
       bulk: 12
     },
-    multiQuantity: [
-      { value: 5, discount: 'fixed', discountValue: 10 }
-    ],
     reviews: [],
     discount: {
       type: 'percentage',
@@ -161,8 +215,24 @@ export const mockProducts: Product[] = [
     name: 'Colgate Toothpaste',
     description: 'Complete protection toothpaste for healthy teeth and gums',
     highlights: ['Complete protection', 'Fresh breath', 'Fluoride protection'],
-    categoryId: "12345678" as any,
-    subCategory: "12345678" as any,
+    category: {
+      _id: "12345678",
+      name: "Personal Care",
+      description: "Personal hygiene and care products",
+      slug: "personal-care",
+      isActive: true,
+      createdAt: new Date('2024-01-01'),
+      updatedAt: new Date('2024-01-01')
+    },
+    subCategory: {
+      _id: "12345679",
+      name: "Hand Care",
+      description: "Hand hygiene and care products",
+      slug: "hand-care",
+      isActive: true,
+      createdAt: new Date('2024-01-01'),
+      updatedAt: new Date('2024-01-01')
+    },
     images: ['/images/colgate-toothpaste-1.jpg'],
     status: "OUT_OF_STOCK",
     isOrganic: false,
@@ -197,8 +267,24 @@ export const mockProducts: Product[] = [
     name: 'Milk 1L',
     description: 'Fresh cow\'s milk, pasteurized and homogenized',
     highlights: ['Fresh cow\'s milk', 'Pasteurized', 'Rich in calcium'],
-    categoryId: "12345678" as any,
-    subCategory: "12345678" as any,
+    category: {
+      _id: "12345678",
+      name: "Personal Care",
+      description: "Personal hygiene and care products",
+      slug: "personal-care",
+      isActive: true,
+      createdAt: new Date('2024-01-01'),
+      updatedAt: new Date('2024-01-01')
+    },
+    subCategory: {
+      _id: "12345679",
+      name: "Hand Care",
+      description: "Hand hygiene and care products",
+      slug: "hand-care",
+      isActive: true,
+      createdAt: new Date('2024-01-01'),
+      updatedAt: new Date('2024-01-01')
+    },
     images: ['/images/milk-1l-1.jpg'],
     status: "ACTIVE",
     isOrganic: false,
@@ -233,8 +319,24 @@ export const mockProducts: Product[] = [
     name: 'Rice 5kg',
     description: 'Premium basmati rice, long grain and aromatic',
     highlights: ['Premium basmati', 'Long grain', 'Aromatic'],
-    categoryId: "12345678" as any,
-    subCategory: "12345678" as any,
+    category: {
+      _id: "12345678",
+      name: "Personal Care",
+      description: "Personal hygiene and care products",
+      slug: "personal-care",
+      isActive: true,
+      createdAt: new Date('2024-01-01'),
+      updatedAt: new Date('2024-01-01')
+    },
+    subCategory: {
+      _id: "12345679",
+      name: "Hand Care",
+      description: "Hand hygiene and care products",
+      slug: "hand-care",
+      isActive: true,
+      createdAt: new Date('2024-01-01'),
+      updatedAt: new Date('2024-01-01')
+    },
     images: ['/images/rice-5kg-1.jpg'],
     status: "ACTIVE",
     isOrganic: false,
@@ -242,9 +344,6 @@ export const mockProducts: Product[] = [
       single: 300,
       bulk: 280
     },
-    multiQuantity: [
-      { value: 2, discount: 'percentage', discountValue: 8 }
-    ],
     reviews: [],
     discount: {
       type: 'percentage',
@@ -272,8 +371,24 @@ export const mockProducts: Product[] = [
     name: 'Shampoo',
     description: 'Gentle cleansing shampoo for all hair types',
     highlights: ['Gentle cleansing', 'All hair types', 'Sulfate-free'],
-    categoryId: "12345678" as any,
-    subCategory: "12345678" as any,
+    category: {
+      _id: "12345678",
+      name: "Personal Care",
+      description: "Personal hygiene and care products",
+      slug: "personal-care",
+      isActive: true,
+      createdAt: new Date('2024-01-01'),
+      updatedAt: new Date('2024-01-01')
+    },
+    subCategory: {
+      _id: "12345679",
+      name: "Hand Care",
+      description: "Hand hygiene and care products",
+      slug: "hand-care",
+      isActive: true,
+      createdAt: new Date('2024-01-01'),
+      updatedAt: new Date('2024-01-01')
+    },
     images: ['/images/shampoo-1.jpg'],
     status: "ACTIVE",
     isOrganic: false,
@@ -308,8 +423,24 @@ export const mockProducts: Product[] = [
     name: 'Bread',
     description: 'Fresh white bread, soft and fluffy',
     highlights: ['Fresh baked', 'Soft and fluffy', 'No preservatives'],
-    categoryId: "12345678" as any,
-    subCategory: "12345678" as any,
+    category: {
+      _id: "12345678",
+      name: "Personal Care",
+      description: "Personal hygiene and care products",
+      slug: "personal-care",
+      isActive: true,
+      createdAt: new Date('2024-01-01'),
+      updatedAt: new Date('2024-01-01')
+    },
+    subCategory: {
+      _id: "12345679",
+      name: "Hand Care",
+      description: "Hand hygiene and care products",
+      slug: "hand-care",
+      isActive: true,
+      createdAt: new Date('2024-01-01'),
+      updatedAt: new Date('2024-01-01')
+    },
     images: ['/images/bread-1.jpg'],
     status: "OUT_OF_STOCK",
     isOrganic: false,
@@ -344,8 +475,24 @@ export const mockProducts: Product[] = [
     name: 'Butter',
     description: 'Creamy butter perfect for cooking and spreading',
     highlights: ['Creamy texture', 'Perfect for cooking', 'Rich taste'],
-    categoryId: "12345678" as any,
-    subCategory: "12345678" as any,
+    category: {
+      _id: "12345678",
+      name: "Personal Care",
+      description: "Personal hygiene and care products",
+      slug: "personal-care",
+      isActive: true,
+      createdAt: new Date('2024-01-01'),
+      updatedAt: new Date('2024-01-01')
+    },
+    subCategory: {
+      _id: "12345679",
+      name: "Hand Care",
+      description: "Hand hygiene and care products",
+      slug: "hand-care",
+      isActive: true,
+      createdAt: new Date('2024-01-01'),
+      updatedAt: new Date('2024-01-01')
+    },
     images: ['/images/butter-1.jpg'],
     status: "ACTIVE",
     isOrganic: false,
@@ -380,8 +527,24 @@ export const mockProducts: Product[] = [
     name: 'Paneer',
     description: 'Fresh cottage cheese, soft and crumbly',
     highlights: ['Fresh cottage cheese', 'Soft texture', 'High protein'],
-    categoryId: "12345678" as any,
-    subCategory: "12345678" as any,
+    category: {
+      _id: "12345678",
+      name: "Personal Care",
+      description: "Personal hygiene and care products",
+      slug: "personal-care",
+      isActive: true,
+      createdAt: new Date('2024-01-01'),
+      updatedAt: new Date('2024-01-01')
+    },
+    subCategory: {
+      _id: "12345679",
+      name: "Hand Care",
+      description: "Hand hygiene and care products",
+      slug: "hand-care",
+      isActive: true,
+      createdAt: new Date('2024-01-01'),
+      updatedAt: new Date('2024-01-01')
+    },
     images: ['/images/paneer-1.jpg'],
     status: "OUT_OF_STOCK",
     isOrganic: false,

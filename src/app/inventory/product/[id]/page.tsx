@@ -4,13 +4,14 @@ import { ProductDetailPage } from '@/components/product/product-detail-page';
 import { productDetails } from '@/lib/data/mockData';
 
 interface ProductDetailPageProps {
-  params: {
+  params: Promise<{
     id: string;
-  };
+  }>;
 }
 
-export default function ProductDetailPageRoute({ params }: ProductDetailPageProps) {
-  const product = productDetails.find(p => p.id === params?.id);
+export default async function ProductDetailPageRoute({ params }: ProductDetailPageProps) {
+  const { id } = await params;
+  const product = productDetails.find(p => p.id === id);
 
   if (!product) {
     notFound();

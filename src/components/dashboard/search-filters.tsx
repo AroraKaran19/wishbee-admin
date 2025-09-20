@@ -27,7 +27,7 @@ export function SearchFilters() {
       </div>
       
       <button 
-        className="bg-[#d9f4ff] hover:text-[#00b8fbc9] hover:bg-[#00b8fb28] hover:bg-opacity-20 text-[#00b7fb] p-3 rounded-lg cursor-pointer transition-colors focus:outline-none relative"
+        className="bg-[#d9f4ff] hover:text-[#00b8fbc9] hover:bg-[#00b8fb28]/20 text-[#00b7fb] p-3 rounded-lg cursor-pointer transition-colors focus:outline-none relative"
         aria-label="Filter options"
       >
         <SlidersHorizontal className="w-5 h-5" />
