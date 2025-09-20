@@ -24,7 +24,7 @@ import {
   X,
 } from "lucide-react";
 import { Product } from "@/lib/types/product";
-import { productApi } from "@/lib/api/products";
+import { productApi, getPresignedUrl } from "@/lib/api/products";
 import { categoryApi, subcategoryApi } from "@/lib/api/categories";
 import toast from "react-hot-toast";
 
@@ -117,6 +117,10 @@ export default function InventoryAddProductPage() {
   const [loadingSubcategories, setLoadingSubcategories] = useState(false);
   const [showCategoryModal, setShowCategoryModal] = useState(false);
   const [showSubcategoryModal, setShowSubcategoryModal] = useState(false);
+  const [uploadingImages, setUploadingImages] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<{
+    [key: string]: number;
+  }>({});
 
   // Load categories on component mount
   useEffect(() => {
@@ -127,7 +131,8 @@ export default function InventoryAddProductPage() {
         setCategories(response.data || response);
       } catch (error) {
         console.error("Error loading categories:", error);
-        const errorMessage = "Failed to load categories. Please refresh the page.";
+        const errorMessage =
+          "Failed to load categories. Please refresh the page.";
         setSubmitError(errorMessage);
         toast.error(errorMessage);
       } finally {
@@ -145,7 +150,9 @@ export default function InventoryAddProductPage() {
       const loadSubcategories = async () => {
         try {
           setLoadingSubcategories(true);
-          const response = await subcategoryApi.getByCategory(selectedCategoryId);
+          const response = await subcategoryApi.getByCategory(
+            selectedCategoryId
+          );
           setSubcategories(response.data || response);
         } catch (error) {
           console.error("Error loading subcategories:", error);
@@ -177,31 +184,94 @@ export default function InventoryAddProductPage() {
     e.stopPropagation();
   };
 
-  const handleDrop = (e: React.DragEvent) => {
+  const handleDrop = async (e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
     const files = e.dataTransfer.files;
     if (files && files.length > 0) {
-      handleFileUpload(files[0]);
+      // Upload files one by one
+      for (let i = 0; i < files.length; i++) {
+        await handleFileUpload(files[i]);
+      }
     }
   };
 
-  const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileInput = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (files && files.length > 0) {
-      handleFileUpload(files[0]);
+      // Upload files one by one
+      for (let i = 0; i < files.length; i++) {
+        await handleFileUpload(files[i]);
+      }
     }
   };
 
-  const handleFileUpload = (file: File) => {
-    if (file && file.type.startsWith("image/")) {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const imageUrl = e.target?.result as string;
-        const currentImages = watch("images") || [];
-        setValue("images", [...currentImages, imageUrl]);
-      };
-      reader.readAsDataURL(file);
+  const handleFileUpload = async (file: File) => {
+    if (!file.type.startsWith("image/")) {
+      toast.error("Please select a valid image file");
+      return;
+    }
+
+    const fileId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
+    try {
+      setUploadingImages(true);
+      setUploadProgress((prev) => ({ ...prev, [fileId]: 0 }));
+
+      // Generate unique filename
+      const fileExtension = file.name.split(".").pop();
+      const fileName = `products/${fileId}.${fileExtension}`;
+
+      // Get presigned URL from backend
+      setUploadProgress((prev) => ({ ...prev, [fileId]: 25 }));
+      const presignedData = await getPresignedUrl(fileName, file.type);
+      const { presignedUrl, imageUrl } = presignedData;
+
+      setUploadProgress((prev) => ({ ...prev, [fileId]: 50 }));
+
+      // Upload file to S3 using presigned URL with progress tracking
+      const uploadResponse = await fetch(presignedUrl, {
+        method: "PUT",
+        body: file,
+        headers: {
+          "Content-Type": file.type,
+        },
+      });
+
+      if (!uploadResponse.ok) {
+        throw new Error("Failed to upload image to S3");
+      }
+
+      setUploadProgress((prev) => ({ ...prev, [fileId]: 100 }));
+
+      // Add the S3 URL to the images array
+      const currentImages = watch("images") || [];
+      setValue("images", [...currentImages, imageUrl]);
+
+      // Clear progress after successful upload
+      setTimeout(() => {
+        setUploadProgress((prev) => {
+          const newProgress = { ...prev };
+          delete newProgress[fileId];
+          return newProgress;
+        });
+      }, 1000);
+
+      toast.success("Image uploaded successfully!");
+    } catch (error) {
+      console.error("Error uploading image:", error);
+      toast.error(
+        error instanceof Error ? error.message : "Failed to upload image"
+      );
+
+      // Clear progress on error
+      setUploadProgress((prev) => {
+        const newProgress = { ...prev };
+        delete newProgress[fileId];
+        return newProgress;
+      });
+    } finally {
+      setUploadingImages(false);
     }
   };
 
@@ -273,13 +343,14 @@ export default function InventoryAddProductPage() {
   }) => {
     try {
       const newCategory = await categoryApi.create(data);
-      setCategories(prev => [...prev, newCategory]);
+      setCategories((prev) => [...prev, newCategory]);
       setShowCategoryModal(false);
       setSubmitError(null);
       toast.success("Category created successfully!");
     } catch (error) {
       console.error("Error creating category:", error);
-      const errorMessage = error instanceof Error ? error.message : "Failed to create category";
+      const errorMessage =
+        error instanceof Error ? error.message : "Failed to create category";
       setSubmitError(errorMessage);
       toast.error(errorMessage);
     }
@@ -295,13 +366,14 @@ export default function InventoryAddProductPage() {
   }) => {
     try {
       const newSubcategory = await subcategoryApi.create(data);
-      setSubcategories(prev => [...prev, newSubcategory]);
+      setSubcategories((prev) => [...prev, newSubcategory]);
       setShowSubcategoryModal(false);
       setSubmitError(null);
       toast.success("Sub-category created successfully!");
     } catch (error) {
       console.error("Error creating subcategory:", error);
-      const errorMessage = error instanceof Error ? error.message : "Failed to create subcategory";
+      const errorMessage =
+        error instanceof Error ? error.message : "Failed to create subcategory";
       setSubmitError(errorMessage);
       toast.error(errorMessage);
     }
@@ -446,7 +518,8 @@ export default function InventoryAddProductPage() {
       }, 2000);
     } catch (error) {
       console.error("Error submitting form:", error);
-      const errorMessage = error instanceof Error ? error.message : "An unexpected error occurred";
+      const errorMessage =
+        error instanceof Error ? error.message : "An unexpected error occurred";
       setSubmitError(errorMessage);
       toast.error(errorMessage);
     }
@@ -520,12 +593,17 @@ export default function InventoryAddProductPage() {
 
                 {/* Image Upload Area */}
                 <div
-                  className="flex items-center justify-center gap-12 rounded-xl border border-dashed border-gray-400 bg-white p-8 hover:border-blue-400 hover:bg-blue-50/30 transition-colors cursor-pointer"
+                  className={`flex items-center justify-center gap-12 rounded-xl border border-dashed border-gray-400 bg-white p-8 transition-colors ${
+                    uploadingImages
+                      ? "opacity-50 cursor-not-allowed"
+                      : "hover:border-blue-400 hover:bg-blue-50/30 cursor-pointer"
+                  }`}
                   onDragOver={handleDragOver}
                   onDragEnter={handleDragEnter}
                   onDragLeave={handleDragLeave}
                   onDrop={handleDrop}
                   onClick={() =>
+                    !uploadingImages &&
                     document.getElementById("file-upload")?.click()
                   }
                 >
@@ -536,16 +614,47 @@ export default function InventoryAddProductPage() {
                     />
                   </div>
                   <div className="flex flex-col items-center justify-center">
-                    <p className="text-sm text-gray-400 mb-3 text-center font-medium">
-                      Drag and Drop
-                    </p>
-                    <p className="text-xs text-gray-400 mb-3 text-center">or</p>
-                    <Button
-                      variant="secondary"
-                      icon={<Upload className="w-4 h-4" />}
-                    >
-                      Upload Images
-                    </Button>
+                    {uploadingImages ? (
+                      <div className="text-center">
+                        <div className="w-8 h-8 border-2 border-gray-300 border-t-primary rounded-full animate-spin mx-auto mb-3" />
+                        <p className="text-sm text-gray-600 mb-2 font-medium">
+                          Uploading Images...
+                        </p>
+                        {Object.keys(uploadProgress).length > 0 && (
+                          <div className="w-48 bg-gray-200 rounded-full h-1.5 mb-2">
+                            <div
+                              className="bg-primary h-1.5 rounded-full transition-all duration-300"
+                              style={{
+                                width: `${
+                                  Object.values(uploadProgress).reduce(
+                                    (acc, curr) => acc + curr,
+                                    0
+                                  ) / Object.keys(uploadProgress).length
+                                }%`,
+                              }}
+                            />
+                          </div>
+                        )}
+                        <p className="text-xs text-gray-500">
+                          {Object.keys(uploadProgress).length} file(s) uploading
+                        </p>
+                      </div>
+                    ) : (
+                      <>
+                        <p className="text-sm text-gray-400 mb-3 text-center font-medium">
+                          Drag and Drop
+                        </p>
+                        <p className="text-xs text-gray-400 mb-3 text-center">
+                          or
+                        </p>
+                        <Button
+                          variant="secondary"
+                          icon={<Upload className="w-4 h-4" />}
+                        >
+                          Upload Images
+                        </Button>
+                      </>
+                    )}
                   </div>
                   <input
                     id="file-upload"
@@ -555,32 +664,55 @@ export default function InventoryAddProductPage() {
                     className="hidden"
                     aria-label="Upload product images"
                     multiple
+                    disabled={uploadingImages}
                   />
                 </div>
 
                 {/* Image Preview Grid */}
-                {watch("images") && watch("images").length > 0 && (
+                {(watch("images") && watch("images").length > 0) ||
+                Object.keys(uploadProgress).length > 0 ? (
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    {watch("images").map((image, index) => (
-                      <div key={index} className="relative group">
-                        <Image
-                          src={image}
-                          alt={`Product image ${index + 1}`}
-                          width={120}
-                          height={120}
-                          className="w-full h-24 object-cover rounded-lg border border-gray-200"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => removeImage(index)}
-                          className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                        >
-                          <X className="w-3 h-3" />
-                        </button>
-                      </div>
-                    ))}
+                    {watch("images") &&
+                      watch("images").map((image, index) => (
+                        <div key={index} className="relative group">
+                          <Image
+                            src={image}
+                            alt={`Product image ${index + 1}`}
+                            width={120}
+                            height={120}
+                            className="w-full h-24 object-cover rounded-lg border border-gray-200"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => removeImage(index)}
+                            className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </div>
+                      ))}
+
+                    {/* Upload Progress Items */}
+                    {Object.entries(uploadProgress).map(
+                      ([fileId, progress]) => (
+                        <div key={fileId} className="relative group">
+                          <div className="w-full h-24 bg-gray-100 rounded-lg border border-gray-200 flex flex-col items-center justify-center p-2">
+                            <div className="w-6 h-6 border-2 border-gray-300 border-t-primary rounded-full animate-spin mb-2" />
+                            <div className="w-full bg-gray-200 rounded-full h-1.5">
+                              <div
+                                className="bg-primary h-1.5 rounded-full transition-all duration-300"
+                                style={{ width: `${progress}%` }}
+                              />
+                            </div>
+                            <span className="text-xs text-gray-600 mt-1">
+                              {progress}%
+                            </span>
+                          </div>
+                        </div>
+                      )
+                    )}
                   </div>
-                )}
+                ) : null}
               </div>
 
               <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
@@ -649,7 +781,9 @@ export default function InventoryAddProductPage() {
                         disabled={loadingCategories}
                       >
                         <option value="">
-                          {loadingCategories ? "Loading categories..." : "Select a category"}
+                          {loadingCategories
+                            ? "Loading categories..."
+                            : "Select a category"}
                         </option>
                         {categories.map((category) => (
                           <option key={category._id} value={category._id}>
@@ -687,10 +821,10 @@ export default function InventoryAddProductPage() {
                         disabled={loadingSubcategories || !watch("categoryId")}
                       >
                         <option value="">
-                          {loadingSubcategories 
-                            ? "Loading subcategories..." 
-                            : !watch("categoryId") 
-                            ? "Select a category first" 
+                          {loadingSubcategories
+                            ? "Loading subcategories..."
+                            : !watch("categoryId")
+                            ? "Select a category first"
                             : "Select a sub-category"}
                         </option>
                         {subcategories.map((subcategory) => (
@@ -1040,16 +1174,16 @@ export default function InventoryAddProductPage() {
                         <Controller
                           name="weight.single.unit"
                           control={control}
+                          rules={{
+                            required: "Weight unit is required",
+                          }}
                           render={({ field }) => (
-                            <select
-                              className="px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-gray-400 bg-muted text-sm"
+                            <Input
+                              variant="muted"
+                              className="text-sm"
+                              placeholder="e.g., kg, g, lb, oz"
                               {...field}
-                            >
-                              <option value="kg">kg</option>
-                              <option value="g">g</option>
-                              <option value="lb">lb</option>
-                              <option value="oz">oz</option>
-                            </select>
+                            />
                           )}
                         />
                       </div>
@@ -1086,16 +1220,16 @@ export default function InventoryAddProductPage() {
                         <Controller
                           name="weight.bulk.unit"
                           control={control}
+                          rules={{
+                            required: "Weight unit is required",
+                          }}
                           render={({ field }) => (
-                            <select
-                              className="px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-gray-400 bg-muted text-sm"
+                            <Input
+                              variant="muted"
+                              className="text-sm"
+                              placeholder="e.g., kg, g, lb, oz"
                               {...field}
-                            >
-                              <option value="kg">kg</option>
-                              <option value="g">g</option>
-                              <option value="lb">lb</option>
-                              <option value="oz">oz</option>
-                            </select>
+                            />
                           )}
                         />
                       </div>
@@ -1405,12 +1539,17 @@ export default function InventoryAddProductPage() {
 }
 
 // Category Creation Modal Component
-function CreateCategoryModal({ 
-  onClose, 
-  onSubmit 
-}: { 
-  onClose: () => void; 
-  onSubmit: (data: { name: string; description: string; slug: string; image?: string }) => void;
+function CreateCategoryModal({
+  onClose,
+  onSubmit,
+}: {
+  onClose: () => void;
+  onSubmit: (data: {
+    name: string;
+    description: string;
+    slug: string;
+    image?: string;
+  }) => void;
 }) {
   const [formData, setFormData] = useState({
     name: "",
@@ -1429,7 +1568,9 @@ function CreateCategoryModal({
       await onSubmit(formData);
     } catch (error) {
       console.error("Error creating category:", error);
-      toast.error(error instanceof Error ? error.message : "Failed to create category");
+      toast.error(
+        error instanceof Error ? error.message : "Failed to create category"
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -1438,15 +1579,15 @@ function CreateCategoryModal({
   const generateSlug = (name: string) => {
     return name
       .toLowerCase()
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/(^-|-$)/g, '');
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/(^-|-$)/g, "");
   };
 
   const handleNameChange = (name: string) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
       name,
-      slug: generateSlug(name)
+      slug: generateSlug(name),
     }));
   };
 
@@ -1454,7 +1595,7 @@ function CreateCategoryModal({
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
       <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4">
         <h2 className="text-lg font-semibold mb-4">Create Category</h2>
-        
+
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -1476,7 +1617,12 @@ function CreateCategoryModal({
             <textarea
               className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-gray-400 bg-muted text-sm"
               value={formData.description}
-              onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+              onChange={(e) =>
+                setFormData((prev) => ({
+                  ...prev,
+                  description: e.target.value,
+                }))
+              }
               placeholder="Enter category description"
               rows={3}
               required
@@ -1490,7 +1636,9 @@ function CreateCategoryModal({
             <Input
               variant="muted"
               value={formData.slug}
-              onChange={(e) => setFormData(prev => ({ ...prev, slug: e.target.value }))}
+              onChange={(e) =>
+                setFormData((prev) => ({ ...prev, slug: e.target.value }))
+              }
               placeholder="Enter URL slug"
               required
             />
@@ -1503,24 +1651,18 @@ function CreateCategoryModal({
             <Input
               variant="muted"
               value={formData.image}
-              onChange={(e) => setFormData(prev => ({ ...prev, image: e.target.value }))}
+              onChange={(e) =>
+                setFormData((prev) => ({ ...prev, image: e.target.value }))
+              }
               placeholder="Enter image URL (optional)"
             />
           </div>
 
           <div className="flex justify-end gap-3 pt-4">
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={onClose}
-            >
+            <Button type="button" variant="secondary" onClick={onClose}>
               Cancel
             </Button>
-            <Button
-              type="submit"
-              variant="primary"
-              disabled={isSubmitting}
-            >
+            <Button type="submit" variant="primary" disabled={isSubmitting}>
               {isSubmitting ? "Creating..." : "Create Category"}
             </Button>
           </div>
@@ -1531,16 +1673,22 @@ function CreateCategoryModal({
 }
 
 // Subcategory Creation Modal Component
-function CreateSubcategoryModal({ 
+function CreateSubcategoryModal({
   categories,
   selectedCategoryId,
-  onClose, 
-  onSubmit 
-}: { 
+  onClose,
+  onSubmit,
+}: {
   categories: any[];
   selectedCategoryId: string;
-  onClose: () => void; 
-  onSubmit: (data: { name: string; description: string; parentCategoryId: string; slug: string; image?: string }) => void;
+  onClose: () => void;
+  onSubmit: (data: {
+    name: string;
+    description: string;
+    parentCategoryId: string;
+    slug: string;
+    image?: string;
+  }) => void;
 }) {
   const [formData, setFormData] = useState({
     name: "",
@@ -1553,21 +1701,32 @@ function CreateSubcategoryModal({
   // Update parentCategoryId when selectedCategoryId changes
   useEffect(() => {
     if (selectedCategoryId) {
-      setFormData(prev => ({ ...prev, parentCategoryId: selectedCategoryId }));
+      setFormData((prev) => ({
+        ...prev,
+        parentCategoryId: selectedCategoryId,
+      }));
     }
   }, [selectedCategoryId]);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.name || !formData.description || !formData.parentCategoryId || !formData.slug) return;
+    if (
+      !formData.name ||
+      !formData.description ||
+      !formData.parentCategoryId ||
+      !formData.slug
+    )
+      return;
 
     try {
       setIsSubmitting(true);
       await onSubmit(formData);
     } catch (error) {
       console.error("Error creating subcategory:", error);
-      toast.error(error instanceof Error ? error.message : "Failed to create subcategory");
+      toast.error(
+        error instanceof Error ? error.message : "Failed to create subcategory"
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -1576,15 +1735,15 @@ function CreateSubcategoryModal({
   const generateSlug = (name: string) => {
     return name
       .toLowerCase()
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/(^-|-$)/g, '');
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/(^-|-$)/g, "");
   };
 
   const handleNameChange = (name: string) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
       name,
-      slug: generateSlug(name)
+      slug: generateSlug(name),
     }));
   };
 
@@ -1592,7 +1751,7 @@ function CreateSubcategoryModal({
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
       <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4">
         <h2 className="text-lg font-semibold mb-4">Create Sub-category</h2>
-        
+
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -1601,7 +1760,12 @@ function CreateSubcategoryModal({
             <select
               className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-gray-400 bg-muted text-sm"
               value={formData.parentCategoryId}
-              onChange={(e) => setFormData(prev => ({ ...prev, parentCategoryId: e.target.value }))}
+              onChange={(e) =>
+                setFormData((prev) => ({
+                  ...prev,
+                  parentCategoryId: e.target.value,
+                }))
+              }
               required
             >
               <option value="">Select a category</option>
@@ -1633,7 +1797,12 @@ function CreateSubcategoryModal({
             <textarea
               className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-gray-400 bg-muted text-sm"
               value={formData.description}
-              onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+              onChange={(e) =>
+                setFormData((prev) => ({
+                  ...prev,
+                  description: e.target.value,
+                }))
+              }
               placeholder="Enter sub-category description"
               rows={3}
               required
@@ -1647,7 +1816,9 @@ function CreateSubcategoryModal({
             <Input
               variant="muted"
               value={formData.slug}
-              onChange={(e) => setFormData(prev => ({ ...prev, slug: e.target.value }))}
+              onChange={(e) =>
+                setFormData((prev) => ({ ...prev, slug: e.target.value }))
+              }
               placeholder="Enter URL slug"
               required
             />
@@ -1660,24 +1831,18 @@ function CreateSubcategoryModal({
             <Input
               variant="muted"
               value={formData.image}
-              onChange={(e) => setFormData(prev => ({ ...prev, image: e.target.value }))}
+              onChange={(e) =>
+                setFormData((prev) => ({ ...prev, image: e.target.value }))
+              }
               placeholder="Enter image URL (optional)"
             />
           </div>
 
           <div className="flex justify-end gap-3 pt-4">
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={onClose}
-            >
+            <Button type="button" variant="secondary" onClick={onClose}>
               Cancel
             </Button>
-            <Button
-              type="submit"
-              variant="primary"
-              disabled={isSubmitting}
-            >
+            <Button type="submit" variant="primary" disabled={isSubmitting}>
               {isSubmitting ? "Creating..." : "Create Sub-category"}
             </Button>
           </div>

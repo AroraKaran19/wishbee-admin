@@ -1,6 +1,29 @@
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:3001/api";
 
+// Get presigned URL for S3 upload
+export const getPresignedUrl = async (fileName: string, fileType: string) => {
+  const response = await fetch(`${API_BASE_URL}/presigned-url`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      fileName,
+      fileType,
+    }),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(
+      errorData.message || `HTTP error! status: ${response.status}`
+    );
+  }
+
+  return response.json();
+};
+
 export const productApi = {
   // Create Product
   create: async (data: {
