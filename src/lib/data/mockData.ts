@@ -2,114 +2,413 @@ import { Product, InventorySummary, NavItem, OutOfStockItem, LowQuantityItem, Ex
 
 export const mockProducts: Product[] = [
   {
-    id: '1',
+    _id: '1',
+    sku: 'DET001',
     name: 'Dettol Handwash',
-    category: 'Personal Care',
-    buyingPrice: 120,
-    stockQuantity: 42,
-    lastSoldDate: '22 June 2026',
-    expiryDate: '11 August 2026',
-    availabilityStatus: 'in-stock'
+    description: 'Antibacterial handwash for effective hand hygiene',
+    highlights: ['Kills 99.9% germs', 'Moisturizing formula', 'Dermatologically tested'],
+    categoryId: "12345678" as any,
+    subCategory: "12345678" as any,
+    images: ['/images/dettol-handwash-1.jpg', '/images/dettol-handwash-2.jpg'],
+    status: "ACTIVE",
+    isOrganic: false,
+    price: {
+      single: 120,
+      bulk: 100
+    },
+    multiQuantity: [
+      { value: 3, discount: 'percentage', discountValue: 10 },
+      { value: 6, discount: 'fixed', discountValue: 50 }
+    ],
+    reviews: [],
+    discount: {
+      type: 'percentage',
+      value: 15
+    },
+    minimumOrderQuantity: 1,
+    maximumOrderQuantity: 100,
+    stock: 42,
+    weight: {
+      single: { value: 200, unit: 'ml' },
+      bulk: { value: 1000, unit: 'ml' }
+    },
+    reviewsCount: 0,
+    totalRating: 0,
+    metaTitle: 'Dettol Handwash - Antibacterial Hand Hygiene',
+    metaDescription: 'Buy Dettol Handwash online. Kills 99.9% germs with moisturizing formula.',
+    metaKeywords: ['handwash', 'dettol', 'antibacterial', 'hygiene'],
+    slug: 'dettol-handwash',
+    createdAt: new Date('2024-01-15'),
+    updatedAt: new Date('2024-06-22')
   },
   {
-    id: 'top-2',
+    _id: 'top-2',
+    sku: 'AAS001',
     name: 'Aashirvaad Atta 5kg',
-    category: 'Grocery',
-    buyingPrice: 250,
-    stockQuantity: 42,
-    lastSoldDate: '22 June 2026',
-    expiryDate: '11 August 2026',
-    availabilityStatus: 'in-stock'
+    description: 'Premium whole wheat flour for healthy rotis and breads',
+    highlights: ['100% whole wheat', 'No preservatives', 'Rich in fiber'],
+    categoryId: "12345678" as any,
+    subCategory: "12345678" as any,
+    images: ['/images/aashirvaad-atta-1.jpg'],
+    status: "ACTIVE",
+    isOrganic: false,
+    price: {
+      single: 250,
+      bulk: 220
+    },
+    multiQuantity: [
+      { value: 2, discount: 'percentage', discountValue: 5 }
+    ],
+    reviews: [],
+    discount: {
+      type: 'percentage',
+      value: 10
+    },
+    minimumOrderQuantity: 1,
+    maximumOrderQuantity: 50,
+    stock: 42,
+    weight: {
+      single: { value: 5, unit: 'kg' },
+      bulk: { value: 10, unit: 'kg' }
+    },
+    reviewsCount: 0,
+    totalRating: 0,
+    metaTitle: 'Aashirvaad Atta 5kg - Premium Whole Wheat Flour',
+    metaDescription: 'Buy Aashirvaad Atta 5kg online. 100% whole wheat flour for healthy cooking.',
+    metaKeywords: ['atta', 'wheat flour', 'aashirvaad', 'whole wheat'],
+    slug: 'aashirvaad-atta-5kg',
+    createdAt: new Date('2024-01-20'),
+    updatedAt: new Date('2024-06-22')
   },
   {
-    id: 'long-3',
+    _id: 'long-3',
+    sku: 'AMU001',
     name: 'Amul Butter 500g',
-    category: 'Dairy',
-    buyingPrice: 30,
-    stockQuantity: 42,
-    lastSoldDate: '22 June 2026',
-    expiryDate: '11 August 2026',
-    availabilityStatus: 'out-of-stock'
+    description: 'Pure and fresh butter made from cow\'s milk',
+    highlights: ['Pure cow\'s milk', 'No preservatives', 'Rich taste'],
+    categoryId: "12345678" as any,
+    subCategory: "12345678" as any,
+    images: ['/images/amul-butter-1.jpg'],
+    status: "OUT_OF_STOCK",
+    isOrganic: false,
+    price: {
+      single: 30,
+      bulk: 25
+    },
+    reviews: [],
+    discount: {
+      type: 'percentage',
+      value: 0
+    },
+    minimumOrderQuantity: 1,
+    maximumOrderQuantity: 20,
+    stock: 0,
+    weight: {
+      single: { value: 500, unit: 'g' },
+      bulk: { value: 1000, unit: 'g' }
+    },
+    reviewsCount: 0,
+    totalRating: 0,
+    metaTitle: 'Amul Butter 500g - Pure Cow\'s Milk Butter',
+    metaDescription: 'Buy Amul Butter 500g online. Pure and fresh butter made from cow\'s milk.',
+    metaKeywords: ['butter', 'amul', 'cow milk', 'dairy'],
+    slug: 'amul-butter-500g',
+    createdAt: new Date('2024-01-25'),
+    updatedAt: new Date('2024-06-22')
   },
   {
-    id: 'out-4',
+    _id: 'out-4',
+    sku: 'MAG001',
     name: 'Maggi Noodles',
-    category: 'Grocery',
-    buyingPrice: 15,
-    stockQuantity: 25,
-    lastSoldDate: '20 June 2026',
-    expiryDate: '15 August 2026',
-    availabilityStatus: 'in-stock'
+    description: 'Instant noodles ready in 2 minutes',
+    highlights: ['Ready in 2 minutes', 'Tasty masala', 'No preservatives'],
+    categoryId: "12345678" as any,
+    subCategory: "12345678" as any,
+    images: ['/images/maggi-noodles-1.jpg'],
+    status: "ACTIVE",
+    isOrganic: false,
+    price: {
+      single: 15,
+      bulk: 12
+    },
+    multiQuantity: [
+      { value: 5, discount: 'fixed', discountValue: 10 }
+    ],
+    reviews: [],
+    discount: {
+      type: 'percentage',
+      value: 5
+    },
+    minimumOrderQuantity: 1,
+    maximumOrderQuantity: 200,
+    stock: 25,
+    weight: {
+      single: { value: 70, unit: 'g' },
+      bulk: { value: 350, unit: 'g' }
+    },
+    reviewsCount: 0,
+    totalRating: 0,
+    metaTitle: 'Maggi Noodles - Instant 2-Minute Noodles',
+    metaDescription: 'Buy Maggi Noodles online. Ready in 2 minutes with tasty masala.',
+    metaKeywords: ['noodles', 'maggi', 'instant', 'ready to eat'],
+    slug: 'maggi-noodles',
+    createdAt: new Date('2024-02-01'),
+    updatedAt: new Date('2024-06-20')
   },
   {
-    id: 'short-5',
+    _id: 'short-5',
+    sku: 'COL001',
     name: 'Colgate Toothpaste',
-    category: 'Personal Care',
-    buyingPrice: 80,
-    stockQuantity: 0,
-    lastSoldDate: '18 June 2026',
-    expiryDate: '20 August 2026',
-    availabilityStatus: 'out-of-stock'
+    description: 'Complete protection toothpaste for healthy teeth and gums',
+    highlights: ['Complete protection', 'Fresh breath', 'Fluoride protection'],
+    categoryId: "12345678" as any,
+    subCategory: "12345678" as any,
+    images: ['/images/colgate-toothpaste-1.jpg'],
+    status: "OUT_OF_STOCK",
+    isOrganic: false,
+    price: {
+      single: 80,
+      bulk: 70
+    },
+    reviews: [],
+    discount: {
+      type: 'percentage',
+      value: 8
+    },
+    minimumOrderQuantity: 1,
+    maximumOrderQuantity: 50,
+    stock: 0,
+    weight: {
+      single: { value: 150, unit: 'g' },
+      bulk: { value: 300, unit: 'g' }
+    },
+    reviewsCount: 0,
+    totalRating: 0,
+    metaTitle: 'Colgate Toothpaste - Complete Protection',
+    metaDescription: 'Buy Colgate Toothpaste online. Complete protection for healthy teeth and gums.',
+    metaKeywords: ['toothpaste', 'colgate', 'dental care', 'oral hygiene'],
+    slug: 'colgate-toothpaste',
+    createdAt: new Date('2024-02-05'),
+    updatedAt: new Date('2024-06-18')
   },
   {
-    id: 'short-6',
+    _id: 'short-6',
+    sku: 'MIL001',
     name: 'Milk 1L',
-    category: 'Dairy',
-    buyingPrice: 60,
-    stockQuantity: 15,
-    lastSoldDate: '21 June 2026',
-    expiryDate: '25 June 2026',
-    availabilityStatus: 'in-stock'
+    description: 'Fresh cow\'s milk, pasteurized and homogenized',
+    highlights: ['Fresh cow\'s milk', 'Pasteurized', 'Rich in calcium'],
+    categoryId: "12345678" as any,
+    subCategory: "12345678" as any,
+    images: ['/images/milk-1l-1.jpg'],
+    status: "ACTIVE",
+    isOrganic: false,
+    price: {
+      single: 60,
+      bulk: 55
+    },
+    reviews: [],
+    discount: {
+      type: 'percentage',
+      value: 0
+    },
+    minimumOrderQuantity: 1,
+    maximumOrderQuantity: 10,
+    stock: 15,
+    weight: {
+      single: { value: 1, unit: 'L' },
+      bulk: { value: 2, unit: 'L' }
+    },
+    reviewsCount: 0,
+    totalRating: 0,
+    metaTitle: 'Fresh Milk 1L - Pasteurized Cow\'s Milk',
+    metaDescription: 'Buy fresh milk 1L online. Pasteurized and homogenized cow\'s milk.',
+    metaKeywords: ['milk', 'fresh', 'cow milk', 'dairy', 'pasteurized'],
+    slug: 'milk-1l',
+    createdAt: new Date('2024-02-10'),
+    updatedAt: new Date('2024-06-21')
   },
   {
-    id: 'short-7',
+    _id: 'short-7',
+    sku: 'RIC001',
     name: 'Rice 5kg',
-    category: 'Grocery',
-    buyingPrice: 300,
-    stockQuantity: 8,
-    lastSoldDate: '19 June 2026',
-    expiryDate: '30 August 2026',
-    availabilityStatus: 'in-stock'
+    description: 'Premium basmati rice, long grain and aromatic',
+    highlights: ['Premium basmati', 'Long grain', 'Aromatic'],
+    categoryId: "12345678" as any,
+    subCategory: "12345678" as any,
+    images: ['/images/rice-5kg-1.jpg'],
+    status: "ACTIVE",
+    isOrganic: false,
+    price: {
+      single: 300,
+      bulk: 280
+    },
+    multiQuantity: [
+      { value: 2, discount: 'percentage', discountValue: 8 }
+    ],
+    reviews: [],
+    discount: {
+      type: 'percentage',
+      value: 12
+    },
+    minimumOrderQuantity: 1,
+    maximumOrderQuantity: 20,
+    stock: 8,
+    weight: {
+      single: { value: 5, unit: 'kg' },
+      bulk: { value: 10, unit: 'kg' }
+    },
+    reviewsCount: 0,
+    totalRating: 0,
+    metaTitle: 'Premium Basmati Rice 5kg - Long Grain Aromatic',
+    metaDescription: 'Buy premium basmati rice 5kg online. Long grain and aromatic rice.',
+    metaKeywords: ['rice', 'basmati', 'long grain', 'aromatic', 'premium'],
+    slug: 'rice-5kg',
+    createdAt: new Date('2024-02-15'),
+    updatedAt: new Date('2024-06-19')
   },
   {
-    id: 'short-8',
+    _id: 'short-8',
+    sku: 'SHA001',
     name: 'Shampoo',
-    category: 'Personal Care',
-    buyingPrice: 200,
-    stockQuantity: 12,
-    lastSoldDate: '17 June 2026',
-    expiryDate: '10 September 2026',
-    availabilityStatus: 'in-stock'
+    description: 'Gentle cleansing shampoo for all hair types',
+    highlights: ['Gentle cleansing', 'All hair types', 'Sulfate-free'],
+    categoryId: "12345678" as any,
+    subCategory: "12345678" as any,
+    images: ['/images/shampoo-1.jpg'],
+    status: "ACTIVE",
+    isOrganic: false,
+    price: {
+      single: 200,
+      bulk: 180
+    },
+    reviews: [],
+    discount: {
+      type: 'percentage',
+      value: 10
+    },
+    minimumOrderQuantity: 1,
+    maximumOrderQuantity: 30,
+    stock: 12,
+    weight: {
+      single: { value: 400, unit: 'ml' },
+      bulk: { value: 800, unit: 'ml' }
+    },
+    reviewsCount: 0,
+    totalRating: 0,
+    metaTitle: 'Gentle Shampoo - All Hair Types',
+    metaDescription: 'Buy gentle shampoo online. Suitable for all hair types with sulfate-free formula.',
+    metaKeywords: ['shampoo', 'hair care', 'gentle', 'sulfate-free'],
+    slug: 'shampoo',
+    createdAt: new Date('2024-02-20'),
+    updatedAt: new Date('2024-06-17')
   },
   {
-    id: 'short-9',
+    _id: 'short-9',
+    sku: 'BRE001',
     name: 'Bread',
-    category: 'Grocery',
-    buyingPrice: 25,
-    stockQuantity: 0,
-    lastSoldDate: '16 June 2026',
-    expiryDate: '22 June 2026',
-    availabilityStatus: 'out-of-stock'
+    description: 'Fresh white bread, soft and fluffy',
+    highlights: ['Fresh baked', 'Soft and fluffy', 'No preservatives'],
+    categoryId: "12345678" as any,
+    subCategory: "12345678" as any,
+    images: ['/images/bread-1.jpg'],
+    status: "OUT_OF_STOCK",
+    isOrganic: false,
+    price: {
+      single: 25,
+      bulk: 22
+    },
+    reviews: [],
+    discount: {
+      type: 'percentage',
+      value: 0
+    },
+    minimumOrderQuantity: 1,
+    maximumOrderQuantity: 20,
+    stock: 0,
+    weight: {
+      single: { value: 400, unit: 'g' },
+      bulk: { value: 800, unit: 'g' }
+    },
+    reviewsCount: 0,
+    totalRating: 0,
+    metaTitle: 'Fresh White Bread - Soft and Fluffy',
+    metaDescription: 'Buy fresh white bread online. Soft and fluffy bread with no preservatives.',
+    metaKeywords: ['bread', 'white bread', 'fresh', 'bakery'],
+    slug: 'bread',
+    createdAt: new Date('2024-02-25'),
+    updatedAt: new Date('2024-06-16')
   },
   {
-    id: '10',
+    _id: '10',
+    sku: 'BUT001',
     name: 'Butter',
-    category: 'Dairy',
-    buyingPrice: 25,
-    stockQuantity: 10,
-    lastSoldDate: '16 June 2026',
-    expiryDate: '22 June 2026',
-    availabilityStatus: 'in-stock'
+    description: 'Creamy butter perfect for cooking and spreading',
+    highlights: ['Creamy texture', 'Perfect for cooking', 'Rich taste'],
+    categoryId: "12345678" as any,
+    subCategory: "12345678" as any,
+    images: ['/images/butter-1.jpg'],
+    status: "ACTIVE",
+    isOrganic: false,
+    price: {
+      single: 25,
+      bulk: 22
+    },
+    reviews: [],
+    discount: {
+      type: 'percentage',
+      value: 5
+    },
+    minimumOrderQuantity: 1,
+    maximumOrderQuantity: 15,
+    stock: 10,
+    weight: {
+      single: { value: 100, unit: 'g' },
+      bulk: { value: 250, unit: 'g' }
+    },
+    reviewsCount: 0,
+    totalRating: 0,
+    metaTitle: 'Creamy Butter - Perfect for Cooking',
+    metaDescription: 'Buy creamy butter online. Perfect for cooking and spreading with rich taste.',
+    metaKeywords: ['butter', 'creamy', 'cooking', 'dairy'],
+    slug: 'butter',
+    createdAt: new Date('2024-03-01'),
+    updatedAt: new Date('2024-06-16')
   },
   {
-    id: '11',
+    _id: '11',
+    sku: 'PAN001',
     name: 'Paneer',
-    category: 'Dairy',
-    buyingPrice: 150,
-    stockQuantity: 0,
-    lastSoldDate: '21 June 2026',
-    expiryDate: '25 June 2026',
-    availabilityStatus: 'out-of-stock'
+    description: 'Fresh cottage cheese, soft and crumbly',
+    highlights: ['Fresh cottage cheese', 'Soft texture', 'High protein'],
+    categoryId: "12345678" as any,
+    subCategory: "12345678" as any,
+    images: ['/images/paneer-1.jpg'],
+    status: "OUT_OF_STOCK",
+    isOrganic: false,
+    price: {
+      single: 150,
+      bulk: 140
+    },
+    reviews: [],
+    discount: {
+      type: 'percentage',
+      value: 0
+    },
+    minimumOrderQuantity: 1,
+    maximumOrderQuantity: 10,
+    stock: 0,
+    weight: {
+      single: { value: 200, unit: 'g' },
+      bulk: { value: 500, unit: 'g' }
+    },
+    reviewsCount: 0,
+    totalRating: 0,
+    metaTitle: 'Fresh Paneer - Soft Cottage Cheese',
+    metaDescription: 'Buy fresh paneer online. Soft and crumbly cottage cheese with high protein.',
+    metaKeywords: ['paneer', 'cottage cheese', 'fresh', 'protein', 'dairy'],
+    slug: 'paneer',
+    createdAt: new Date('2024-03-05'),
+    updatedAt: new Date('2024-06-21')
   }
 ];
 

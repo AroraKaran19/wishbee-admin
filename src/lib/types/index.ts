@@ -1,13 +1,5 @@
-export interface Product {
-  id: string;
-  name: string;
-  category: string;
-  buyingPrice: number;
-  stockQuantity: number;
-  lastSoldDate: string;
-  expiryDate: string;
-  availabilityStatus: 'in-stock' | 'out-of-stock';
-}
+export * from './product';
+export * from './table';
 
 export interface InventorySummary {
   totalCategories: number;
@@ -116,6 +108,3 @@ export interface ProductDetail {
     thresholdValue: number;
   };
 }
-
-// Re-export table types for convenience
-export * from './table';
