@@ -26,6 +26,10 @@ import {
 import { Product } from "@/lib/types/product";
 import { productApi, getPresignedUrl, deleteImage } from "@/lib/api/products";
 import { categoryApi, subcategoryApi } from "@/lib/api/categories";
+import {
+  ActionDropdown,
+  DropdownOption,
+} from "@/components/ui/action-dropdown";
 import toast from "react-hot-toast";
 
 type ProductFormData = Omit<
@@ -124,6 +128,14 @@ export default function InventoryAddProductPage() {
   const [uploadProgress, setUploadProgress] = useState<{
     [key: string]: number;
   }>({});
+  const [uploadingCategoryImage, setUploadingCategoryImage] = useState(false);
+  const [uploadingSubcategoryImage, setUploadingSubcategoryImage] =
+    useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [itemToDelete, setItemToDelete] = useState<{
+    type: "category" | "subcategory";
+    item: any;
+  } | null>(null);
 
   // Load categories on component mount
   useEffect(() => {
@@ -215,38 +227,26 @@ export default function InventoryAddProductPage() {
       return;
     }
 
-    // Check if product name is provided
-    const productName = watch("name");
-    if (!productName || productName.trim() === "") {
-      toast.error("Please enter a product name before uploading images");
-      return;
-    }
-
     const fileId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
     try {
       setUploadingImages(true);
       setUploadProgress((prev) => ({ ...prev, [fileId]: 0 }));
 
-      // Generate consistent folder structure: /products/{product_name}/images
-      const sanitizedProductName = productName
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, "-")
-        .replace(/(^-|-$)/g, "");
-      
+      // Generate generic folder structure: /products/images
       const fileExtension = file.name.split(".").pop();
       const fileName = `${fileId}.${fileExtension}`;
-      const folder = `products/${sanitizedProductName}/images`;
+      const folder = `products/images`;
 
       // Get presigned URL from backend
       setUploadProgress((prev) => ({ ...prev, [fileId]: 25 }));
       const presignedData = await getPresignedUrl(fileName, file.type, folder);
-      console.log('Presigned data received:', presignedData); // Debug log
-      
+      console.log("Presigned data received:", presignedData); // Debug log
+
       if (!presignedData || !presignedData.presignedUrl) {
-        throw new Error('Failed to get presigned URL from server');
+        throw new Error("Failed to get presigned URL from server");
       }
-      
+
       const { presignedUrl, imageUrl } = presignedData;
 
       setUploadProgress((prev) => ({ ...prev, [fileId]: 50 }));
@@ -327,7 +327,10 @@ export default function InventoryAddProductPage() {
 
   const addCollection = () => {
     if (newCollection.quantity > 0 && newCollection.price > 0) {
-      setValue("productCollections", [...productCollections, { ...newCollection }]);
+      setValue("productCollections", [
+        ...productCollections,
+        { ...newCollection },
+      ]);
       setNewCollection({ quantity: 0, price: 0, unit: "" });
     }
   };
@@ -351,41 +354,265 @@ export default function InventoryAddProductPage() {
   const removeImage = async (index: number) => {
     const currentImages = watch("images") || [];
     const imageToRemove = currentImages[index];
-    
+
     try {
       // Extract S3 key from the image URL
-      // URL format: https://testing-v23.s3.ap-south-1.amazonaws.com/wishbee/products/product-name/images/filename.jpg
-      // We need to extract: wishbee/products/product-name/images/filename.jpg
+      // URL format: https://testing-v23.s3.ap-south-1.amazonaws.com/wishbee/products/images/filename.jpg
+      // We need to extract: wishbee/products/images/filename.jpg
       const url = new URL(imageToRemove);
-      const pathParts = url.pathname.split('/');
+      const pathParts = url.pathname.split("/");
       // Find the 'wishbee' part and get everything from there
-      const wishbeeIndex = pathParts.findIndex(part => part === 'wishbee');
+      const wishbeeIndex = pathParts.findIndex((part) => part === "wishbee");
       if (wishbeeIndex !== -1) {
-        const s3Key = pathParts.slice(wishbeeIndex).join('/');
-        console.log('Deleting S3 key:', s3Key); // Debug log
-        
+        const s3Key = pathParts.slice(wishbeeIndex).join("/");
+        console.log("Deleting S3 key:", s3Key); // Debug log
+
         // Delete from S3
         await deleteImage(s3Key);
       } else {
-        throw new Error('Invalid image URL format - wishbee folder not found');
+        throw new Error("Invalid image URL format - wishbee folder not found");
       }
-      
+
       // Remove from form
       setValue(
         "images",
         currentImages.filter((_, i) => i !== index)
       );
-      
+
       toast.success("Image deleted successfully!");
     } catch (error) {
       console.error("Error deleting image:", error);
       toast.error("Failed to delete image from server");
-      
+
       // Still remove from UI even if server deletion fails
       setValue(
         "images",
         currentImages.filter((_, i) => i !== index)
       );
+    }
+  };
+
+  // Auto generate SEO fields
+  const autoGenerateSEO = () => {
+    const productName = watch("name");
+    if (!productName || productName.trim() === "") {
+      toast.error("Please enter a product name first");
+      return;
+    }
+
+    // Generate meta title (max 60 characters for SEO best practices)
+    const metaTitle =
+      productName.length > 60
+        ? productName.substring(0, 57) + "..."
+        : productName;
+
+    // Generate slug from product name
+    const slug = productName
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/(^-|-$)/g, "");
+
+    // Generate meta description (max 160 characters for SEO best practices)
+    const description = watch("description");
+    const metaDescription =
+      description && description.length > 0
+        ? description.length > 160
+          ? description.substring(0, 157) + "..."
+          : description
+        : `Buy ${productName} online. High quality products with fast delivery.`;
+
+    // Generate meta keywords from product name and description
+    const generateKeywords = (name: string, desc?: string) => {
+      const keywords = new Set<string>();
+
+      // Add words from product name
+      const nameWords = name
+        .toLowerCase()
+        .replace(/[^a-z0-9\s]/g, "")
+        .split(/\s+/)
+        .filter((word) => word.length > 2);
+
+      nameWords.forEach((word) => keywords.add(word));
+
+      // Add words from description if available
+      if (desc && desc.trim()) {
+        const descWords = desc
+          .toLowerCase()
+          .replace(/[^a-z0-9\s]/g, "")
+          .split(/\s+/)
+          .filter((word) => word.length > 3)
+          .slice(0, 10); // Limit to first 10 words from description
+
+        descWords.forEach((word) => keywords.add(word));
+      }
+
+      // Add some common product-related keywords
+      const commonKeywords = ["product", "buy", "online", "quality", "premium"];
+      commonKeywords.forEach((keyword) => keywords.add(keyword));
+
+      // Convert to array and limit to 15 keywords max
+      return Array.from(keywords).slice(0, 15);
+    };
+
+    const metaKeywords = generateKeywords(productName, description);
+
+    // Update form values
+    setValue("metaTitle", metaTitle);
+    setValue("slug", slug);
+    setValue("metaDescription", metaDescription);
+    setValue("metaKeywords", metaKeywords);
+
+    toast.success("SEO fields generated successfully!");
+  };
+
+  // Image upload handler for categories/subcategories
+  const handleCategoryImageUpload = async (
+    file: File,
+    type: "category" | "subcategory"
+  ): Promise<string | null> => {
+    if (!file.type.startsWith("image/")) {
+      toast.error("Please select a valid image file");
+      return null;
+    }
+
+    const fileId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
+    try {
+      if (type === "category") {
+        setUploadingCategoryImage(true);
+      } else {
+        setUploadingSubcategoryImage(true);
+      }
+
+      // Generate folder structure: /categories/{type}/images
+      const fileExtension = file.name.split(".").pop();
+      const fileName = `${fileId}.${fileExtension}`;
+      const folder = `categories/${type}/images`;
+
+      // Get presigned URL from backend
+      const presignedData = await getPresignedUrl(fileName, file.type, folder);
+      console.log("Presigned data received:", presignedData);
+
+      if (!presignedData || !presignedData.presignedUrl) {
+        throw new Error("Failed to get presigned URL from server");
+      }
+
+      const { presignedUrl, imageUrl } = presignedData;
+
+      // Upload file to S3 using presigned URL
+      const uploadResponse = await fetch(presignedUrl, {
+        method: "PUT",
+        body: file,
+        headers: {
+          "Content-Type": file.type,
+        },
+      });
+
+      if (!uploadResponse.ok) {
+        throw new Error("Failed to upload image to S3");
+      }
+
+      toast.success("Image uploaded successfully!");
+      return imageUrl;
+    } catch (error) {
+      console.error("Error uploading image:", error);
+      toast.error(
+        error instanceof Error ? error.message : "Failed to upload image"
+      );
+      return null;
+    } finally {
+      if (type === "category") {
+        setUploadingCategoryImage(false);
+      } else {
+        setUploadingSubcategoryImage(false);
+      }
+    }
+  };
+
+  // Convert categories to dropdown options
+  const categoryOptions: DropdownOption[] = categories.map(
+    (category, index) => ({
+      id: category._id || `category-${index}`,
+      label: category.name,
+      value: category._id,
+      image: category.image,
+    })
+  );
+
+  // Convert subcategories to dropdown options
+  const subcategoryOptions: DropdownOption[] = subcategories.map(
+    (subcategory, index) => ({
+      id: subcategory._id || `subcategory-${index}`,
+      label: subcategory.name,
+      value: subcategory._id,
+      image: subcategory.image,
+    })
+  );
+
+  // Handle category selection
+  const handleCategorySelect = (option: DropdownOption) => {
+    setValue("categoryId", option.value);
+    setValue("subCategoryId", ""); // Reset subcategory when category changes
+  };
+
+  // Handle subcategory selection
+  const handleSubcategorySelect = (option: DropdownOption) => {
+    setValue("subCategoryId", option.value);
+  };
+
+  // Handle category delete
+  const handleCategoryDelete = (option: DropdownOption) => {
+    const category = categories.find((cat) => cat._id === option.value);
+    if (category) {
+      setItemToDelete({ type: "category", item: category });
+      setShowDeleteConfirm(true);
+    }
+  };
+
+  // Handle subcategory delete
+  const handleSubcategoryDelete = (option: DropdownOption) => {
+    const subcategory = subcategories.find((sub) => sub._id === option.value);
+    if (subcategory) {
+      setItemToDelete({ type: "subcategory", item: subcategory });
+      setShowDeleteConfirm(true);
+    }
+  };
+
+  // Confirm delete action
+  const confirmDelete = async () => {
+    if (!itemToDelete) return;
+
+    try {
+      if (itemToDelete.type === "category") {
+        await categoryApi.delete(itemToDelete.item._id);
+        setCategories((prev) =>
+          prev.filter((cat) => cat._id !== itemToDelete.item._id)
+        );
+        // Reset form if deleted category was selected
+        if (watch("categoryId") === itemToDelete.item._id) {
+          setValue("categoryId", "");
+          setValue("subCategoryId", "");
+        }
+        toast.success("Category deleted successfully!");
+      } else if (itemToDelete.type === "subcategory") {
+        await subcategoryApi.delete(itemToDelete.item._id);
+        setSubcategories((prev) =>
+          prev.filter((sub) => sub._id !== itemToDelete.item._id)
+        );
+        // Reset form if deleted subcategory was selected
+        if (watch("subCategoryId") === itemToDelete.item._id) {
+          setValue("subCategoryId", "");
+        }
+        toast.success("Sub-category deleted successfully!");
+      }
+    } catch (error) {
+      console.error("Error deleting item:", error);
+      toast.error(
+        error instanceof Error ? error.message : "Failed to delete item"
+      );
+    } finally {
+      setShowDeleteConfirm(false);
+      setItemToDelete(null);
     }
   };
 
@@ -397,7 +624,10 @@ export default function InventoryAddProductPage() {
     image?: string;
   }) => {
     try {
-      const newCategory = await categoryApi.create(data);
+      const response = await categoryApi.create(data);
+      const newCategory = response.data || response;
+
+      // Update categories state with the new category
       setCategories((prev) => [...prev, newCategory]);
       setShowCategoryModal(false);
       setSubmitError(null);
@@ -420,7 +650,10 @@ export default function InventoryAddProductPage() {
     image?: string;
   }) => {
     try {
-      const newSubcategory = await subcategoryApi.create(data);
+      const response = await subcategoryApi.create(data);
+      const newSubcategory = response.data || response;
+
+      // Update subcategories state with the new subcategory
       setSubcategories((prev) => [...prev, newSubcategory]);
       setShowSubcategoryModal(false);
       setSubmitError(null);
@@ -437,67 +670,107 @@ export default function InventoryAddProductPage() {
   const validateFormData = (data: ProductFormData): string[] => {
     const errors: string[] = [];
 
-    // Required field validations
-    if (!data.sku?.trim()) errors.push("SKU is required");
-    if (!data.name?.trim()) errors.push("Product name is required");
-    if (!data.description?.trim()) errors.push("Description is required");
-    if (!data.categoryId?.trim()) errors.push("Category is required");
-    if (!data.subCategoryId?.trim()) errors.push("Sub-category is required");
-    if (data.images.length === 0)
-      errors.push("At least one product image is required");
-
-    // Price validations
-    if (data.price.single <= 0)
-      errors.push("Single price must be greater than 0");
-    if (data.price.bulk <= 0) errors.push("Bulk price must be greater than 0");
-    if (data.price.bulk >= data.price.single) {
-      errors.push("Bulk price should be less than single price");
+    // SKU validation (matching backend: min 1, max 50)
+    if (!data.sku?.trim()) {
+      errors.push("SKU is required");
+    } else if (data.sku.length > 50) {
+      errors.push("SKU must be less than 50 characters");
     }
 
-    // Stock validation
-    if (data.stock < 0) errors.push("Stock quantity cannot be negative");
+    // Product name validation (matching backend: min 1, max 200)
+    if (!data.name?.trim()) {
+      errors.push("Product name is required");
+    } else if (data.name.length > 200) {
+      errors.push("Product name must be less than 200 characters");
+    }
 
-    // Weight validations
-    if (data.weight.single.value <= 0)
-      errors.push("Single weight must be greater than 0");
-    if (data.weight.bulk.value <= 0)
-      errors.push("Bulk weight must be greater than 0");
-    if (!data.weight.single.unit?.trim())
-      errors.push("Single weight unit is required");
-    if (!data.weight.bulk.unit?.trim())
-      errors.push("Bulk weight unit is required");
+    // Description validation (matching backend: min 10 chars, max 2000)
+    if (!data.description?.trim()) {
+      errors.push("Description is required");
+    } else if (data.description.length < 10) {
+      errors.push("Description must be at least 10 characters");
+    } else if (data.description.length > 2000) {
+      errors.push("Description must be less than 2000 characters");
+    }
 
-    // Order quantity validations
+    // Highlights validation (matching backend: at least one highlight required)
+    if (!data.highlights || data.highlights.length === 0) {
+      errors.push("At least one highlight is required");
+    } else {
+      data.highlights.forEach((highlight, index) => {
+        if (!highlight.trim()) {
+          errors.push(`Highlight ${index + 1} cannot be empty`);
+        }
+      });
+    }
+
+    // Category and subcategory validation
+    if (!data.categoryId?.trim()) {
+      errors.push("Category ID is required");
+    }
+    if (!data.subCategoryId?.trim()) {
+      errors.push("Sub-category ID is required");
+    }
+
+    // Images validation (matching backend: at least one image required)
+    if (data.images.length === 0) {
+      errors.push("At least one image is required");
+    }
+
+    // Price validations (matching backend: both must be positive)
+    if (data.price.single <= 0) {
+      errors.push("Single price must be positive");
+    }
+    if (data.price.bulk <= 0) {
+      errors.push("Bulk price must be positive");
+    }
+
+    // Stock validation (matching backend: cannot be negative)
+    if (data.stock < 0) {
+      errors.push("Stock cannot be negative");
+    }
+
+    // Weight validations (matching backend: both values must be positive)
+    if (data.weight.single.value <= 0) {
+      errors.push("Weight value must be positive");
+    }
+    if (data.weight.bulk.value <= 0) {
+      errors.push("Bulk weight value must be positive");
+    }
+
+    // Order quantity validations (matching backend: both must be at least 1)
     if (data.minimumOrderQuantity && data.minimumOrderQuantity < 1) {
       errors.push("Minimum order quantity must be at least 1");
     }
     if (data.maximumOrderQuantity && data.maximumOrderQuantity < 1) {
       errors.push("Maximum order quantity must be at least 1");
     }
-    if (
-      data.minimumOrderQuantity &&
-      data.maximumOrderQuantity &&
-      data.minimumOrderQuantity > data.maximumOrderQuantity
-    ) {
-      errors.push(
-        "Minimum order quantity cannot be greater than maximum order quantity"
-      );
-    }
 
-    // Product Collections validations
+    // Product Collections validations (matching backend schema)
     if (data.productCollections && data.productCollections.length > 0) {
       data.productCollections.forEach((item, index) => {
         if (item.quantity <= 0) {
           errors.push(
-            `Collection item ${index + 1}: Quantity must be greater than 0`
+            `Collection item ${index + 1}: Quantity must be positive`
           );
         }
         if (item.price <= 0) {
-          errors.push(
-            `Collection item ${index + 1}: Price must be greater than 0`
-          );
+          errors.push(`Collection item ${index + 1}: Price must be positive`);
         }
       });
+    }
+
+    // Meta fields validation (matching backend limits)
+    if (data.metaTitle && data.metaTitle.length > 60) {
+      errors.push("Meta title must be less than 60 characters");
+    }
+    if (data.metaDescription && data.metaDescription.length > 160) {
+      errors.push("Meta description must be less than 160 characters");
+    }
+    if (data.slug && !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(data.slug)) {
+      errors.push(
+        "Invalid slug format. Use lowercase letters, numbers, and hyphens only"
+      );
     }
 
     return errors;
@@ -653,18 +926,14 @@ export default function InventoryAddProductPage() {
                   className={`flex items-center justify-center gap-12 rounded-xl border border-dashed border-gray-400 bg-white p-8 transition-colors ${
                     uploadingImages
                       ? "opacity-50 cursor-not-allowed"
-                      : !watch("name") || watch("name").trim() === ""
-                      ? "opacity-50 cursor-not-allowed border-gray-300"
                       : "hover:border-blue-400 hover:bg-blue-50/30 cursor-pointer"
                   }`}
-                  onDragOver={!uploadingImages && watch("name") && watch("name").trim() !== "" ? handleDragOver : undefined}
-                  onDragEnter={!uploadingImages && watch("name") && watch("name").trim() !== "" ? handleDragEnter : undefined}
-                  onDragLeave={!uploadingImages && watch("name") && watch("name").trim() !== "" ? handleDragLeave : undefined}
-                  onDrop={!uploadingImages && watch("name") && watch("name").trim() !== "" ? handleDrop : undefined}
+                  onDragOver={!uploadingImages ? handleDragOver : undefined}
+                  onDragEnter={!uploadingImages ? handleDragEnter : undefined}
+                  onDragLeave={!uploadingImages ? handleDragLeave : undefined}
+                  onDrop={!uploadingImages ? handleDrop : undefined}
                   onClick={() =>
                     !uploadingImages &&
-                    watch("name") &&
-                    watch("name").trim() !== "" &&
                     document.getElementById("file-upload")?.click()
                   }
                 >
@@ -700,22 +969,6 @@ export default function InventoryAddProductPage() {
                           {Object.keys(uploadProgress).length} file(s) uploading
                         </p>
                       </div>
-                    ) : !watch("name") || watch("name").trim() === "" ? (
-                      <>
-                        <p className="text-sm text-gray-500 mb-3 text-center font-medium">
-                          Enter Product Name First
-                        </p>
-                        <p className="text-xs text-gray-400 mb-3 text-center">
-                          Please provide a product name before uploading images
-                        </p>
-                        <Button
-                          variant="secondary"
-                          icon={<Upload className="w-4 h-4" />}
-                          disabled
-                        >
-                          Upload Images
-                        </Button>
-                      </>
                     ) : (
                       <>
                         <p className="text-sm text-gray-400 mb-3 text-center font-medium">
@@ -759,13 +1012,13 @@ export default function InventoryAddProductPage() {
                             height={120}
                             className="w-full h-24 object-cover rounded-lg border border-gray-200"
                           />
-                           <button
-                             type="button"
-                             onClick={() => removeImage(index)}
-                             className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600"
-                           >
-                             <X className="w-3 h-3" />
-                           </button>
+                          <button
+                            type="button"
+                            onClick={() => removeImage(index)}
+                            className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
                         </div>
                       ))}
 
@@ -836,107 +1089,118 @@ export default function InventoryAddProductPage() {
                       )}
                     </div>
                     <div className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <label className="text-sm font-medium text-gray-700">
-                          Category *
-                        </label>
-                        <Button
-                          type="button"
-                          variant="secondary"
-                          size="sm"
-                          onClick={() => setShowCategoryModal(true)}
-                          icon={<Plus className="w-3 h-3" />}
-                        >
-                          New
-                        </Button>
-                      </div>
-                      <select
-                        className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-gray-400 bg-muted text-sm"
-                        {...register("categoryId", {
-                          required: "Category is required",
-                        })}
-                        disabled={loadingCategories}
-                      >
-                        <option value="">
-                          {loadingCategories
+                      <label className="text-sm font-medium text-gray-700">
+                        Category *
+                      </label>
+                      <ActionDropdown
+                        options={categoryOptions}
+                        selectedValue={watch("categoryId")}
+                        placeholder={
+                          loadingCategories
                             ? "Loading categories..."
-                            : "Select a category"}
-                        </option>
-                        {categories.map((category) => (
-                          <option key={category._id} value={category._id}>
-                            {category.name}
-                          </option>
-                        ))}
-                      </select>
-                      {errors.categoryId && (
-                        <p className="text-red-500 text-xs mt-1">
-                          {errors.categoryId.message}
-                        </p>
-                      )}
+                            : "Select a category"
+                        }
+                        disabled={loadingCategories}
+                        loading={loadingCategories}
+                        onSelect={handleCategorySelect}
+                        onDelete={handleCategoryDelete}
+                        onAdd={() => setShowCategoryModal(true)}
+                        showActions={true}
+                        showAddButton={true}
+                        addButtonText="New"
+                        error={errors.categoryId?.message}
+                      />
                     </div>
                     <div className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <label className="text-sm font-medium text-gray-700">
-                          Sub-category *
-                        </label>
-                        <Button
-                          type="button"
-                          variant="secondary"
-                          size="sm"
-                          onClick={() => setShowSubcategoryModal(true)}
-                          disabled={!watch("categoryId")}
-                          icon={<Plus className="w-3 h-3" />}
-                        >
-                          New
-                        </Button>
-                      </div>
-                      <select
-                        className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-gray-400 bg-muted text-sm"
-                        {...register("subCategoryId", {
-                          required: "Sub-category is required",
-                        })}
-                        disabled={loadingSubcategories || !watch("categoryId")}
-                      >
-                        <option value="">
-                          {loadingSubcategories
+                      <label className="text-sm font-medium text-gray-700">
+                        Sub-category *
+                      </label>
+                      <ActionDropdown
+                        options={subcategoryOptions}
+                        selectedValue={watch("subCategoryId")}
+                        placeholder={
+                          loadingSubcategories
                             ? "Loading subcategories..."
                             : !watch("categoryId")
                             ? "Select a category first"
-                            : "Select a sub-category"}
-                        </option>
-                        {subcategories.map((subcategory) => (
-                          <option key={subcategory._id} value={subcategory._id}>
-                            {subcategory.name}
-                          </option>
-                        ))}
-                      </select>
-                      {errors.subCategoryId && (
-                        <p className="text-red-500 text-xs mt-1">
-                          {errors.subCategoryId.message}
-                        </p>
-                      )}
+                            : "Select a sub-category"
+                        }
+                        disabled={loadingSubcategories || !watch("categoryId")}
+                        loading={loadingSubcategories}
+                        onSelect={handleSubcategorySelect}
+                        onDelete={handleSubcategoryDelete}
+                        onAdd={() => setShowSubcategoryModal(true)}
+                        showActions={true}
+                        showAddButton={true}
+                        addButtonText="New"
+                        error={errors.subCategoryId?.message}
+                      />
                     </div>
                     <div className="space-y-2 md:col-span-2">
                       <label className="text-sm font-medium text-gray-700">
-                        Description *
+                        Description *{" "}
+                        <span className="text-gray-500 text-xs">
+                          (min 10 characters, max 2000)
+                        </span>
                       </label>
                       <textarea
-                        className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-gray-400 bg-muted text-sm"
-                        placeholder="Enter product description"
+                        className={`w-full px-3 py-2 border rounded-lg focus:outline-none bg-muted text-sm ${
+                          watch("description") &&
+                          watch("description").length > 0 &&
+                          (watch("description").length < 10 ||
+                            watch("description").length > 2000)
+                            ? "border-red-300 focus:border-red-500"
+                            : "border-gray-200 focus:border-gray-400"
+                        }`}
+                        placeholder="Enter product description (minimum 10 characters, maximum 2000)"
                         {...register("description", {
                           required: "Description is required",
                         })}
                         rows={3}
                       />
-                      {errors.description && (
-                        <p className="text-red-500 text-xs mt-1">
-                          {errors.description.message}
-                        </p>
-                      )}
+                      <div className="flex justify-between items-center">
+                        <div>
+                          {errors.description && (
+                            <p className="text-red-500 text-xs">
+                              {errors.description.message}
+                            </p>
+                          )}
+                          {watch("description") &&
+                            watch("description").length > 0 &&
+                            watch("description").length < 10 && (
+                              <p className="text-red-500 text-xs">
+                                Description must be at least 10 characters long
+                              </p>
+                            )}
+                          {watch("description") &&
+                            watch("description").length > 2000 && (
+                              <p className="text-red-500 text-xs">
+                                Description must be less than 2000 characters
+                              </p>
+                            )}
+                        </div>
+                        <span
+                          className={`text-xs ${
+                            watch("description") &&
+                            watch("description").length > 0 &&
+                            (watch("description").length < 10 ||
+                              watch("description").length > 2000)
+                              ? "text-red-500"
+                              : "text-gray-500"
+                          }`}
+                        >
+                          {watch("description")
+                            ? `${watch("description").length} characters`
+                            : "0 characters"}
+                        </span>
+                      </div>
                     </div>
                     <div className="space-y-2 md:col-span-2">
                       <label className="text-sm font-medium text-gray-700">
-                        Highlights
+                        Highlights *{" "}
+                        <span className="text-gray-500 text-xs">
+                          (at least one required)
+                        </span>
                       </label>
                       <div className="space-y-2">
                         <div className="flex gap-2">
@@ -976,6 +1240,11 @@ export default function InventoryAddProductPage() {
                               </span>
                             ))}
                           </div>
+                        )}
+                        {highlights.length === 0 && (
+                          <p className="text-red-500 text-xs">
+                            At least one highlight is required
+                          </p>
                         )}
                       </div>
                     </div>
@@ -1513,9 +1782,25 @@ export default function InventoryAddProductPage() {
 
                 {/* SEO Information */}
                 <div className="space-y-4">
-                  <h3 className="text-lg font-medium text-gray-900">
-                    SEO Information
-                  </h3>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="text-lg font-medium text-gray-900">
+                        SEO Information
+                      </h3>
+                      <p className="text-sm text-gray-500 mt-1">
+                        Generate SEO fields automatically from product name
+                      </p>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      size="sm"
+                      onClick={autoGenerateSEO}
+                      icon={<Search className="w-4 h-4" />}
+                    >
+                      Auto Generate
+                    </Button>
+                  </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-2">
                       <label className="text-sm font-medium text-gray-700">
@@ -1626,6 +1911,8 @@ export default function InventoryAddProductPage() {
           <CreateCategoryModal
             onClose={() => setShowCategoryModal(false)}
             onSubmit={handleCreateCategory}
+            onImageUpload={handleCategoryImageUpload}
+            isUploading={uploadingCategoryImage}
           />
         )}
 
@@ -1636,7 +1923,57 @@ export default function InventoryAddProductPage() {
             selectedCategoryId={watch("categoryId")}
             onClose={() => setShowSubcategoryModal(false)}
             onSubmit={handleCreateSubcategory}
+            onImageUpload={handleCategoryImageUpload}
+            isUploading={uploadingSubcategoryImage}
           />
+        )}
+
+        {/* Delete Confirmation Modal */}
+        {showDeleteConfirm && itemToDelete && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4">
+              <h2 className="text-lg font-semibold mb-4 text-red-600">
+                Confirm Delete
+              </h2>
+              <p className="text-gray-700 mb-6">
+                Are you sure you want to delete this {itemToDelete.type}? This
+                action cannot be undone.
+              </p>
+              <div className="bg-gray-50 p-3 rounded-lg mb-6">
+                <p className="text-sm font-medium text-gray-900">
+                  {itemToDelete.item.name}
+                </p>
+                {itemToDelete.item.description && (
+                  <p className="text-sm text-gray-600 mt-1">
+                    {itemToDelete.item.description}
+                  </p>
+                )}
+              </div>
+              <div className="flex justify-end gap-3">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={() => {
+                    setShowDeleteConfirm(false);
+                    setItemToDelete(null);
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="button"
+                  variant="primary"
+                  onClick={confirmDelete}
+                  className="bg-red-600 hover:bg-red-700"
+                >
+                  Delete{" "}
+                  {itemToDelete.type === "category"
+                    ? "Category"
+                    : "Sub-category"}
+                </Button>
+              </div>
+            </div>
+          </div>
         )}
       </div>
     </DashboardLayout>
@@ -1647,6 +1984,8 @@ export default function InventoryAddProductPage() {
 function CreateCategoryModal({
   onClose,
   onSubmit,
+  onImageUpload,
+  isUploading,
 }: {
   onClose: () => void;
   onSubmit: (data: {
@@ -1655,6 +1994,11 @@ function CreateCategoryModal({
     slug: string;
     image?: string;
   }) => void;
+  onImageUpload: (
+    file: File,
+    type: "category" | "subcategory"
+  ) => Promise<string | null>;
+  isUploading: boolean;
 }) {
   const [formData, setFormData] = useState({
     name: "",
@@ -1663,10 +2007,17 @@ function CreateCategoryModal({
     image: "",
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.name || !formData.description || !formData.slug) return;
+
+    // Validate description length
+    if (formData.description.length < 10) {
+      toast.error("Description must be at least 10 characters long");
+      return;
+    }
 
     try {
       setIsSubmitting(true);
@@ -1696,6 +2047,22 @@ function CreateCategoryModal({
     }));
   };
 
+  const handleFileInput = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const imageUrl = await onImageUpload(file, "category");
+      if (imageUrl) {
+        setFormData((prev) => ({ ...prev, image: imageUrl }));
+        setPreviewImage(imageUrl);
+      }
+    }
+  };
+
+  const removeImage = () => {
+    setFormData((prev) => ({ ...prev, image: "" }));
+    setPreviewImage(null);
+  };
+
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
       <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4">
@@ -1717,10 +2084,16 @@ function CreateCategoryModal({
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Description *
+              Description *{" "}
+              <span className="text-gray-500 text-xs">(min 10 characters)</span>
             </label>
             <textarea
-              className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-gray-400 bg-muted text-sm"
+              className={`w-full px-3 py-2 border rounded-lg focus:outline-none bg-muted text-sm ${
+                formData.description.length > 0 &&
+                formData.description.length < 10
+                  ? "border-red-300 focus:border-red-500"
+                  : "border-gray-200 focus:border-gray-400"
+              }`}
               value={formData.description}
               onChange={(e) =>
                 setFormData((prev) => ({
@@ -1728,10 +2101,25 @@ function CreateCategoryModal({
                   description: e.target.value,
                 }))
               }
-              placeholder="Enter category description"
+              placeholder="Enter category description (minimum 10 characters)"
               rows={3}
               required
             />
+            <div className="flex justify-between items-center mt-1">
+              <span
+                className={`text-xs ${
+                  formData.description.length > 0 &&
+                  formData.description.length < 10
+                    ? "text-red-500"
+                    : "text-gray-500"
+                }`}
+              >
+                {formData.description.length > 0 &&
+                formData.description.length < 10
+                  ? "Description must be at least 10 characters long"
+                  : `${formData.description.length} characters`}
+              </span>
+            </div>
           </div>
 
           <div>
@@ -1750,17 +2138,79 @@ function CreateCategoryModal({
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Image URL
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Category Image
             </label>
-            <Input
-              variant="muted"
-              value={formData.image}
-              onChange={(e) =>
-                setFormData((prev) => ({ ...prev, image: e.target.value }))
+
+            {/* Image Upload Area */}
+            <div
+              className={`flex items-center justify-center gap-4 rounded-xl border border-dashed border-gray-400 bg-white p-6 transition-colors ${
+                isUploading
+                  ? "opacity-50 cursor-not-allowed"
+                  : "hover:border-blue-400 hover:bg-blue-50/30 cursor-pointer"
+              }`}
+              onClick={() =>
+                !isUploading &&
+                document.getElementById("category-file-upload")?.click()
               }
-              placeholder="Enter image URL (optional)"
-            />
+            >
+              {previewImage ? (
+                <div className="relative group">
+                  <Image
+                    src={previewImage}
+                    alt="Category preview"
+                    width={80}
+                    height={80}
+                    className="w-20 h-20 object-cover rounded-lg border border-gray-200"
+                  />
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      removeImage();
+                    }}
+                    className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center">
+                  {isUploading ? (
+                    <div className="text-center">
+                      <div className="w-8 h-8 border-2 border-gray-300 border-t-primary rounded-full animate-spin mx-auto mb-2" />
+                      <p className="text-sm text-gray-600 font-medium">
+                        Uploading...
+                      </p>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="w-16 h-16 rounded-full bg-sky-100 flex items-center justify-center mb-2">
+                        <ImageIcon
+                          className="w-8 h-8 text-sky-500"
+                          strokeWidth={1.2}
+                        />
+                      </div>
+                      <p className="text-sm text-gray-400 mb-1 font-medium">
+                        Upload Image
+                      </p>
+                      <p className="text-xs text-gray-400 text-center">
+                        Click to select or drag & drop
+                      </p>
+                    </>
+                  )}
+                </div>
+              )}
+              <input
+                id="category-file-upload"
+                type="file"
+                accept="image/*"
+                onChange={handleFileInput}
+                className="hidden"
+                aria-label="Upload category image"
+                disabled={isUploading}
+              />
+            </div>
           </div>
 
           <div className="flex justify-end gap-3 pt-4">
@@ -1783,6 +2233,8 @@ function CreateSubcategoryModal({
   selectedCategoryId,
   onClose,
   onSubmit,
+  onImageUpload,
+  isUploading,
 }: {
   categories: any[];
   selectedCategoryId: string;
@@ -1794,6 +2246,11 @@ function CreateSubcategoryModal({
     slug: string;
     image?: string;
   }) => void;
+  onImageUpload: (
+    file: File,
+    type: "category" | "subcategory"
+  ) => Promise<string | null>;
+  isUploading: boolean;
 }) {
   const [formData, setFormData] = useState({
     name: "",
@@ -1813,6 +2270,7 @@ function CreateSubcategoryModal({
     }
   }, [selectedCategoryId]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -1823,6 +2281,12 @@ function CreateSubcategoryModal({
       !formData.slug
     )
       return;
+
+    // Validate description length
+    if (formData.description.length < 10) {
+      toast.error("Description must be at least 10 characters long");
+      return;
+    }
 
     try {
       setIsSubmitting(true);
@@ -1850,6 +2314,22 @@ function CreateSubcategoryModal({
       name,
       slug: generateSlug(name),
     }));
+  };
+
+  const handleFileInput = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const imageUrl = await onImageUpload(file, "subcategory");
+      if (imageUrl) {
+        setFormData((prev) => ({ ...prev, image: imageUrl }));
+        setPreviewImage(imageUrl);
+      }
+    }
+  };
+
+  const removeImage = () => {
+    setFormData((prev) => ({ ...prev, image: "" }));
+    setPreviewImage(null);
   };
 
   return (
@@ -1897,10 +2377,16 @@ function CreateSubcategoryModal({
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Description *
+              Description *{" "}
+              <span className="text-gray-500 text-xs">(min 10 characters)</span>
             </label>
             <textarea
-              className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-gray-400 bg-muted text-sm"
+              className={`w-full px-3 py-2 border rounded-lg focus:outline-none bg-muted text-sm ${
+                formData.description.length > 0 &&
+                formData.description.length < 10
+                  ? "border-red-300 focus:border-red-500"
+                  : "border-gray-200 focus:border-gray-400"
+              }`}
               value={formData.description}
               onChange={(e) =>
                 setFormData((prev) => ({
@@ -1908,10 +2394,25 @@ function CreateSubcategoryModal({
                   description: e.target.value,
                 }))
               }
-              placeholder="Enter sub-category description"
+              placeholder="Enter sub-category description (minimum 10 characters)"
               rows={3}
               required
             />
+            <div className="flex justify-between items-center mt-1">
+              <span
+                className={`text-xs ${
+                  formData.description.length > 0 &&
+                  formData.description.length < 10
+                    ? "text-red-500"
+                    : "text-gray-500"
+                }`}
+              >
+                {formData.description.length > 0 &&
+                formData.description.length < 10
+                  ? "Description must be at least 10 characters long"
+                  : `${formData.description.length} characters`}
+              </span>
+            </div>
           </div>
 
           <div>
@@ -1930,17 +2431,79 @@ function CreateSubcategoryModal({
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Image URL
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Sub-category Image
             </label>
-            <Input
-              variant="muted"
-              value={formData.image}
-              onChange={(e) =>
-                setFormData((prev) => ({ ...prev, image: e.target.value }))
+
+            {/* Image Upload Area */}
+            <div
+              className={`flex items-center justify-center gap-4 rounded-xl border border-dashed border-gray-400 bg-white p-6 transition-colors ${
+                isUploading
+                  ? "opacity-50 cursor-not-allowed"
+                  : "hover:border-blue-400 hover:bg-blue-50/30 cursor-pointer"
+              }`}
+              onClick={() =>
+                !isUploading &&
+                document.getElementById("subcategory-file-upload")?.click()
               }
-              placeholder="Enter image URL (optional)"
-            />
+            >
+              {previewImage ? (
+                <div className="relative group">
+                  <Image
+                    src={previewImage}
+                    alt="Sub-category preview"
+                    width={80}
+                    height={80}
+                    className="w-20 h-20 object-cover rounded-lg border border-gray-200"
+                  />
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      removeImage();
+                    }}
+                    className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center">
+                  {isUploading ? (
+                    <div className="text-center">
+                      <div className="w-8 h-8 border-2 border-gray-300 border-t-primary rounded-full animate-spin mx-auto mb-2" />
+                      <p className="text-sm text-gray-600 font-medium">
+                        Uploading...
+                      </p>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="w-16 h-16 rounded-full bg-sky-100 flex items-center justify-center mb-2">
+                        <ImageIcon
+                          className="w-8 h-8 text-sky-500"
+                          strokeWidth={1.2}
+                        />
+                      </div>
+                      <p className="text-sm text-gray-400 mb-1 font-medium">
+                        Upload Image
+                      </p>
+                      <p className="text-xs text-gray-400 text-center">
+                        Click to select or drag & drop
+                      </p>
+                    </>
+                  )}
+                </div>
+              )}
+              <input
+                id="subcategory-file-upload"
+                type="file"
+                accept="image/*"
+                onChange={handleFileInput}
+                className="hidden"
+                aria-label="Upload sub-category image"
+                disabled={isUploading}
+              />
+            </div>
           </div>
 
           <div className="flex justify-end gap-3 pt-4">

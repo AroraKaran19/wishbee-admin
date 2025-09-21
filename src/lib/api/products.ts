@@ -11,7 +11,6 @@ export const getPresignedUrl = async (fileName: string, fileType: string, folder
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      "Authorization": `Bearer ${localStorage.getItem('token') || ''}`,
     },
     body: JSON.stringify({
       fileName,
@@ -124,7 +123,6 @@ export const productApi = {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${localStorage.getItem('token') || ''}`,
       },
       body: JSON.stringify(data),
     });
@@ -165,7 +163,6 @@ export const productApi = {
 
     const response = await fetch(`${API_BASE_URL}/products?${searchParams}`, {
       headers: {
-        "Authorization": `Bearer ${localStorage.getItem('token') || ''}`,
       },
     });
 
@@ -183,7 +180,6 @@ export const productApi = {
   getById: async (productId: string) => {
     const response = await fetch(`${API_BASE_URL}/products/${productId}`, {
       headers: {
-        "Authorization": `Bearer ${localStorage.getItem('token') || ''}`,
       },
     });
 
@@ -248,7 +244,6 @@ export const productApi = {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${localStorage.getItem('token') || ''}`,
       },
       body: JSON.stringify(data),
     });
@@ -268,7 +263,6 @@ export const productApi = {
     const response = await fetch(`${API_BASE_URL}/products/${productId}`, {
       method: "DELETE",
       headers: {
-        "Authorization": `Bearer ${localStorage.getItem('token') || ''}`,
       },
     });
 
