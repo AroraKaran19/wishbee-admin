@@ -1,16 +1,22 @@
 const API_BASE_URL =
-  process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:3001/api";
+  process.env.NEXT_PUBLIC_BACKEND_URL;
+
+if (!API_BASE_URL) {
+  throw new Error("NEXT_PUBLIC_BACKEND_URL is not set");
+}
 
 // Get presigned URL for S3 upload
-export const getPresignedUrl = async (fileName: string, fileType: string) => {
-  const response = await fetch(`${API_BASE_URL}/presigned-url`, {
+export const getPresignedUrl = async (fileName: string, fileType: string, folder: string = "products") => {
+  const response = await fetch(`${API_BASE_URL}/upload/presigned-url`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
+      "Authorization": `Bearer ${localStorage.getItem('token') || ''}`,
     },
     body: JSON.stringify({
       fileName,
-      fileType,
+      folder,
+      contentType: fileType,
     }),
   });
 
@@ -21,7 +27,52 @@ export const getPresignedUrl = async (fileName: string, fileType: string) => {
     );
   }
 
-  return response.json();
+  const result = await response.json();
+  
+  // Check if the response indicates success
+  if (!result.success) {
+    throw new Error(result.message || 'Failed to get presigned URL');
+  }
+  
+  // Use the response structure from your API
+  const presignedUrl = result.data?.url;
+  const s3Key = result.data?.key;
+  
+  if (!presignedUrl) {
+    console.error('Missing url in response:', result);
+    throw new Error('Invalid response: url not found');
+  }
+  
+  if (!s3Key) {
+    console.error('Missing key in response:', result);
+    throw new Error('Invalid response: key not found');
+  }
+  
+  const fullS3Key = presignedUrl.split('?')[0].split('/').slice(-3).join('/');
+  
+  // Extract bucket URL from presigned URL (everything before the first '?')
+  const bucketUrl = presignedUrl.split('?')[0].replace(`/${fullS3Key}`, '');
+  
+  return {
+    presignedUrl: presignedUrl,
+    imageUrl: `${bucketUrl}/${fullS3Key}`,
+  };
+};
+
+// Delete image from S3
+export const deleteImage = async (imageKey: string) => {
+  const response = await fetch(`${API_BASE_URL}/upload/delete?key=${encodeURIComponent(imageKey)}`, {
+    method: "DELETE",
+  });
+
+  const result = await response.json();
+
+  // Check if the response indicates success
+  if (!result.success) {
+    throw new Error(result.message || 'Failed to delete image');
+  }
+
+  return result;
 };
 
 export const productApi = {
@@ -57,11 +108,13 @@ export const productApi = {
     };
     minimumOrderQuantity?: number;
     maximumOrderQuantity?: number;
-    collection?: {
+    productCollections?: {
       quantity: number;
       price: number;
       unit?: string;
     }[];
+    expiry?: string;
+    alertExpiry?: number;
     metaTitle?: string;
     metaDescription?: string;
     metaKeywords?: string[];
@@ -71,6 +124,7 @@ export const productApi = {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
+        "Authorization": `Bearer ${localStorage.getItem('token') || ''}`,
       },
       body: JSON.stringify(data),
     });
@@ -109,7 +163,11 @@ export const productApi = {
       searchParams.append("maxPrice", params.maxPrice.toString());
     if (params?.search) searchParams.append("search", params.search);
 
-    const response = await fetch(`${API_BASE_URL}/products?${searchParams}`);
+    const response = await fetch(`${API_BASE_URL}/products?${searchParams}`, {
+      headers: {
+        "Authorization": `Bearer ${localStorage.getItem('token') || ''}`,
+      },
+    });
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
@@ -123,7 +181,11 @@ export const productApi = {
 
   // Get Single Product
   getById: async (productId: string) => {
-    const response = await fetch(`${API_BASE_URL}/products/${productId}`);
+    const response = await fetch(`${API_BASE_URL}/products/${productId}`, {
+      headers: {
+        "Authorization": `Bearer ${localStorage.getItem('token') || ''}`,
+      },
+    });
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
@@ -169,11 +231,13 @@ export const productApi = {
       };
       minimumOrderQuantity: number;
       maximumOrderQuantity: number;
-      collection: {
+      productCollections: {
         quantity: number;
         price: number;
         unit?: string;
       }[];
+      expiry: string;
+      alertExpiry: number;
       metaTitle: string;
       metaDescription: string;
       metaKeywords: string[];
@@ -184,6 +248,7 @@ export const productApi = {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
+        "Authorization": `Bearer ${localStorage.getItem('token') || ''}`,
       },
       body: JSON.stringify(data),
     });
@@ -202,6 +267,9 @@ export const productApi = {
   delete: async (productId: string) => {
     const response = await fetch(`${API_BASE_URL}/products/${productId}`, {
       method: "DELETE",
+      headers: {
+        "Authorization": `Bearer ${localStorage.getItem('token') || ''}`,
+      },
     });
 
     if (!response.ok) {

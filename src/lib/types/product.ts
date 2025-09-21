@@ -45,12 +45,16 @@ export interface Product {
   reviewsCount: number;
   totalRating: number;
 
-  // collection
-  collection?: {
+  // Product Collections
+  productCollections?: {
     quantity: number;
     price: number;
     unit?: string;
   }[];
+
+  // Expiry
+  expiry?: string;
+  alertExpiry?: number;
 
   // SEO
   metaTitle?: string;

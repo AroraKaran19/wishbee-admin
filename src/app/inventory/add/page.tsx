@@ -24,7 +24,7 @@ import {
   X,
 } from "lucide-react";
 import { Product } from "@/lib/types/product";
-import { productApi, getPresignedUrl } from "@/lib/api/products";
+import { productApi, getPresignedUrl, deleteImage } from "@/lib/api/products";
 import { categoryApi, subcategoryApi } from "@/lib/api/categories";
 import toast from "react-hot-toast";
 
@@ -36,11 +36,13 @@ type ProductFormData = Omit<
   subCategoryId: string;
   highlights: string[];
   metaKeywords: string[];
-  collection: {
+  productCollections: {
     quantity: number;
     price: number;
     unit?: string;
   }[];
+  expiry?: string;
+  alertExpiry?: number;
 };
 
 export default function InventoryAddProductPage() {
@@ -92,17 +94,18 @@ export default function InventoryAddProductPage() {
       slug: "",
       categoryId: "",
       subCategoryId: "",
-      collection: [],
+      productCollections: [],
+      expiry: "",
+      alertExpiry: 7,
     },
   });
 
   const highlights = watch("highlights") || [];
   const metaKeywords = watch("metaKeywords") || [];
-  const collections = watch("collection") || [];
+  const productCollections = watch("productCollections") || [];
 
   const [highlightInput, setHighlightInput] = useState("");
   const [keywordInput, setKeywordInput] = useState("");
-  const [imageInput, setImageInput] = useState("");
   const [newCollection, setNewCollection] = useState({
     quantity: 0,
     price: 0,
@@ -212,19 +215,38 @@ export default function InventoryAddProductPage() {
       return;
     }
 
+    // Check if product name is provided
+    const productName = watch("name");
+    if (!productName || productName.trim() === "") {
+      toast.error("Please enter a product name before uploading images");
+      return;
+    }
+
     const fileId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
     try {
       setUploadingImages(true);
       setUploadProgress((prev) => ({ ...prev, [fileId]: 0 }));
 
-      // Generate unique filename
+      // Generate consistent folder structure: /products/{product_name}/images
+      const sanitizedProductName = productName
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/(^-|-$)/g, "");
+      
       const fileExtension = file.name.split(".").pop();
-      const fileName = `products/${fileId}.${fileExtension}`;
+      const fileName = `${fileId}.${fileExtension}`;
+      const folder = `products/${sanitizedProductName}/images`;
 
       // Get presigned URL from backend
       setUploadProgress((prev) => ({ ...prev, [fileId]: 25 }));
-      const presignedData = await getPresignedUrl(fileName, file.type);
+      const presignedData = await getPresignedUrl(fileName, file.type, folder);
+      console.log('Presigned data received:', presignedData); // Debug log
+      
+      if (!presignedData || !presignedData.presignedUrl) {
+        throw new Error('Failed to get presigned URL from server');
+      }
+      
       const { presignedUrl, imageUrl } = presignedData;
 
       setUploadProgress((prev) => ({ ...prev, [fileId]: 50 }));
@@ -305,33 +327,66 @@ export default function InventoryAddProductPage() {
 
   const addCollection = () => {
     if (newCollection.quantity > 0 && newCollection.price > 0) {
-      setValue("collection", [...collections, { ...newCollection }]);
+      setValue("productCollections", [...productCollections, { ...newCollection }]);
       setNewCollection({ quantity: 0, price: 0, unit: "" });
     }
   };
 
   const removeCollection = (index: number) => {
     setValue(
-      "collection",
-      collections.filter((_, i) => i !== index)
+      "productCollections",
+      productCollections.filter((_, i) => i !== index)
     );
   };
 
   const updateCollection = (index: number, field: string, value: any) => {
-    const updatedCollections = [...collections];
+    const updatedCollections = [...productCollections];
     updatedCollections[index] = {
       ...updatedCollections[index],
       [field]: value,
     };
-    setValue("collection", updatedCollections);
+    setValue("productCollections", updatedCollections);
   };
 
-  const removeImage = (index: number) => {
+  const removeImage = async (index: number) => {
     const currentImages = watch("images") || [];
-    setValue(
-      "images",
-      currentImages.filter((_, i) => i !== index)
-    );
+    const imageToRemove = currentImages[index];
+    
+    try {
+      // Extract S3 key from the image URL
+      // URL format: https://testing-v23.s3.ap-south-1.amazonaws.com/wishbee/products/product-name/images/filename.jpg
+      // We need to extract: wishbee/products/product-name/images/filename.jpg
+      const url = new URL(imageToRemove);
+      const pathParts = url.pathname.split('/');
+      // Find the 'wishbee' part and get everything from there
+      const wishbeeIndex = pathParts.findIndex(part => part === 'wishbee');
+      if (wishbeeIndex !== -1) {
+        const s3Key = pathParts.slice(wishbeeIndex).join('/');
+        console.log('Deleting S3 key:', s3Key); // Debug log
+        
+        // Delete from S3
+        await deleteImage(s3Key);
+      } else {
+        throw new Error('Invalid image URL format - wishbee folder not found');
+      }
+      
+      // Remove from form
+      setValue(
+        "images",
+        currentImages.filter((_, i) => i !== index)
+      );
+      
+      toast.success("Image deleted successfully!");
+    } catch (error) {
+      console.error("Error deleting image:", error);
+      toast.error("Failed to delete image from server");
+      
+      // Still remove from UI even if server deletion fails
+      setValue(
+        "images",
+        currentImages.filter((_, i) => i !== index)
+      );
+    }
   };
 
   // Category creation
@@ -429,9 +484,9 @@ export default function InventoryAddProductPage() {
       );
     }
 
-    // Collection validations
-    if (data.collection && data.collection.length > 0) {
-      data.collection.forEach((item, index) => {
+    // Product Collections validations
+    if (data.productCollections && data.productCollections.length > 0) {
+      data.productCollections.forEach((item, index) => {
         if (item.quantity <= 0) {
           errors.push(
             `Collection item ${index + 1}: Quantity must be greater than 0`
@@ -492,10 +547,12 @@ export default function InventoryAddProductPage() {
         },
         minimumOrderQuantity: data.minimumOrderQuantity || 1,
         maximumOrderQuantity: data.maximumOrderQuantity || 100,
-        collection:
-          data.collection && data.collection.length > 0
-            ? data.collection
+        productCollections:
+          data.productCollections && data.productCollections.length > 0
+            ? data.productCollections
             : undefined,
+        expiry: data.expiry || undefined,
+        alertExpiry: data.alertExpiry || undefined,
         metaTitle: data.metaTitle?.trim() || undefined,
         metaDescription: data.metaDescription?.trim() || undefined,
         metaKeywords:
@@ -596,14 +653,18 @@ export default function InventoryAddProductPage() {
                   className={`flex items-center justify-center gap-12 rounded-xl border border-dashed border-gray-400 bg-white p-8 transition-colors ${
                     uploadingImages
                       ? "opacity-50 cursor-not-allowed"
+                      : !watch("name") || watch("name").trim() === ""
+                      ? "opacity-50 cursor-not-allowed border-gray-300"
                       : "hover:border-blue-400 hover:bg-blue-50/30 cursor-pointer"
                   }`}
-                  onDragOver={handleDragOver}
-                  onDragEnter={handleDragEnter}
-                  onDragLeave={handleDragLeave}
-                  onDrop={handleDrop}
+                  onDragOver={!uploadingImages && watch("name") && watch("name").trim() !== "" ? handleDragOver : undefined}
+                  onDragEnter={!uploadingImages && watch("name") && watch("name").trim() !== "" ? handleDragEnter : undefined}
+                  onDragLeave={!uploadingImages && watch("name") && watch("name").trim() !== "" ? handleDragLeave : undefined}
+                  onDrop={!uploadingImages && watch("name") && watch("name").trim() !== "" ? handleDrop : undefined}
                   onClick={() =>
                     !uploadingImages &&
+                    watch("name") &&
+                    watch("name").trim() !== "" &&
                     document.getElementById("file-upload")?.click()
                   }
                 >
@@ -639,6 +700,22 @@ export default function InventoryAddProductPage() {
                           {Object.keys(uploadProgress).length} file(s) uploading
                         </p>
                       </div>
+                    ) : !watch("name") || watch("name").trim() === "" ? (
+                      <>
+                        <p className="text-sm text-gray-500 mb-3 text-center font-medium">
+                          Enter Product Name First
+                        </p>
+                        <p className="text-xs text-gray-400 mb-3 text-center">
+                          Please provide a product name before uploading images
+                        </p>
+                        <Button
+                          variant="secondary"
+                          icon={<Upload className="w-4 h-4" />}
+                          disabled
+                        >
+                          Upload Images
+                        </Button>
+                      </>
                     ) : (
                       <>
                         <p className="text-sm text-gray-400 mb-3 text-center font-medium">
@@ -682,13 +759,13 @@ export default function InventoryAddProductPage() {
                             height={120}
                             className="w-full h-24 object-cover rounded-lg border border-gray-200"
                           />
-                          <button
-                            type="button"
-                            onClick={() => removeImage(index)}
-                            className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                          >
-                            <X className="w-3 h-3" />
-                          </button>
+                           <button
+                             type="button"
+                             onClick={() => removeImage(index)}
+                             className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600"
+                           >
+                             <X className="w-3 h-3" />
+                           </button>
                         </div>
                       ))}
 
@@ -1121,6 +1198,34 @@ export default function InventoryAddProductPage() {
                         </p>
                       )}
                     </div>
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-gray-700">
+                        Expiry Date
+                      </label>
+                      <Input
+                        variant="muted"
+                        icon={<Calendar className="w-4 h-4" />}
+                        className="text-sm"
+                        placeholder="Select expiry date"
+                        type="date"
+                        {...register("expiry")}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-gray-700">
+                        Alert Before Expiry (Days)
+                      </label>
+                      <Input
+                        variant="muted"
+                        icon={<Calendar className="w-4 h-4" />}
+                        className="text-sm"
+                        placeholder="Enter days before expiry"
+                        type="number"
+                        {...register("alertExpiry", {
+                          min: { value: 1, message: "Must be at least 1 day" },
+                        })}
+                      />
+                    </div>
                     <div className="space-y-2 md:col-span-2">
                       <label className="flex items-center gap-2">
                         <input
@@ -1322,13 +1427,13 @@ export default function InventoryAddProductPage() {
                     </div>
 
                     {/* Collection List */}
-                    {collections.length > 0 && (
+                    {productCollections.length > 0 && (
                       <div className="space-y-2">
                         <label className="text-sm font-medium text-gray-700">
                           Added Collections
                         </label>
                         <div className="space-y-2">
-                          {collections.map((collection, index) => (
+                          {productCollections.map((collection, index) => (
                             <div
                               key={index}
                               className="flex items-center gap-4 p-3 bg-gray-50 rounded-lg border border-gray-200"
