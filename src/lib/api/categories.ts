@@ -115,7 +115,7 @@ export const subcategoryApi = {
     image?: string;
     isActive?: boolean;
   }) => {
-    const response = await fetch(`${API_BASE_URL}/subcategories`, {
+    const response = await fetch(`${API_BASE_URL}/categories/subcategories`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -155,7 +155,7 @@ export const subcategoryApi = {
 
   // Get Single Subcategory
   getById: async (subcategoryId: string) => {
-    const response = await fetch(`${API_BASE_URL}/subcategories/${subcategoryId}`);
+    const response = await fetch(`${API_BASE_URL}/categories/subcategories/${subcategoryId}`);
     
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
@@ -174,7 +174,7 @@ export const subcategoryApi = {
     image: string;
     isActive: boolean;
   }>) => {
-    const response = await fetch(`${API_BASE_URL}/subcategories/${subcategoryId}`, {
+    const response = await fetch(`${API_BASE_URL}/categories/subcategories/${subcategoryId}`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
@@ -192,7 +192,7 @@ export const subcategoryApi = {
 
   // Delete Subcategory
   delete: async (subcategoryId: string) => {
-    const response = await fetch(`${API_BASE_URL}/subcategories/${subcategoryId}`, {
+    const response = await fetch(`${API_BASE_URL}/categories/subcategories/${subcategoryId}`, {
       method: 'DELETE',
     });
 

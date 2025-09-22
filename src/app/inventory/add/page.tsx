@@ -241,7 +241,6 @@ export default function InventoryAddProductPage() {
       // Get presigned URL from backend
       setUploadProgress((prev) => ({ ...prev, [fileId]: 25 }));
       const presignedData = await getPresignedUrl(fileName, file.type, folder);
-      console.log("Presigned data received:", presignedData); // Debug log
 
       if (!presignedData || !presignedData.presignedUrl) {
         throw new Error("Failed to get presigned URL from server");
@@ -365,7 +364,6 @@ export default function InventoryAddProductPage() {
       const wishbeeIndex = pathParts.findIndex((part) => part === "wishbee");
       if (wishbeeIndex !== -1) {
         const s3Key = pathParts.slice(wishbeeIndex).join("/");
-        console.log("Deleting S3 key:", s3Key); // Debug log
 
         // Delete from S3
         await deleteImage(s3Key);
@@ -491,7 +489,6 @@ export default function InventoryAddProductPage() {
 
       // Get presigned URL from backend
       const presignedData = await getPresignedUrl(fileName, file.type, folder);
-      console.log("Presigned data received:", presignedData);
 
       if (!presignedData || !presignedData.presignedUrl) {
         throw new Error("Failed to get presigned URL from server");
@@ -800,32 +797,36 @@ export default function InventoryAddProductPage() {
         status: data.status,
         isOrganic: data.isOrganic,
         price: {
-          single: data.price.single,
-          bulk: data.price.bulk,
+          single: Number(data.price.single),
+          bulk: Number(data.price.bulk),
         },
         discount: {
           type: data.discount.type,
-          value: data.discount.value,
+          value: Number(data.discount.value),
         },
-        stock: data.stock,
+        stock: Number(data.stock),
         weight: {
           single: {
-            value: data.weight.single.value,
+            value: Number(data.weight.single.value),
             unit: data.weight.single.unit,
           },
           bulk: {
-            value: data.weight.bulk.value,
+            value: Number(data.weight.bulk.value),
             unit: data.weight.bulk.unit,
           },
         },
-        minimumOrderQuantity: data.minimumOrderQuantity || 1,
-        maximumOrderQuantity: data.maximumOrderQuantity || 100,
+        minimumOrderQuantity: Number(data.minimumOrderQuantity) || 1,
+        maximumOrderQuantity: Number(data.maximumOrderQuantity) || 100,
         productCollections:
           data.productCollections && data.productCollections.length > 0
-            ? data.productCollections
+            ? data.productCollections.map(collection => ({
+                quantity: Number(collection.quantity),
+                price: Number(collection.price),
+                unit: collection.unit,
+              }))
             : undefined,
         expiry: data.expiry || undefined,
-        alertExpiry: data.alertExpiry || undefined,
+        alertExpiry: data.alertExpiry ? Number(data.alertExpiry) : undefined,
         metaTitle: data.metaTitle?.trim() || undefined,
         metaDescription: data.metaDescription?.trim() || undefined,
         metaKeywords:
