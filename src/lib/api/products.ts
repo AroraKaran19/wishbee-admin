@@ -1,9 +1,5 @@
 const API_BASE_URL =
-  process.env.NEXT_PUBLIC_BACKEND_URL;
-
-if (!API_BASE_URL) {
-  throw new Error("NEXT_PUBLIC_BACKEND_URL is not set");
-}
+  process.env.NEXT_PUBLIC_BACKEND_URL || 'https://wishbee-web.vercel.app/api';
 
 // Get presigned URL for S3 upload
 export const getPresignedUrl = async (fileName: string, fileType: string, folder: string = "products") => {
