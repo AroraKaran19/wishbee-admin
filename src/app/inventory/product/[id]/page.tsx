@@ -34,7 +34,7 @@ export default async function ProductDetailPageRoute({ params }: ProductIndividu
 // Generate static params for all products
 export async function generateStaticParams() {
   try {
-    const response = await productApi.getAll({ limit: 50 }); // Adjust limit as needed
+    const response = await productApi.getAll({ limit: 20 });
     const products = response.data;
     
     return products.map((product: any) => ({

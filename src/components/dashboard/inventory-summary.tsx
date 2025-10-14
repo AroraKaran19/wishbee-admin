@@ -27,7 +27,7 @@ export function InventorySummary() {
         setError(null);
         const response = await productApi.getAll({
           page: 1,
-          limit: 1000, // Load all products for now
+          limit: 20,
           search: searchQuery || undefined,
         });
         setProducts(response.data || response);
