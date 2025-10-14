@@ -4,23 +4,23 @@
   --color-primary: #00b7fb;
   --color-primary-hover: #0099d4;
   --color-primary-light: #d9f4ff;
-  
+
   --color-secondary: #d9f4ff;
-  
+
   --color-danger: #d65144;
   --color-danger-hover: #c44538;
   --color-danger-light: #fdf2f2;
-  
+
   --color-warning: #fff5d2;
   --color-warning-hover: #fff0b8;
-  
+
   --color-success: #0b8f00;
   --color-success-hover: #0a7d00;
   --color-success-light: #dbeed9;
-  
+
   --color-muted: #f3f3f3;
   --color-muted-hover: #e8e8e8;
-  
+
   --color-text-primary: #1f2937;
   --color-text-secondary: #6b7280;
   --color-text-muted: #9ca3af;
@@ -110,10 +110,10 @@
 
 /* Hide scrollbar completely */
 .scrollbar-hide {
-  -ms-overflow-style: none;  /* Internet Explorer 10+ */
-  scrollbar-width: none;  /* Firefox */
+  -ms-overflow-style: none; /* Internet Explorer 10+ */
+  scrollbar-width: none; /* Firefox */
 }
 
 .scrollbar-hide::-webkit-scrollbar {
-  display: none;  /* Safari and Chrome */
+  display: none; /* Safari and Chrome */
 }
