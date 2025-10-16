@@ -29,21 +29,21 @@ export default function RootLayout({
           toastOptions={{
             duration: 4000,
             style: {
-              background: '#363636',
-              color: '#fff',
+              background: "#363636",
+              color: "#fff",
             },
             success: {
               duration: 3000,
               style: {
-                background: '#10B981',
-                color: '#fff',
+                background: "#10B981",
+                color: "#fff",
               },
             },
             error: {
               duration: 5000,
               style: {
-                background: '#EF4444',
-                color: '#fff',
+                background: "#EF4444",
+                color: "#fff",
               },
             },
           }}
