@@ -34,17 +34,17 @@ export function InventoryTable({ products, currentPage, totalPages, onPageChange
         align: 'center',
         render: (value) => (
           <div className="text-sm text-gray-900">
-            {value.name}
+            {value && typeof value === 'object' && 'name' in value ? value.name : 'N/A'}
           </div>
         )
       },
       {
-        key: 'price',
-        title: 'Price',
+        key: 'mrp',
+        title: 'MRP',
         align: 'center',
         render: (value) => (
           <div className="text-sm text-gray-900">
-            {formatCurrency(value.single)}
+            {formatCurrency(value)}
           </div>
         )
       },
@@ -93,7 +93,7 @@ export function InventoryTable({ products, currentPage, totalPages, onPageChange
       onPageChange,
       showPageInfo: true
     },
-    rowKey: 'id',
+    rowKey: '_id',
     className: 'rounded-xl shadow-sm',
     rowClassName: () => 'hover:bg-gray-50'
   };

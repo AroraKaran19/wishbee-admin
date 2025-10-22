@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { WarningBanner } from '@/components/ui/banner';
 import { SearchBar } from '@/components/ui/search-bar';
 import { LongUnsoldTable } from './long-unsold-table';
-import { longUnsoldItems } from '@/lib/data/mockData';
+import { longUnsoldItems } from '@/lib/data/mockData_new';
 import { exportLongUnsoldToCSV } from '@/lib/utils/csv-export';
 import { Upload } from 'lucide-react';
 

@@ -35,9 +35,13 @@ export default async function ProductDetailPageRoute({ params }: ProductIndividu
 export async function generateStaticParams() {
   try {
     const response = await productApi.getAll({ limit: 20 });
-    const products = response.data;
+    const productsData = response.data?.products;
     
-    return products.map((product: any) => ({
+    if (!Array.isArray(productsData)) {
+      return [];
+    }
+    
+    return productsData.map((product: any) => ({
       id: product._id,
     }));
   } catch (error) {

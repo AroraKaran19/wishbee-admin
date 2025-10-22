@@ -1,24 +1,25 @@
-'use client';
+"use client";
 
-import React, { useState } from 'react';
-import { WarningBanner } from '@/components/ui/banner';
-import { SearchBar } from '@/components/ui/search-bar';
-import { OutOfStockTable } from './out-of-stock-table';
-import { outOfStockItems } from '@/lib/data/mockData';
-import { exportOutOfStockToCSV } from '@/lib/utils/csv-export';
-import { Upload } from 'lucide-react';
+import React, { useState } from "react";
+import { WarningBanner } from "@/components/ui/banner";
+import { SearchBar } from "@/components/ui/search-bar";
+import { OutOfStockTable } from "./out-of-stock-table";
+import { outOfStockItems } from "@/lib/data/mockData_new";
+import { exportOutOfStockToCSV } from "@/lib/utils/csv-export";
+import { Upload } from "lucide-react";
 
 export function OutOfStockPage() {
   const [currentPage, setCurrentPage] = useState(1);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState("");
   const itemsPerPage = 10;
-  
-  const filteredItems = outOfStockItems.filter(item => 
-    item.productName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    item.category.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    item.supplierName.toLowerCase().includes(searchQuery.toLowerCase())
+
+  const filteredItems = outOfStockItems.filter(
+    (item) =>
+      item.productName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      item.category.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      item.supplierName.toLowerCase().includes(searchQuery.toLowerCase())
   );
-  
+
   const totalPages = Math.ceil(filteredItems.length / itemsPerPage);
 
   const handlePageChange = (page: number) => {
@@ -31,7 +32,7 @@ export function OutOfStockPage() {
   };
 
   const handleExportCSV = () => {
-    exportOutOfStockToCSV(filteredItems, 'out-of-stock-items');
+    exportOutOfStockToCSV(filteredItems, "out-of-stock-items");
   };
 
   const startIndex = (currentPage - 1) * itemsPerPage;
@@ -44,9 +45,7 @@ export function OutOfStockPage() {
         <h1 className="text-2xl font-bold text-gray-900">Out of Stock Items</h1>
       </div>
 
-        <WarningBanner 
-          message="These items are out of stock and need immediate restocking to avoid customer dissatisfaction."
-        />
+      <WarningBanner message="These items are out of stock and need immediate restocking to avoid customer dissatisfaction." />
 
       <div className="flex-1 min-h-0 flex flex-col">
         <div className="flex-shrink-0 mb-4">
@@ -56,16 +55,16 @@ export function OutOfStockPage() {
             onSearchChange={setSearchQuery}
             actions={[
               {
-                key: 'export',
-                label: 'Export CSV',
+                key: "export",
+                label: "Export CSV",
                 icon: <Upload className="w-4 h-4" />,
                 onClick: handleExportCSV,
-                variant: 'danger'
-              }
+                variant: "danger",
+              },
             ]}
           />
         </div>
-        
+
         <div className="flex-1 min-h-0">
           <OutOfStockTable
             items={currentItems}

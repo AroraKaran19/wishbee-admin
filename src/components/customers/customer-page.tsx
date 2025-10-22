@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { SearchBar } from '@/components/ui/search-bar';
 import { CustomerTable } from './customer-table';
-import { mockCustomers } from '@/lib/data/mockData';
+import { mockCustomers } from '@/lib/data/mockData_new';
 import { Upload } from 'lucide-react';
 
 export function CustomerPage() {

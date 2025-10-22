@@ -75,31 +75,34 @@ export const productApi = {
   create: async (data: {
     sku: string;
     name: string;
+    type: "product";
     description: string;
-    highlights: string[];
-    categoryId: string;
+    highlights: {
+      key: string;
+      value: string;
+    }[];
+    category: string;
     subCategory: string;
     images: string[];
     status: "ACTIVE" | "OUT_OF_STOCK" | "DISCONTINUED";
     isOrganic: boolean;
-    price: {
-      single: number;
-      bulk: number;
-    };
-    discount: {
+    mrp: number;
+    pricing_range: {
+      quantity_start: number;
+      quantity_end: number;
+      price: number;
+    }[];
+    discount?: {
       type: "percentage" | "fixed";
       value: number;
+      startDate?: Date;
+      endDate?: Date;
+      isActive: boolean;
     };
     stock: number;
     weight: {
-      single: {
-        value: number;
-        unit: string;
-      };
-      bulk: {
-        value: number;
-        unit: string;
-      };
+      value: number;
+      unit: string;
     };
     minimumOrderQuantity?: number;
     maximumOrderQuantity?: number;
@@ -108,12 +111,17 @@ export const productApi = {
       price: number;
       unit?: string;
     }[];
-    expiry?: string;
+    expiry?: Date;
     alertExpiry?: number;
     metaTitle?: string;
     metaDescription?: string;
     metaKeywords?: string[];
     slug?: string;
+    isB2B: boolean;
+    dotd: boolean;
+    pfy: boolean;
+    reviewsCount: number;
+    totalRating: number;
   }) => {
     const response = await fetch(`${API_BASE_URL}/products`, {
       method: "POST",
@@ -195,31 +203,34 @@ export const productApi = {
     data: Partial<{
       sku: string;
       name: string;
+      type: "product";
       description: string;
-      highlights: string[];
-      categoryId: string;
+      highlights: {
+        key: string;
+        value: string;
+      }[];
+      category: string;
       subCategory: string;
       images: string[];
       status: "ACTIVE" | "OUT_OF_STOCK" | "DISCONTINUED";
       isOrganic: boolean;
-      price: {
-        single: number;
-        bulk: number;
-      };
-      discount: {
+      mrp: number;
+      pricing_range: {
+        quantity_start: number;
+        quantity_end: number;
+        price: number;
+      }[];
+      discount?: {
         type: "percentage" | "fixed";
         value: number;
+        startDate?: Date;
+        endDate?: Date;
+        isActive: boolean;
       };
       stock: number;
       weight: {
-        single: {
-          value: number;
-          unit: string;
-        };
-        bulk: {
-          value: number;
-          unit: string;
-        };
+        value: number;
+        unit: string;
       };
       minimumOrderQuantity: number;
       maximumOrderQuantity: number;
@@ -228,12 +239,17 @@ export const productApi = {
         price: number;
         unit?: string;
       }[];
-      expiry: string;
+      expiry: Date;
       alertExpiry: number;
       metaTitle: string;
       metaDescription: string;
       metaKeywords: string[];
       slug: string;
+      isB2B: boolean;
+      dotd: boolean;
+      pfy: boolean;
+      reviewsCount: number;
+      totalRating: number;
     }>
   ) => {
     const response = await fetch(`${API_BASE_URL}/products/${productId}`, {

@@ -9,8 +9,22 @@ const poppins = Poppins({
 });
 
 export const metadata: Metadata = {
-  title: "Wishbee Admin",
-  description: "Wishbee Admin",
+  title: "Wishbee - Admin Dashboard",
+  description: "Wishbee - Admin Dashboard",
+  openGraph: {
+    title: "Wishbee - Admin Dashboard",
+    description: "Wishbee - Admin Dashboard",
+    url: "https://wishbee-admin.vercel.app",
+    type: "website",
+    images: [{ url: "https://wishbee-admin.vercel.app/logo.png" }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Wishbee - Admin Dashboard",
+    description: "Wishbee - Admin Dashboard",
+    images: [{ url: "https://wishbee-admin.vercel.app/logo.png" }],
+  },
+  metadataBase: new URL("https://wishbee-admin.vercel.app"),
 };
 
 export default function RootLayout({

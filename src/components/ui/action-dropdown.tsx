@@ -27,6 +27,9 @@ export interface ActionDropdownProps {
   addButtonText?: string;
   className?: string;
   error?: string;
+  hasMore?: boolean;
+  onLoadMore?: () => void;
+  loadingMore?: boolean;
 }
 
 export function ActionDropdown({
@@ -44,15 +47,22 @@ export function ActionDropdown({
   addButtonText = "New",
   className = "",
   error,
+  hasMore = false,
+  onLoadMore,
+  loadingMore = false,
 }: ActionDropdownProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [hoveredOption, setHoveredOption] = useState<string | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node)
+      ) {
         setIsOpen(false);
         setHoveredOption(null);
       }
@@ -64,7 +74,19 @@ export function ActionDropdown({
     };
   }, []);
 
-  const selectedOption = options.find(option => option.value === selectedValue);
+  // Handle scroll to load more
+  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
+    const isNearBottom = scrollTop + clientHeight >= scrollHeight - 10; // 10px threshold
+
+    if (isNearBottom && hasMore && onLoadMore && !loadingMore) {
+      onLoadMore();
+    }
+  };
+
+  const selectedOption = options.find(
+    (option) => option.value === selectedValue
+  );
 
   const handleOptionClick = (option: DropdownOption) => {
     if (!option.disabled) {
@@ -74,11 +96,15 @@ export function ActionDropdown({
     }
   };
 
-  const handleActionClick = (e: React.MouseEvent, action: 'edit' | 'delete', option: DropdownOption) => {
+  const handleActionClick = (
+    e: React.MouseEvent,
+    action: "edit" | "delete",
+    option: DropdownOption
+  ) => {
     e.stopPropagation();
-    if (action === 'edit' && onEdit) {
+    if (action === "edit" && onEdit) {
       onEdit(option);
-    } else if (action === 'delete' && onDelete) {
+    } else if (action === "delete" && onDelete) {
       onDelete(option);
     }
     setIsOpen(false);
@@ -117,13 +143,15 @@ export function ActionDropdown({
               className="w-5 h-5 rounded object-cover flex-shrink-0"
             />
           )}
-          <span className={`text-sm truncate ${
-            selectedOption ? "text-gray-900" : "text-gray-500"
-          }`}>
+          <span
+            className={`text-sm truncate ${
+              selectedOption ? "text-gray-900" : "text-gray-500"
+            }`}
+          >
             {loading ? "Loading..." : selectedOption?.label || placeholder}
           </span>
         </div>
-        
+
         <div className="flex items-center gap-1 flex-shrink-0">
           {showAddButton && onAdd && (
             <Button
@@ -146,72 +174,98 @@ export function ActionDropdown({
       </div>
 
       {/* Error Message */}
-      {error && (
-        <p className="text-red-500 text-xs mt-1">{error}</p>
-      )}
+      {error && <p className="text-red-500 text-xs mt-1">{error}</p>}
 
       {/* Dropdown Menu */}
       {isOpen && (
-        <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+        <div
+          className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto"
+          ref={scrollContainerRef}
+          onScroll={handleScroll}
+        >
           {options.length === 0 ? (
             <div className="px-3 py-2 text-sm text-gray-500 text-center">
               No options available
             </div>
           ) : (
-            options.map((option, index) => (
-              <div
-                key={option.id || `option-${index}`}
-                className={`px-3 py-2 text-sm transition-colors border-b border-gray-100 last:border-b-0 flex items-center justify-between group ${
-                  option.disabled
-                    ? "bg-gray-50 text-gray-400 cursor-not-allowed"
-                    : option.value === selectedValue
-                    ? "bg-blue-50 text-blue-700"
-                    : "text-gray-700 hover:bg-gray-50 cursor-pointer"
-                }`}
-                onClick={() => handleOptionClick(option)}
-                onMouseEnter={() => setHoveredOption(option.id)}
-                onMouseLeave={() => setHoveredOption(null)}
-              >
-                <div className="flex items-center gap-2 flex-1 min-w-0">
-                  {option.image && (
-                    <img
-                      src={option.image}
-                      alt={option.label}
-                      className="w-5 h-5 rounded object-cover flex-shrink-0"
-                    />
-                  )}
-                  <span className="truncate">{option.label}</span>
-                </div>
-
-                {/* Action Buttons */}
-                {showActions && !option.disabled && hoveredOption === option.id && (
-                  <div className="flex items-center gap-1 flex-shrink-0">
-                    {onEdit && (
-                      <button
-                        key={`edit-${option.id || index}`}
-                        type="button"
-                        onClick={(e) => handleActionClick(e, 'edit', option)}
-                        className="p-1 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
-                        title="Edit"
-                      >
-                        <Edit className="w-3 h-3" />
-                      </button>
+            <>
+              {options.map((option, index) => (
+                <div
+                  key={option.id || `option-${index}`}
+                  className={`px-3 py-2 text-sm transition-colors border-b border-gray-100 last:border-b-0 flex items-center justify-between group ${
+                    option.disabled
+                      ? "bg-gray-50 text-gray-400 cursor-not-allowed"
+                      : option.value === selectedValue
+                      ? "bg-blue-50 text-blue-700"
+                      : "text-gray-700 hover:bg-gray-50 cursor-pointer"
+                  }`}
+                  onClick={() => handleOptionClick(option)}
+                  onMouseEnter={() => setHoveredOption(option.id)}
+                  onMouseLeave={() => setHoveredOption(null)}
+                >
+                  <div className="flex items-center gap-2 flex-1 min-w-0">
+                    {option.image && (
+                      <img
+                        src={option.image}
+                        alt={option.label}
+                        className="w-5 h-5 rounded object-cover flex-shrink-0"
+                      />
                     )}
-                    {onDelete && (
-                      <button
-                        key={`delete-${option.id || index}`}
-                        type="button"
-                        onClick={(e) => handleActionClick(e, 'delete', option)}
-                        className="p-1 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
-                        title="Delete"
-                      >
-                        <Trash2 className="w-3 h-3" />
-                      </button>
-                    )}
+                    <span className="truncate">{option.label}</span>
                   </div>
-                )}
-              </div>
-            ))
+
+                  {/* Action Buttons */}
+                  {showActions &&
+                    !option.disabled &&
+                    hoveredOption === option.id && (
+                      <div className="flex items-center gap-1 flex-shrink-0">
+                        {onEdit && (
+                          <button
+                            key={`edit-${option.id || index}`}
+                            type="button"
+                            onClick={(e) =>
+                              handleActionClick(e, "edit", option)
+                            }
+                            className="p-1 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
+                            title="Edit"
+                          >
+                            <Edit className="w-3 h-3" />
+                          </button>
+                        )}
+                        {onDelete && (
+                          <button
+                            key={`delete-${option.id || index}`}
+                            type="button"
+                            onClick={(e) =>
+                              handleActionClick(e, "delete", option)
+                            }
+                            className="p-1 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
+                            title="Delete"
+                          >
+                            <Trash2 className="w-3 h-3" />
+                          </button>
+                        )}
+                      </div>
+                    )}
+                </div>
+              ))}
+
+              {/* Load More Indicator */}
+              {hasMore && (
+                <div className="px-3 py-2 text-sm text-center border-t border-gray-100">
+                  {loadingMore ? (
+                    <div className="flex items-center justify-center gap-2 text-gray-500">
+                      <div className="w-4 h-4 border-2 border-gray-300 border-t-blue-500 rounded-full animate-spin"></div>
+                      Loading more...
+                    </div>
+                  ) : (
+                    <div className="text-gray-500">
+                      Scroll down to load more
+                    </div>
+                  )}
+                </div>
+              )}
+            </>
           )}
         </div>
       )}

@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { Banner } from '@/components/ui/banner';
 import { SearchBar } from '@/components/ui/search-bar';
 import { ShortExpiryTable } from './short-expiry-table';
-import { shortExpiryItems } from '@/lib/data/mockData';
+import { shortExpiryItems } from '@/lib/data/mockData_new';
 import { exportToCSV } from '@/lib/utils/csv-export';
 import { Upload } from 'lucide-react';
 import { ShortExpiryItem } from '@/lib/types';

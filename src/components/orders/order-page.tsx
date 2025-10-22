@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { SearchBar } from '@/components/ui/search-bar';
 import { OrderTable } from './order-table';
 import { OrderSummaryCards } from './order-summary-cards';
-import { mockOrders, mockOrderSummary } from '@/lib/data/mockData';
+import { mockOrders, mockOrderSummary } from '@/lib/data/mockData_new';
 import { Upload } from 'lucide-react';
 
 export function OrderPage() {

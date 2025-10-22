@@ -1,5 +1,12 @@
-export * from './product';
-export * from './table';
+export * from "./product";
+export * from "./table";
+export * from "./category";
+export * from "./discount";
+export * from "./reviews";
+export * from "./user";
+export * from "./order";
+export * from "./combo";
+export * from "./enquiry";
 
 export interface InventorySummary {
   totalCategories: number;
@@ -50,7 +57,7 @@ export interface ExpiredItem {
   expiryDate: string;
   quantity: number;
   unit: string;
-  status: 'expired';
+  status: "expired";
 }
 
 export interface ShortExpiryItem {
@@ -69,7 +76,7 @@ export interface LongUnsoldItem {
   stockQty: number;
   unit: string;
   price: number;
-  suggestedAction: 'discount' | 'combo';
+  suggestedAction: "discount" | "combo";
 }
 
 export interface TopSellingItem {
@@ -79,7 +86,7 @@ export interface TopSellingItem {
   unit: string;
   revenue: number;
   remainingQuantity: number;
-  suggestedAction: 'boost' | 'trends';
+  suggestedAction: "boost" | "trends";
 }
 
 export interface ProductDetail {
@@ -116,9 +123,9 @@ export interface Customer {
   email: string;
   customerId: string;
   totalSpend: number;
-  loyaltyTier: 'Bronze' | 'Silver' | 'Gold' | 'Platinum';
+  loyaltyTier: "Bronze" | "Silver" | "Gold" | "Platinum";
   lastOrder: string;
-  status: 'Active' | 'Inactive' | 'Suspended';
+  status: "Active" | "Inactive" | "Suspended";
   registrationDate: string;
   totalOrders: number;
   averageOrderValue: number;
@@ -136,8 +143,8 @@ export interface Order {
   orderId: string;
   amount: number;
   customer: string;
-  status: 'Delivered' | 'Pending' | 'Cancelled';
-  payment: 'UPI' | 'COD' | 'Card' | 'Net Banking';
+  status: "Delivered" | "Pending" | "Cancelled";
+  payment: "UPI" | "COD" | "Card" | "Net Banking";
   deliveryDate: string;
   orderDate: string;
   items: {
@@ -168,4 +175,17 @@ export interface OrderSummary {
     totalReturned: { value: number; percentage: number };
     onTheWay: { value: number; percentage: number };
   };
+}
+
+export interface Address {
+  type: "HOME" | "WORK" | "OTHER";
+  addressLine: string;
+  landmark: string;
+  city: string;
+  state: string;
+  postalCode: string;
+  country: string;
+  latitude?: number;
+  longitude?: number;
+  isDefault?: boolean;
 }

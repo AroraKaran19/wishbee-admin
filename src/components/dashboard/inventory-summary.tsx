@@ -7,15 +7,23 @@ import { InventoryTable } from "./inventory-table";
 import { formatCurrency } from "@/lib/utils";
 import { exportProductsToCSV } from "@/lib/utils/csv-export";
 import { productApi } from "@/lib/api/products";
+import { Product } from "@/lib/types";
 import { Plus, Upload, RefreshCw } from "lucide-react";
 import toast from "react-hot-toast";
 
 export function InventorySummary() {
   const [currentPage, setCurrentPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState("");
-  const [products, setProducts] = useState<any[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [pagination, setPagination] = useState({
+    currentPage: 1,
+    totalPages: 1,
+    totalItems: 0,
+    hasNext: false,
+    hasPrev: false,
+  });
   const itemsPerPage = 10;
 
   // Load products from API
@@ -25,11 +33,28 @@ export function InventorySummary() {
         setLoading(true);
         setError(null);
         const response = await productApi.getAll({
-          page: 1,
-          limit: 20,
+          page: currentPage,
+          limit: itemsPerPage,
           search: searchQuery || undefined,
         });
-        setProducts(response.data || response);
+
+        // Handle different response structures
+        const productsData =
+          response.data?.products || response.data || response;
+
+        setProducts(Array.isArray(productsData) ? productsData : []);
+
+        // Set pagination data - API returns pagination at root level of data
+        if (response.data) {
+          setPagination({
+            currentPage: response.data.page || currentPage,
+            totalPages: response.data.totalPages || 1,
+            totalItems: response.data.total || 0,
+            hasNext:
+              (response.data.page || 1) < (response.data.totalPages || 1),
+            hasPrev: (response.data.page || 1) > 1,
+          });
+        }
       } catch (err) {
         console.error("Error loading products:", err);
         const errorMessage =
@@ -42,25 +67,20 @@ export function InventorySummary() {
     };
 
     loadProducts();
-  }, [searchQuery]);
+  }, [currentPage, searchQuery, itemsPerPage]);
 
-  // Filter products locally for additional filtering
-  const filteredProducts = products.filter(
-    (product) =>
-      product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      product.category.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      product.subCategory.name.toLowerCase().includes(searchQuery.toLowerCase())
-  );
-
-  const totalPages = Math.ceil(filteredProducts.length / itemsPerPage);
+  // No local filtering needed - server handles search and pagination
+  const filteredProducts = products || [];
 
   const handlePageChange = (page: number) => {
-    setCurrentPage(page);
+    if (page >= 1 && page <= pagination.totalPages) {
+      setCurrentPage(page);
+    }
   };
 
   const handleSearch = (query: string) => {
     setSearchQuery(query);
-    setCurrentPage(1);
+    setCurrentPage(1); // Reset to first page when searching
   };
 
   const handleExportCSV = () => {
@@ -72,17 +92,24 @@ export function InventorySummary() {
     setCurrentPage(1);
   };
 
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const endIndex = startIndex + itemsPerPage;
-  const currentProducts = filteredProducts.slice(startIndex, endIndex);
+  // No need for local slicing - server handles pagination
+  const currentProducts = filteredProducts;
 
-  // Calculate dynamic metrics from products
-  const totalCategories = new Set(products.map((p) => p.category._id)).size;
-  const inventoryValue = products.reduce(
-    (sum, product) => sum + product.price.single * product.stock,
+  // Calculate dynamic metrics from current page products
+  // Note: These are estimates based on current page data
+  const totalCategories = new Set(
+    (products || [])
+      .map((p) => p.category)
+      .filter((cat) => cat && typeof cat === "object" && "_id" in cat)
+      .map((cat) => (cat as any)._id)
+  ).size;
+
+  const inventoryValue = (products || []).reduce(
+    (sum, product) => sum + (product.mrp || 0) * (product.stock || 0),
     0
   );
-  const revenueGenerated = 0; // Assuming 30% margin
+
+  const revenueGenerated = inventoryValue * 0.3; // Assuming 30% margin
 
   return (
     <div className="space-y-6 h-full flex flex-col">
@@ -104,21 +131,21 @@ export function InventorySummary() {
 
       <div className="flex-shrink-0 flex flex-wrap gap-6 justify-start">
         <MetricCard
-          title="Total Categories"
-          value={totalCategories}
-          trend="Live data from products"
+          title="Total Products"
+          value={pagination.totalItems}
+          trend="Server-side count"
           variant="blue"
         />
         <MetricCard
-          title="Inventory Value"
-          value={formatCurrency(inventoryValue)}
-          trend="Based on current stock"
+          title="Current Page"
+          value={`${pagination.currentPage} of ${pagination.totalPages}`}
+          trend="Pagination info"
           variant="green"
         />
         <MetricCard
-          title="Estimated Revenue"
-          value={formatCurrency(revenueGenerated)}
-          trend="30% margin estimate"
+          title="Page Inventory Value"
+          value={formatCurrency(inventoryValue)}
+          trend="Current page only"
           variant="light-blue"
         />
       </div>
@@ -177,8 +204,8 @@ export function InventorySummary() {
         ) : (
           <InventoryTable
             products={currentProducts}
-            currentPage={currentPage}
-            totalPages={totalPages}
+            currentPage={pagination.currentPage}
+            totalPages={pagination.totalPages}
             onPageChange={handlePageChange}
           />
         )}

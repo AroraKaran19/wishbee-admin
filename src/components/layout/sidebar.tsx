@@ -1,25 +1,25 @@
-'use client';
+"use client";
 
-import React, { useState } from 'react';
-import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
-import { cn } from '@/lib/utils';
-import { navigationItems } from '@/lib/data/mockData';
-import { WishBeeLogo } from '@/components/icons/wishbee-logo';
-import { 
-  LayoutDashboard, 
-  ShoppingCart, 
-  List, 
-  Users, 
-  RotateCcw, 
-  Tag, 
-  BarChart3, 
-  Settings, 
-  UserCheck, 
+import React, { useState } from "react";
+import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
+import { cn } from "@/lib/utils";
+import { navigationItems } from "@/lib/data/mockData_new";
+import {
+  LayoutDashboard,
+  ShoppingCart,
+  List,
+  Users,
+  RotateCcw,
+  Tag,
+  BarChart3,
+  Settings,
+  UserCheck,
   Headphones,
   ChevronDown,
-  ChevronUp
-} from 'lucide-react';
+  ChevronUp,
+} from "lucide-react";
+import Image from "next/image";
 
 const iconMap = {
   LayoutDashboard,
@@ -31,7 +31,7 @@ const iconMap = {
   BarChart3,
   Settings,
   UserCheck,
-  Headphones
+  Headphones,
 };
 
 export function Sidebar() {
@@ -40,9 +40,9 @@ export function Sidebar() {
   const [expandedItems, setExpandedItems] = useState<string[]>([]);
 
   const toggleExpanded = (itemId: string) => {
-    setExpandedItems(prev => 
-      prev.includes(itemId) 
-        ? prev.filter(id => id !== itemId)
+    setExpandedItems((prev) =>
+      prev.includes(itemId)
+        ? prev.filter((id) => id !== itemId)
         : [...prev, itemId]
     );
   };
@@ -50,20 +50,30 @@ export function Sidebar() {
   const isItemExpanded = (itemId: string) => {
     // Check if item is manually expanded
     if (expandedItems.includes(itemId)) return true;
-    
+
     // Check if any sub-item is active (auto-expand)
-    const item = navigationItems.find(navItem => navItem.id === itemId);
+    const item = navigationItems.find((navItem) => navItem.id === itemId);
     if (item?.subItems) {
-      return item.subItems.some(subItem => pathname === subItem.href);
+      return item.subItems.some((subItem) => pathname === subItem.href);
     }
-    
+
     return false;
   };
 
   return (
     <div className="w-64 bg-white border-r border-gray-200 h-screen flex flex-col">
       <div className="p-6 pb-4">
-        <WishBeeLogo />
+        <Image
+          src="/logo.svg"
+          alt="Wishbee Logo"
+          width={150}
+          height={150}
+          priority
+          unoptimized
+          loading="eager"
+          fetchPriority="high"
+          quality={100}
+        />
       </div>
 
       <div className="px-6 pb-4 border-b border-gray-200">
@@ -74,29 +84,33 @@ export function Sidebar() {
         <ul className="space-y-1">
           {navigationItems.map((item) => {
             const IconComponent = iconMap[item.icon as keyof typeof iconMap];
-            const isActive = pathname === item.href || (item.href === '/inventory' && pathname.startsWith('/inventory'));
+            const isActive =
+              pathname === item.href ||
+              (item.href === "/inventory" && pathname.startsWith("/inventory"));
             const isExpanded = isItemExpanded(item.id);
-            
+
             return (
               <li key={item.id}>
                 {item.hasDropdown ? (
                   <>
                     <div
                       className={cn(
-                        'flex items-center justify-between px-3 py-3 rounded-lg text-sm font-medium transition-colors',
+                        "flex items-center justify-between px-3 py-3 rounded-lg text-sm font-medium transition-colors",
                         isActive
-                          ? 'bg-primary text-white'
-                          : 'text-text-primary hover:bg-muted'
+                          ? "bg-primary text-white"
+                          : "text-text-primary hover:bg-muted"
                       )}
                     >
-                      <div 
+                      <div
                         className="flex items-center flex-1 cursor-pointer"
                         onClick={() => router.push(item.href)}
                       >
-                        <IconComponent className={cn(
-                          'w-5 h-5 mr-3',
-                          isActive ? 'text-white' : 'text-text-primary'
-                        )} />
+                        <IconComponent
+                          className={cn(
+                            "w-5 h-5 mr-3",
+                            isActive ? "text-white" : "text-text-primary"
+                          )}
+                        />
                         {item.label}
                       </div>
                       {item.hasDropdown && (
@@ -106,8 +120,10 @@ export function Sidebar() {
                             toggleExpanded(item.id);
                           }}
                           className={cn(
-                            'p-1 rounded hover:bg-black/10 transition-colors cursor-pointer',
-                            isActive ? 'text-white hover:bg-white/20' : 'text-text-primary'
+                            "p-1 rounded hover:bg-black/10 transition-colors cursor-pointer",
+                            isActive
+                              ? "text-white hover:bg-white/20"
+                              : "text-text-primary"
                           )}
                         >
                           {isExpanded ? (
@@ -118,7 +134,7 @@ export function Sidebar() {
                         </button>
                       )}
                     </div>
-                    
+
                     {item.hasDropdown && item.subItems && isExpanded && (
                       <ul className="ml-6 mt-1 space-y-1 relative">
                         {/* Vertical line */}
@@ -132,10 +148,10 @@ export function Sidebar() {
                               <Link
                                 href={subItem.href}
                                 className={cn(
-                                  'block px-3 py-2 rounded-lg text-sm transition-colors ml-4',
+                                  "block px-3 py-2 rounded-lg text-sm transition-colors ml-4",
                                   isSubActive
-                                    ? 'bg-primary/10 text-primary font-medium'
-                                    : 'text-text-secondary hover:bg-muted hover:text-text-primary'
+                                    ? "bg-primary/10 text-primary font-medium"
+                                    : "text-text-secondary hover:bg-muted hover:text-text-primary"
                                 )}
                               >
                                 {subItem.label}
@@ -150,17 +166,19 @@ export function Sidebar() {
                   <Link
                     href={item.href}
                     className={cn(
-                      'flex items-center justify-between px-3 py-3 rounded-lg text-sm font-medium transition-colors cursor-pointer',
+                      "flex items-center justify-between px-3 py-3 rounded-lg text-sm font-medium transition-colors cursor-pointer",
                       isActive
-                        ? 'bg-primary text-white'
-                        : 'text-text-primary hover:bg-muted'
+                        ? "bg-primary text-white"
+                        : "text-text-primary hover:bg-muted"
                     )}
                   >
                     <div className="flex items-center">
-                      <IconComponent className={cn(
-                        'w-5 h-5 mr-3',
-                        isActive ? 'text-white' : 'text-text-primary'
-                      )} />
+                      <IconComponent
+                        className={cn(
+                          "w-5 h-5 mr-3",
+                          isActive ? "text-white" : "text-text-primary"
+                        )}
+                      />
                       {item.label}
                     </div>
                   </Link>

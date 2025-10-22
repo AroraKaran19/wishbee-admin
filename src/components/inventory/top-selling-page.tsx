@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { SuccessBanner } from '@/components/ui/banner';
 import { SearchBar } from '@/components/ui/search-bar';
 import { TopSellingTable } from './top-selling-table';
-import { topSellingItems } from '@/lib/data/mockData';
+import { topSellingItems } from '@/lib/data/mockData_new';
 import { exportTopSellingToCSV } from '@/lib/utils/csv-export';
 import { Upload } from 'lucide-react';
 

@@ -1,30 +1,35 @@
-import { Category } from "./category";
+import { Category, Discount, Review } from ".";
 
 export interface Product {
   // Basic Details
   _id?: string;
-  sku: string;
+  sku: string; // Stock Keeping Unit for barcode value
   name: string;
+  type: "product";
   description: string;
-  highlights: string[];
-  category: Category;
-  subCategory: Category;
+  highlights: {
+    key: string;
+    value: string;
+  }[];
+  category: Partial<Category>; // Populated category data
+  subCategory: Partial<Category>;
   images: string[];
   status: "ACTIVE" | "OUT_OF_STOCK" | "DISCONTINUED";
   isOrganic: boolean;
-  price: {
-    single: number;
-    bulk: number;
-  };
+  
+  // Pricing
+  mrp: number;
+  pricing_range: {
+    quantity_start: number;
+    quantity_end: number;
+    price: number;
+  }[];
 
   // Reviews
-  reviews: [];
+  reviews: Partial<Review>[]; // can be review ids or review objects
 
   // Discount
-  discount: {
-    type: "percentage" | "fixed";
-    value: number;
-  };
+  discount?: Discount;
 
   // Quantity
   minimumOrderQuantity?: number;
@@ -33,14 +38,8 @@ export interface Product {
   // Metrics
   stock: number;
   weight: {
-    single: {
-      value: number;
-      unit: string;
-    };
-    bulk: {
-      value: number;
-      unit: string;
-    };
+    value: number;
+    unit: string; // let the admin decide the unit example packet, kg, etc
   };
   reviewsCount: number;
   totalRating: number;
@@ -49,18 +48,22 @@ export interface Product {
   productCollections?: {
     quantity: number;
     price: number;
-    unit?: string;
+    unit?: string; // let the admin decide the unit example packet, kg, etc
   }[];
 
-  // Expiry
-  expiry?: string;
-  alertExpiry?: number;
-
+  alertExpiry?: number; // Number of days before expiry to trigger alert
+  expiry?: Date; // Optional expiry date for perishable items
+  
   // SEO
   metaTitle?: string;
   metaDescription?: string;
   metaKeywords?: string[];
   slug?: string;
+  isB2B: boolean;
+
+  // showcase
+  dotd: boolean;
+  pfy: boolean;
 
   createdAt?: Date;
   updatedAt?: Date;

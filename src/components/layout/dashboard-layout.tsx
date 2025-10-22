@@ -1,25 +1,21 @@
-'use client';
+"use client";
 
-import React from 'react';
-import { Sidebar } from './sidebar';
-import { Header } from './header';
+import React from "react";
+import { Sidebar } from "./sidebar";
 
-interface DashboardLayoutProps {
+export function DashboardLayout({
+  children,
+}: Readonly<{
   children: React.ReactNode;
-}
-
-export function DashboardLayout({ children }: DashboardLayoutProps) {
+}>) {
   return (
     <div className="h-screen bg-gray-50 overflow-hidden">
       <div className="flex h-full">
         <Sidebar />
-        
-        <div className="flex-1 flex flex-col h-full overflow-hidden">
-          <Header />
-          <main className="flex-1 p-6 overflow-y-auto custom-scrollbar">
-            {children}
-          </main>
-        </div>
+
+        <main className="min-h-screen flex-1 p-6 overflow-y-auto custom-scrollbar">
+          {children}
+        </main>
       </div>
     </div>
   );
