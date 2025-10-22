@@ -96,6 +96,8 @@ export function OrderTable({
           <div className={`text-sm ${
             value === 'Delivered' ? 'text-green-600' : 
             value === 'Pending' ? 'text-blue-600' : 
+            value === 'Processing' ? 'text-yellow-600' :
+            value === 'Shipped' ? 'text-purple-600' :
             value === 'Cancelled' ? 'text-red-600' :
             'text-gray-600'
           }`}>

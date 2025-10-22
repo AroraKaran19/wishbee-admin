@@ -1,9 +1,9 @@
-'use client';
+"use client";
 
-import React, { useState } from 'react';
-import { Order } from '@/lib/types';
-import { orderApi } from '@/lib/api/orders';
-import { X, Check } from 'lucide-react';
+import React, { useState } from "react";
+import { Order } from "@/lib/types";
+import { orderApi } from "@/lib/api/orders";
+import { X, Check } from "lucide-react";
 
 interface OrderStatusModalProps {
   order: Order | null;
@@ -13,21 +13,21 @@ interface OrderStatusModalProps {
 }
 
 const STATUS_OPTIONS = [
-  { value: 'PENDING', label: 'Pending', color: 'text-blue-600' },
-  { value: 'PROCESSING', label: 'Processing', color: 'text-yellow-600' },
-  { value: 'SHIPPED', label: 'Shipped', color: 'text-purple-600' },
-  { value: 'DELIVERED', label: 'Delivered', color: 'text-green-600' },
-  { value: 'CANCELLED', label: 'Cancelled', color: 'text-red-600' },
+  { value: "PENDING", label: "Pending", color: "text-blue-600" },
+  { value: "PROCESSING", label: "Processing", color: "text-yellow-600" },
+  { value: "SHIPPED", label: "Shipped", color: "text-purple-600" },
+  { value: "DELIVERED", label: "Delivered", color: "text-green-600" },
+  { value: "CANCELLED", label: "Cancelled", color: "text-red-600" },
 ];
 
-export function OrderStatusModal({ 
-  order, 
-  isOpen, 
-  onClose, 
-  onStatusUpdate 
+export function OrderStatusModal({
+  order,
+  isOpen,
+  onClose,
+  onStatusUpdate,
 }: OrderStatusModalProps) {
-  const [selectedStatus, setSelectedStatus] = useState<string>('');
-  const [notes, setNotes] = useState<string>('');
+  const [selectedStatus, setSelectedStatus] = useState<string>("");
+  const [notes, setNotes] = useState<string>("");
   const [isUpdating, setIsUpdating] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -35,7 +35,7 @@ export function OrderStatusModal({
   React.useEffect(() => {
     if (isOpen && order) {
       setSelectedStatus(order.status);
-      setNotes('');
+      setNotes("");
       setError(null);
     }
   }, [isOpen, order]);
@@ -52,8 +52,10 @@ export function OrderStatusModal({
       await onStatusUpdate(order.id, selectedStatus);
       onClose();
     } catch (err) {
-      console.error('Error updating order status:', err);
-      setError(err instanceof Error ? err.message : 'Failed to update order status');
+      console.error("Error updating order status:", err);
+      setError(
+        err instanceof Error ? err.message : "Failed to update order status"
+      );
     } finally {
       setIsUpdating(false);
     }
@@ -90,7 +92,9 @@ export function OrderStatusModal({
           <div className="mb-4 p-3 bg-gray-50 rounded-lg">
             <div className="text-sm text-gray-600">Order ID</div>
             <div className="font-medium text-gray-900">{order.orderId}</div>
-            <div className="text-sm text-gray-600 mt-1">Customer: {order.customer}</div>
+            <div className="text-sm text-gray-600 mt-1">
+              Customer: {order.customer}
+            </div>
             <div className="text-sm text-gray-600">Amount: ₹{order.amount}</div>
           </div>
 
@@ -99,12 +103,21 @@ export function OrderStatusModal({
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Current Status
             </label>
-            <div className={`text-sm font-medium ${
-              order.status === 'Delivered' ? 'text-green-600' : 
-              order.status === 'Pending' ? 'text-blue-600' : 
-              order.status === 'Cancelled' ? 'text-red-600' :
-              'text-gray-600'
-            }`}>
+            <div
+              className={`text-sm font-medium ${
+                order.status === "Delivered"
+                  ? "text-green-600"
+                  : order.status === "Pending"
+                  ? "text-blue-600"
+                  : order.status === "Processing"
+                  ? "text-yellow-600"
+                  : order.status === "Shipped"
+                  ? "text-purple-600"
+                  : order.status === "Cancelled"
+                  ? "text-red-600"
+                  : "text-gray-600"
+              }`}
+            >
               {order.status}
             </div>
           </div>

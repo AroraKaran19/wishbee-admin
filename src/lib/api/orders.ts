@@ -190,6 +190,10 @@ export const convertApiOrderToUIOrder = (apiOrder: any): Order => {
         ? "Delivered"
         : apiOrder.status === "CANCELLED"
         ? "Cancelled"
+        : apiOrder.status === "PROCESSING"
+        ? "Processing"
+        : apiOrder.status === "SHIPPED"
+        ? "Shipped"
         : "Pending",
     payment:
       apiOrder.payment?.method === "CARD"

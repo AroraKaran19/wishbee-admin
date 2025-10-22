@@ -143,7 +143,7 @@ export interface Order {
   orderId: string;
   amount: number;
   customer: string;
-  status: "Delivered" | "Pending" | "Cancelled";
+  status: "Delivered" | "Pending" | "Processing" | "Shipped" | "Cancelled";
   payment: "UPI" | "COD" | "Card" | "Net Banking";
   deliveryDate: string;
   orderDate: string;

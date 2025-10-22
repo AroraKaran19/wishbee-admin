@@ -77,7 +77,7 @@ export function Sidebar() {
       </div>
 
       <div className="px-6 pb-4 border-b border-gray-200">
-        <h2 className="text-lg font-semibold text-gray-900">Hey Raj-</h2>
+        <h2 className="text-lg font-semibold text-gray-900">Hey Admin-</h2>
       </div>
 
       <nav className="flex-1 p-4 overflow-y-auto scrollbar-hide">

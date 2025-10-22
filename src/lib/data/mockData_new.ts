@@ -1393,7 +1393,7 @@ export const mockOrders: Order[] = [
     id: 'order-1',
     orderId: '#12345',
     amount: 250,
-    customer: 'Raj',
+    customer: 'Admin',
     status: 'Delivered',
     payment: 'UPI',
     deliveryDate: '12 July 2025',

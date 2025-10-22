@@ -1537,7 +1537,7 @@ export default function EditProductPage() {
                           className="rounded border-gray-300"
                         />
                         <span className="text-sm font-medium text-gray-700">
-                          Pay for You
+                          Pick for You
                         </span>
                       </div>
                     </div>

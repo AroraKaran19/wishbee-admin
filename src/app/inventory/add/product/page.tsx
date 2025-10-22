@@ -103,7 +103,7 @@ export default function InventoryAddProductPage() {
       productCollections: [],
       expiry: "",
       alertExpiry: 7,
-      isB2B: false,
+      isB2B: true,
       dotd: false,
       pfy: false,
     },
@@ -661,8 +661,10 @@ export default function InventoryAddProductPage() {
       if (Array.isArray(categoriesData)) {
         setCategories((prev) => {
           // Filter out any categories that already exist to prevent duplicates
-          const existingIds = new Set(prev.map(cat => cat._id));
-          const newCategories = categoriesData.filter(cat => !existingIds.has(cat._id));
+          const existingIds = new Set(prev.map((cat) => cat._id));
+          const newCategories = categoriesData.filter(
+            (cat) => !existingIds.has(cat._id)
+          );
           return [...prev, ...newCategories];
         });
       }
@@ -700,8 +702,10 @@ export default function InventoryAddProductPage() {
       if (Array.isArray(subcategoriesData)) {
         setSubcategories((prev) => {
           // Filter out any subcategories that already exist to prevent duplicates
-          const existingIds = new Set(prev.map(sub => sub._id));
-          const newSubcategories = subcategoriesData.filter(sub => !existingIds.has(sub._id));
+          const existingIds = new Set(prev.map((sub) => sub._id));
+          const newSubcategories = subcategoriesData.filter(
+            (sub) => !existingIds.has(sub._id)
+          );
           return [...prev, ...newSubcategories];
         });
       }
@@ -792,6 +796,7 @@ export default function InventoryAddProductPage() {
     description: string;
     slug: string;
     image?: string;
+    showOnHomepage: boolean;
   }) => {
     try {
       const response = await categoryApi.create(data);
@@ -2427,6 +2432,7 @@ function CreateCategoryModal({
     description: string;
     slug: string;
     image?: string;
+    showOnHomepage: boolean;
   }) => void;
   onImageUpload: (
     file: File,
@@ -2439,6 +2445,7 @@ function CreateCategoryModal({
     description: "",
     slug: "",
     image: "",
+    showOnHomepage: false,
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
@@ -2569,6 +2576,25 @@ function CreateCategoryModal({
               placeholder="Enter URL slug"
               required
             />
+          </div>
+
+          <div>
+            <label className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                checked={formData.showOnHomepage}
+                onChange={(e) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    showOnHomepage: e.target.checked,
+                  }))
+                }
+                className="rounded border-gray-300"
+              />
+              <span className="text-sm font-medium text-gray-700">
+                Show on Homepage
+              </span>
+            </label>
           </div>
 
           <div>
