@@ -1,6 +1,6 @@
 import { ComboProduct } from "@/lib/types";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api";
+const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL;
 
 // Form data type for combo creation (bridges form and API)
 export interface ComboFormData {

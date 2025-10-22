@@ -1,26 +1,46 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { DataTable } from '@/components/ui/data-table';
 import { Order, TableConfig } from '@/lib/types';
 import { Edit, Trash2 } from 'lucide-react';
+import { OrderStatusModal } from './order-status-modal';
 
 interface OrderTableProps {
   orders: Order[];
   currentPage: number;
   totalPages: number;
   onPageChange: (page: number) => void;
+  onOrderUpdate?: (orderId: string, newStatus: string) => Promise<void>;
 }
 
 export function OrderTable({ 
   orders, 
   currentPage, 
   totalPages, 
-  onPageChange 
+  onPageChange,
+  onOrderUpdate 
 }: OrderTableProps) {
+  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);
 
   const handleEdit = (order: Order) => {
-    console.log('Edit order:', order);
+    setSelectedOrder(order);
+    setIsStatusModalOpen(true);
+  };
+
+  const handleStatusUpdate = async (orderId: string, newStatus: string) => {
+    // Update the order in the local state
+    if (onOrderUpdate) {
+      await onOrderUpdate(orderId, newStatus);
+    }
+    setIsStatusModalOpen(false);
+    setSelectedOrder(null);
+  };
+
+  const handleCloseModal = () => {
+    setIsStatusModalOpen(false);
+    setSelectedOrder(null);
   };
 
   const handleDelete = (order: Order) => {
@@ -139,6 +159,14 @@ export function OrderTable({
     <div>
       <DataTable data={orders} config={tableConfig} />
       <div className="h-4"></div>
+      
+      {/* Status Edit Modal */}
+      <OrderStatusModal
+        order={selectedOrder}
+        isOpen={isStatusModalOpen}
+        onClose={handleCloseModal}
+        onStatusUpdate={handleStatusUpdate}
+      />
     </div>
   );
 }
