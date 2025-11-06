@@ -19,8 +19,7 @@ export interface Product {
   
   // Pricing
   mrp: number;
-  cgst?: number; // Central Goods and Services Tax
-  sgst?: number; // State Goods and Services Tax
+  gst?: number; // Goods and Services Tax
   pricing_range: {
     quantity_start: number;
     quantity_end: number;
