@@ -14,6 +14,7 @@ import {
   ScanBarcode,
   FileText,
   DollarSign,
+  Percent,
   Calendar,
   Upload,
   Package,
@@ -77,6 +78,8 @@ export default function InventoryAddProductPage() {
       status: "ACTIVE",
       isOrganic: false,
       mrp: 0,
+      cgst: 0,
+      sgst: 0,
       pricing_range: [],
       discount: {
         type: "percentage",
@@ -285,6 +288,8 @@ export default function InventoryAddProductPage() {
       for (let i = 0; i < files.length; i++) {
         await handleFileUpload(files[i]);
       }
+      // Reset the input value to allow selecting the same file again
+      e.target.value = "";
     }
   };
 
@@ -474,6 +479,12 @@ export default function InventoryAddProductPage() {
         currentImages.filter((_, i) => i !== index)
       );
 
+      // Reset file input to allow selecting new images
+      const fileInput = document.getElementById("file-upload") as HTMLInputElement;
+      if (fileInput) {
+        fileInput.value = "";
+      }
+
       toast.success("Image deleted successfully!");
     } catch (error) {
       console.error("Error deleting image:", error);
@@ -484,6 +495,12 @@ export default function InventoryAddProductPage() {
         "images",
         currentImages.filter((_, i) => i !== index)
       );
+
+      // Reset file input to allow selecting new images
+      const fileInput = document.getElementById("file-upload") as HTMLInputElement;
+      if (fileInput) {
+        fileInput.value = "";
+      }
     }
   };
 
@@ -1037,6 +1054,8 @@ export default function InventoryAddProductPage() {
         status: data.status,
         isOrganic: data.isOrganic,
         mrp: Number(data.mrp),
+        cgst: data.cgst ? Number(data.cgst) : undefined,
+        sgst: data.sgst ? Number(data.sgst) : undefined,
         pricing_range: data.pricing_range.map((range) => ({
           quantity_start: Number(range.quantity_start),
           quantity_end: Number(range.quantity_end),
@@ -1558,6 +1577,72 @@ export default function InventoryAddProductPage() {
                       {errors.mrp && (
                         <p className="text-red-500 text-xs mt-1">
                           {errors.mrp.message}
+                        </p>
+                      )}
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-gray-700">
+                        CGST (Central GST) %
+                      </label>
+                      <Controller
+                        name="cgst"
+                        control={control}
+                        rules={{
+                          min: { value: 0, message: "CGST must be positive" },
+                          max: { value: 100, message: "CGST cannot exceed 100%" },
+                        }}
+                        render={({ field }) => (
+                          <Input
+                            variant="muted"
+                            icon={<Percent className="w-4 h-4" />}
+                            className="text-sm"
+                            placeholder="Enter CGST percentage"
+                            type="number"
+                            step="0.01"
+                            {...field}
+                            onChange={(e) =>
+                              field.onChange(parseFloat(e.target.value) || 0)
+                            }
+                          />
+                        )}
+                      />
+                      {errors.cgst && (
+                        <p className="text-red-500 text-xs mt-1">
+                          {errors.cgst.message}
+                        </p>
+                      )}
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-gray-700">
+                        SGST (State GST) %
+                      </label>
+                      <Controller
+                        name="sgst"
+                        control={control}
+                        rules={{
+                          min: { value: 0, message: "SGST must be positive" },
+                          max: { value: 100, message: "SGST cannot exceed 100%" },
+                        }}
+                        render={({ field }) => (
+                          <Input
+                            variant="muted"
+                            icon={<Percent className="w-4 h-4" />}
+                            className="text-sm"
+                            placeholder="Enter SGST percentage"
+                            type="number"
+                            step="0.01"
+                            {...field}
+                            onChange={(e) =>
+                              field.onChange(parseFloat(e.target.value) || 0)
+                            }
+                          />
+                        )}
+                      />
+                      {errors.sgst && (
+                        <p className="text-red-500 text-xs mt-1">
+                          {errors.sgst.message}
                         </p>
                       )}
                     </div>
