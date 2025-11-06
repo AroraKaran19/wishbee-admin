@@ -4,6 +4,7 @@ export interface Product {
   // Basic Details
   _id?: string;
   sku: string; // Stock Keeping Unit for barcode value
+  hsn?: string; // Harmonized System of Nomenclature code
   name: string;
   type: "product";
   description: string;

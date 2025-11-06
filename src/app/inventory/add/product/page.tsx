@@ -71,6 +71,7 @@ export default function InventoryAddProductPage() {
     mode: "onChange",
     defaultValues: {
       sku: "",
+      hsn: "",
       name: "",
       description: "",
       highlights: [],
@@ -1047,6 +1048,7 @@ export default function InventoryAddProductPage() {
       // Prepare data for backend - matching API documentation exactly
       const productData = {
         sku: data.sku.trim(),
+        hsn: data.hsn?.trim() || undefined,
         name: data.name.trim(),
         type: "product" as const,
         description: data.description.trim(),
@@ -1361,6 +1363,23 @@ export default function InventoryAddProductPage() {
                       {errors.sku && (
                         <p className="text-red-500 text-xs mt-1">
                           {errors.sku.message}
+                        </p>
+                      )}
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-gray-700">
+                        HSN Code
+                      </label>
+                      <Input
+                        variant="muted"
+                        icon={<FileText className="w-4 h-4" />}
+                        className="text-sm"
+                        placeholder="Enter HSN code"
+                        {...register("hsn")}
+                      />
+                      {errors.hsn && (
+                        <p className="text-red-500 text-xs mt-1">
+                          {errors.hsn.message}
                         </p>
                       )}
                     </div>
