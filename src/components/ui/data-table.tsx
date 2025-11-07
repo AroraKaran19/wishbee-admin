@@ -113,7 +113,7 @@ export function DataTable<T = any>({ data, config }: DataTableProps<T>) {
                   </th>
                 ))}
                 {actions.length > 0 && (
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900 capitalize tracking-wider">
+                  <th className="px-6 py-4 text-center text-sm font-semibold text-gray-900 capitalize tracking-wider">
                     Actions
                   </th>
                 )}
@@ -150,6 +150,10 @@ export function DataTable<T = any>({ data, config }: DataTableProps<T>) {
                             return null;
                           }
                           
+                          const iconNode = (action as any).renderIcon
+                            ? (action as any).renderIcon(record, index)
+                            : action.icon;
+
                           return (
                             <Button
                               key={action.key}
@@ -161,7 +165,7 @@ export function DataTable<T = any>({ data, config }: DataTableProps<T>) {
                               size={action.size || 'sm'}
                               className={action.className || ''}
                             >
-                              {action.icon && <span className="mr-2">{action.icon}</span>}
+                              {iconNode && <span>{iconNode}</span>}
                               {action.label}
                             </Button>
                           );

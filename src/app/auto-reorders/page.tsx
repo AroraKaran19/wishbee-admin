@@ -1,10 +1,10 @@
-import { PlaceholderPage } from '@/components/dashboard/placeholder-page';
+import { DashboardLayout } from '@/components/layout/dashboard-layout';
+import { AutoReordersPage as AutoReordersPageComponent } from '@/components/auto-reorders/auto-reorders-page';
 
 export default function AutoReordersPage() {
   return (
-    <PlaceholderPage 
-      title="Auto-Reorders" 
-      description="Set up automatic reorder rules for your inventory."
-    />
+    <DashboardLayout>
+      <AutoReordersPageComponent />
+    </DashboardLayout>
   );
 }

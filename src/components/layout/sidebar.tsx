@@ -86,7 +86,8 @@ export function Sidebar() {
             const IconComponent = iconMap[item.icon as keyof typeof iconMap];
             const isActive =
               pathname === item.href ||
-              (item.href === "/inventory" && pathname.startsWith("/inventory"));
+              (item.href === "/inventory" && pathname.startsWith("/inventory")) ||
+              (item.href === "/auto-reorders" && pathname.startsWith("/auto-reorders"));
             const isExpanded = isItemExpanded(item.id);
 
             return (
