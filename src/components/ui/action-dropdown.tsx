@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from "react";
-import { ChevronDown, MoreVertical, Edit, Trash2, Plus } from "lucide-react";
+import { ChevronDown, Edit, Trash2, Plus } from "lucide-react";
 import { Button } from "./button";
 
 export interface DropdownOption {

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React from 'react';
 import { Download, Edit, Pause, Trash2 } from 'lucide-react';
 import { DataTable } from '@/components/ui/data-table';
 import { TableConfig } from '@/lib/types/table';

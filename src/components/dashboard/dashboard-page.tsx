@@ -60,7 +60,7 @@ export function DashboardPage() {
         <h1 className="text-lg flex items-center gap-2 font-bold text-gray-900">
           Hey Raj - 
           <span className="text-gray-500 text-sm font-medium">
-          Here's a quick look at your store performance today.
+          Here&apos;s a quick look at your store performance today.
           </span>
         </h1>
       </div>
@@ -68,7 +68,7 @@ export function DashboardPage() {
       {/* Performance Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-white rounded-lg border border-gray-200 p-6">
-          <div className="text-sm text-gray-500 mb-2">TODAY'S SALE</div>
+          <div className="text-sm text-gray-500 mb-2">TODAY&apos;S SALE</div>
           <div className="text-2xl font-bold text-gray-900 mb-2">₹12,426</div>
           <div className="flex items-center text-green-600 text-sm">
             <ArrowUp className="w-4 h-4 mr-1" />
