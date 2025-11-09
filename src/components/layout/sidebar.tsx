@@ -18,6 +18,8 @@ import {
   Headphones,
   ChevronDown,
   ChevronUp,
+  LogOut,
+  Package,
 } from "lucide-react";
 import Image from "next/image";
 
@@ -32,9 +34,14 @@ const iconMap = {
   Settings,
   UserCheck,
   Headphones,
+  Package,
 };
 
-export function Sidebar() {
+interface SidebarProps {
+  onClose?: () => void;
+}
+
+export function Sidebar({ onClose }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
   const [expandedItems, setExpandedItems] = useState<string[]>([]);
@@ -60,8 +67,15 @@ export function Sidebar() {
     return false;
   };
 
+  const handleLinkClick = () => {
+    // Close sidebar on mobile when a link is clicked
+    if (onClose) {
+      onClose();
+    }
+  };
+
   return (
-    <div className="w-64 bg-white border-r border-gray-200 h-screen flex flex-col">
+    <div className="w-64 bg-white border-r border-gray-200 h-screen flex flex-col lg:shadow-none shadow-xl">
       <div className="p-6 pb-4">
         <Image
           src="/logo.svg"
@@ -87,7 +101,10 @@ export function Sidebar() {
             const isActive =
               pathname === item.href ||
               (item.href === "/inventory" && pathname.startsWith("/inventory")) ||
-              (item.href === "/auto-reorders" && pathname.startsWith("/auto-reorders"));
+              (item.href === "/auto-reorders" && pathname.startsWith("/auto-reorders")) ||
+              (item.href === "/offers-banners" && pathname.startsWith("/offers-banners")) ||
+              (item.href === "/analytics" && pathname.startsWith("/analytics")) ||
+              (item.href === "/most-selling" && pathname.startsWith("/most-selling"));
             const isExpanded = isItemExpanded(item.id);
 
             return (
@@ -104,7 +121,10 @@ export function Sidebar() {
                     >
                       <div
                         className="flex items-center flex-1 cursor-pointer"
-                        onClick={() => router.push(item.href)}
+                        onClick={() => {
+                          router.push(item.href);
+                          handleLinkClick();
+                        }}
                       >
                         <IconComponent
                           className={cn(
@@ -148,8 +168,9 @@ export function Sidebar() {
                               <div className="absolute left-0 top-1/2 w-3 h-[0.5px] bg-gray-300 transform -translate-y-1/2"></div>
                               <Link
                                 href={subItem.href}
+                                onClick={handleLinkClick}
                                 className={cn(
-                                  "block px-3 py-2 rounded-lg text-sm transition-colors ml-4",
+                                  "block px-3 py-2 rounded-lg text-sm transition-colors ml-4 cursor-pointer",
                                   isSubActive
                                     ? "bg-primary/10 text-primary font-medium"
                                     : "text-text-secondary hover:bg-muted hover:text-text-primary"
@@ -166,6 +187,7 @@ export function Sidebar() {
                 ) : (
                   <Link
                     href={item.href}
+                    onClick={handleLinkClick}
                     className={cn(
                       "flex items-center justify-between px-3 py-3 rounded-lg text-sm font-medium transition-colors cursor-pointer",
                       isActive
@@ -189,6 +211,19 @@ export function Sidebar() {
           })}
         </ul>
       </nav>
+
+      <div className="p-4 border-t border-gray-200">
+        <button
+          onClick={() => {
+            // Handle logout
+            console.log('Logout clicked');
+          }}
+          className="w-full flex items-center gap-3 px-3 py-3 rounded-lg text-sm font-medium text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
+        >
+          <LogOut className="w-5 h-5" />
+          Logout
+        </button>
+      </div>
     </div>
   );
 }

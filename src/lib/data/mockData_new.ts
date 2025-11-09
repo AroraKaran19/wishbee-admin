@@ -822,6 +822,12 @@ export const navigationItems: NavItem[] = [
     href: '/analytics'
   },
   {
+    id: 'most-selling',
+    label: 'Most Selling',
+    icon: 'Package',
+    href: '/most-selling'
+  },
+  {
     id: 'settings',
     label: 'Settings',
     icon: 'Settings',

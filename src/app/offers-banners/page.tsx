@@ -1,10 +1,10 @@
-import { PlaceholderPage } from '@/components/dashboard/placeholder-page';
+import { DashboardLayout } from '@/components/layout/dashboard-layout';
+import { OffersBannersPage } from '@/components/offers-banners/offers-banners-page';
 
-export default function OffersBannersPage() {
+export default function OffersBannersPageRoute() {
   return (
-    <PlaceholderPage 
-      title="Offers & Banners" 
-      description="Create and manage promotional offers and banners."
-    />
+    <DashboardLayout>
+      <OffersBannersPage />
+    </DashboardLayout>
   );
 }

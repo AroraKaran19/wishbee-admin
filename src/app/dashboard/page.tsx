@@ -1,10 +1,10 @@
-import { PlaceholderPage } from '@/components/dashboard/placeholder-page';
+import { DashboardLayout } from '@/components/layout/dashboard-layout';
+import { DashboardPage as DashboardPageComponent } from '@/components/dashboard/dashboard-page';
 
 export default function DashboardPage() {
   return (
-    <PlaceholderPage 
-      title="Dashboard" 
-      description="Overview of your business performance and key metrics."
-    />
+    <DashboardLayout>
+      <DashboardPageComponent />
+    </DashboardLayout>
   );
 }
