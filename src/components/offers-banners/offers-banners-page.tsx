@@ -123,18 +123,20 @@ export function OffersBannersPage() {
         </p>
       </div>
 
-      <div className="flex gap-3">
-        <Button onClick={handleAddBanner} variant="primary" className="flex items-center gap-2">
+      <div className="flex flex-col sm:flex-row gap-3">
+        <Button onClick={handleAddBanner} variant="primary" className="flex items-center gap-2 w-full sm:w-auto text-xs md:text-sm">
           <Plus className="w-4 h-4" />
-          Add new Banner
+          <span className="hidden sm:inline">Add new Banner</span>
+          <span className="sm:hidden">Add Banner</span>
         </Button>
-        <Button onClick={handleCreateCoupon} variant="primary" className="flex items-center gap-2">
+        <Button onClick={handleCreateCoupon} variant="primary" className="flex items-center gap-2 w-full sm:w-auto text-xs md:text-sm">
           <Plus className="w-4 h-4" />
-          Create Coupon
+          <span className="hidden sm:inline">Create Coupon</span>
+          <span className="sm:hidden">Create</span>
         </Button>
       </div>
 
-      <div className="flex flex-col space-y-6">
+      <div className="flex flex-col space-y-6 pb-12 sm:pb-0">
         {/* Home Page Banners Section */}
         <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
         <div className="overflow-x-auto">

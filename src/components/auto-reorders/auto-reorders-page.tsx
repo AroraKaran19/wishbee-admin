@@ -3,6 +3,7 @@
 import React, { useMemo, useState } from 'react';
 import { SearchBar } from '@/components/ui/search-bar';
 import { AutoReordersTable, AutoReorder } from './auto-reorders-table';
+import { Upload } from 'lucide-react';
 
 export function AutoReordersPage() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -89,6 +90,7 @@ export function AutoReordersPage() {
               {
                 key: 'export-pdf',
                 label: 'Export PDF',
+                icon: <Upload className="w-4 h-4" />,
                 onClick: () => console.log('Export PDF'),
                 variant: 'danger',
               },
@@ -96,7 +98,7 @@ export function AutoReordersPage() {
           />
         </div>
 
-        <div className="flex-1 min-h-0">
+        <div className="flex-1 min-h-0 pb-12 sm:pb-0">
           <AutoReordersTable
             data={current}
             currentPage={currentPage}

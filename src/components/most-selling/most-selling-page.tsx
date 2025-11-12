@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Download, TrendingUp, Eye, Percent } from 'lucide-react';
+import { Download, TrendingUp, Eye, Percent, Upload } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { DataTable } from '@/components/ui/data-table';
 import { TableConfig } from '@/lib/types/table';
@@ -642,7 +642,7 @@ export function MostSellingPage() {
         <div className="py-3 flex items-center justify-between">
           <h2 className="text-lg font-semibold text-gray-900">Top Selling Product</h2>
           <Button onClick={() => handleExportCSV('Top Selling')} variant="danger" size="sm" className="flex items-center gap-2">
-            <Download className="w-4 h-4" />
+            <Upload className="w-4 h-4" />
             Export CSV
           </Button>
         </div>
@@ -656,7 +656,7 @@ export function MostSellingPage() {
         <div className="py-3 flex items-center justify-between">
           <h2 className="text-lg font-semibold text-gray-900">Least Selling Product</h2>
           <Button onClick={() => handleExportCSV('Least Selling')} variant="danger" size="sm" className="flex items-center gap-2">
-            <Download className="w-4 h-4" />
+            <Upload className="w-4 h-4" />
             Export CSV
           </Button>
         </div>
@@ -670,11 +670,11 @@ export function MostSellingPage() {
         <div className="py-3 flex items-center justify-between">
           <h2 className="text-lg font-semibold text-gray-900">Short to Expiry Products</h2>
           <Button onClick={() => handleExportCSV('Short Expiry')} variant="danger" size="sm" className="flex items-center gap-2">
-            <Download className="w-4 h-4" />
+            <Upload className="w-4 h-4" />
             Export CSV
           </Button>
         </div>
-        <div>
+        <div className="pb-12 sm:pb-0">
           <DataTable data={shortExpiryProducts} config={shortExpiryTableConfig} />
         </div>
       </div>

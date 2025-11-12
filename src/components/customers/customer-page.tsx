@@ -86,7 +86,7 @@ export function CustomerPage() {
           />
         </div>
         
-        <div className="flex-1 min-h-0">
+        <div className="flex-1 min-h-0 pb-12 sm:pb-0">
           <CustomerTable
             customers={currentCustomers}
             currentPage={currentPage}

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Download, ArrowUp, ArrowDown, Box, MapPin, Users, ListChecks, Package } from 'lucide-react';
+import { Download, ArrowUp, ArrowDown, Box, MapPin, Users, ListChecks, Package, Upload } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
@@ -55,11 +55,11 @@ export function DashboardPage() {
   const salesData = getFilteredData();
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 md:space-y-6 px-4 md:px-0">
       <div>
-        <h1 className="text-lg flex items-center gap-2 font-bold text-gray-900">
+        <h1 className="text-base md:text-lg flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 font-bold text-gray-900">
           Hey Raj - 
-          <span className="text-gray-500 text-sm font-medium">
+          <span className="text-gray-500 text-xs md:text-sm font-medium">
           Here&apos;s a quick look at your store performance today.
           </span>
         </h1>
@@ -67,34 +67,34 @@ export function DashboardPage() {
 
       {/* Performance Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white rounded-lg border border-gray-200 p-6">
-          <div className="text-sm text-gray-500 mb-2">TODAY&apos;S SALE</div>
-          <div className="text-2xl font-bold text-gray-900 mb-2">₹12,426</div>
-          <div className="flex items-center text-green-600 text-sm">
+        <div className="bg-white rounded-lg border border-gray-200 p-4 md:p-6">
+          <div className="text-xs md:text-sm text-gray-500 mb-2">TODAY&apos;S SALE</div>
+          <div className="text-xl md:text-2xl font-bold text-gray-900 mb-2">₹12,426</div>
+          <div className="flex items-center text-green-600 text-xs md:text-sm">
             <ArrowUp className="w-4 h-4 mr-1" />
             +36%↑
           </div>
         </div>
-        <div className="bg-white rounded-lg border border-gray-200 p-6">
-          <div className="text-sm text-gray-500 mb-2">TOTAL SALE</div>
-          <div className="text-2xl font-bold text-gray-900 mb-2">₹122,426</div>
-          <div className="flex items-center text-red-600 text-sm">
+        <div className="bg-white rounded-lg border border-gray-200 p-4 md:p-6">
+          <div className="text-xs md:text-sm text-gray-500 mb-2">TOTAL SALE</div>
+          <div className="text-xl md:text-2xl font-bold text-gray-900 mb-2">₹122,426</div>
+          <div className="flex items-center text-red-600 text-xs md:text-sm">
             <ArrowDown className="w-4 h-4 mr-1" />
             +14%↓
           </div>
         </div>
-        <div className="bg-white rounded-lg border border-gray-200 p-6">
-          <div className="text-sm text-gray-500 mb-2">TOTAL ORDERS</div>
-          <div className="text-2xl font-bold text-gray-900 mb-2">92,426</div>
-          <div className="flex items-center text-green-600 text-sm">
+        <div className="bg-white rounded-lg border border-gray-200 p-4 md:p-6">
+          <div className="text-xs md:text-sm text-gray-500 mb-2">TOTAL ORDERS</div>
+          <div className="text-xl md:text-2xl font-bold text-gray-900 mb-2">92,426</div>
+          <div className="flex items-center text-green-600 text-xs md:text-sm">
             <ArrowUp className="w-4 h-4 mr-1" />
             +36%↑
           </div>
         </div>
-        <div className="bg-white rounded-lg border border-gray-200 p-6">
-          <div className="text-sm text-gray-500 mb-2">TOTAL CUSTOMERS</div>
-          <div className="text-2xl font-bold text-gray-900 mb-2">22,426</div>
-          <div className="flex items-center text-green-600 text-sm">
+        <div className="bg-white rounded-lg border border-gray-200 p-4 md:p-6">
+          <div className="text-xs md:text-sm text-gray-500 mb-2">TOTAL CUSTOMERS</div>
+          <div className="text-xl md:text-2xl font-bold text-gray-900 mb-2">22,426</div>
+          <div className="flex items-center text-green-600 text-xs md:text-sm">
             <ArrowUp className="w-4 h-4 mr-1" />
             +36%↑
           </div>
@@ -104,20 +104,21 @@ export function DashboardPage() {
       {/* Main Content Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Sales Report - Left Column (2/3) */}
-        <div className="lg:col-span-2 bg-white rounded-lg border border-gray-200 p-6">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-lg font-semibold text-gray-900">Sales Report</h2>
-            <Button variant="danger" size="sm" className="flex items-center gap-2">
-              <Download className="w-4 h-4" />
-              Export PDF
+        <div className="lg:col-span-2 bg-white rounded-lg border border-gray-200 p-4 md:p-6">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-4 md:mb-6">
+            <h2 className="text-base md:text-lg font-semibold text-gray-900">Sales Report</h2>
+            <Button variant="danger" size="sm" className="flex items-center gap-2 w-full sm:w-auto text-xs md:text-sm">
+              <Upload className="w-4 h-4" />
+              <span className="hidden sm:inline">Export PDF</span>
+              <span className="sm:hidden">Export</span>
             </Button>
           </div>
-          <div className="flex gap-2 mb-6">
+          <div className="flex flex-wrap gap-2 mb-4 md:mb-6">
             {periods.map((period) => (
               <button
                 key={period}
                 onClick={() => setSelectedPeriod(period)}
-                className={`px-4 py-2 cursor-pointer rounded-lg text-sm font-medium transition-colors ${
+                className={`px-3 md:px-4 py-1.5 md:py-2 cursor-pointer rounded-lg text-xs md:text-sm font-medium transition-colors ${
                   selectedPeriod === period
                     ? 'bg-primary text-white'
                     : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
@@ -170,8 +171,8 @@ export function DashboardPage() {
         {/* Right Column - Top */}
         <div className="space-y-6">
           {/* Inventory Summary */}
-          <div className="bg-white rounded-lg border border-gray-200 p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Inventory Summary</h2>
+          <div className="bg-white rounded-lg border border-gray-200 p-4 md:p-6">
+            <h2 className="text-base md:text-lg font-semibold text-gray-900 mb-4">Inventory Summary</h2>
             <div className="space-y-4">
               <div className="flex items-center justify-between p-4 bg-orange-50 rounded-lg">
                 <div className="flex items-center gap-3">
@@ -195,8 +196,8 @@ export function DashboardPage() {
           </div>
 
           {/* Product Summary */}
-          <div className="bg-white rounded-lg border border-gray-200 p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Product Summary</h2>
+          <div className="bg-white rounded-lg border border-gray-200 p-4 md:p-6">
+            <h2 className="text-base md:text-lg font-semibold text-gray-900 mb-4">Product Summary</h2>
             <div className="space-y-4">
               <div className="flex items-center justify-between p-4 bg-blue-50 rounded-lg">
                 <div className="flex items-center gap-3">
@@ -224,10 +225,10 @@ export function DashboardPage() {
       {/* Bottom Row */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Top Selling Stock */}
-        <div className="bg-white rounded-lg border border-gray-200 p-6">
+        <div className="bg-white rounded-lg border border-gray-200 p-4 md:p-6">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-gray-900">Top Selling Stock</h2>
-            <button className="text-primary cursor-pointer text-sm font-medium">See All</button>
+            <h2 className="text-base md:text-lg font-semibold text-gray-900">Top Selling Stock</h2>
+            <button className="text-primary cursor-pointer text-xs md:text-sm font-medium">See All</button>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full">
@@ -254,8 +255,8 @@ export function DashboardPage() {
         </div>
 
         {/* Low Quantity Stock */}
-        <div className="bg-white rounded-lg border border-gray-200 p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Low Quantity Stock</h2>
+        <div className="bg-white rounded-lg border border-gray-200 p-4 md:p-6">
+          <h2 className="text-base md:text-lg font-semibold text-gray-900 mb-4">Low Quantity Stock</h2>
           <div className="space-y-4">
             {lowQuantityData.map((item, index) => (
               <div key={index} className="flex items-center gap-4 p-4 border border-gray-200 rounded-lg">

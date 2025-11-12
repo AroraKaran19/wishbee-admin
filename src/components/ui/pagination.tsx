@@ -38,7 +38,7 @@ export function Pagination({
       </Button>
       
       {showPageInfo && (
-        <div className="text-sm text-gray-700 font-medium">
+        <div className="text-xs md:text-sm text-gray-700 font-medium">
           Page {currentPage} of {totalPages}
         </div>
       )}

@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import { ComboProduct } from "@/lib/types/combo";
-import { ArrowLeft, Edit, Trash2, Package, DollarSign, ShoppingCart } from "lucide-react";
+import { ArrowLeft, Edit, Trash2, Package, IndianRupee, ShoppingCart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
 import Image from "next/image";

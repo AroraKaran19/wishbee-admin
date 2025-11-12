@@ -11,7 +11,7 @@ import {
   Image as ImageIcon,
   ArrowLeft,
   FileText,
-  DollarSign,
+  IndianRupee,
   Calendar,
   Upload,
   Package,
@@ -563,7 +563,7 @@ export default function EditComboPage() {
                         <option value="DISCONTINUED">Discontinued</option>
                       </select>
                     </div>
-                    <div className="space-y-2 md:col-span-2">
+                    {/* <div className="space-y-2 md:col-span-2">
                       <label className="text-sm font-medium text-gray-700">
                         Description *{" "}
                         <span className="text-gray-500 text-xs">
@@ -621,7 +621,7 @@ export default function EditComboPage() {
                             : "0 characters"}
                         </span>
                       </div>
-                    </div>
+                    </div> */}
                   </div>
                 </div>
 
@@ -830,15 +830,21 @@ export default function EditComboPage() {
                         render={({ field }) => (
                           <Input
                             variant="muted"
-                            icon={<DollarSign className="w-4 h-4" />}
+                            icon={<IndianRupee className="w-4 h-4" />}
                             className="text-sm"
                             placeholder="Enter MRP"
                             type="number"
                             step="0.01"
-                            {...field}
-                            onChange={(e) =>
-                              field.onChange(parseFloat(e.target.value) || 0)
-                            }
+                            value={field.value === 0 ? "" : field.value || ""}
+                            onChange={(e) => {
+                              const value = e.target.value;
+                              if (value === "" || value === null || value === undefined) {
+                                field.onChange("");
+                              } else {
+                                const numValue = parseFloat(value);
+                                field.onChange(isNaN(numValue) ? "" : numValue);
+                              }
+                            }}
                           />
                         )}
                       />

@@ -13,7 +13,7 @@ import {
   ArrowLeft,
   ScanBarcode,
   FileText,
-  DollarSign,
+  IndianRupee,
   Percent,
   Calendar,
   Upload,
@@ -1132,9 +1132,9 @@ export default function InventoryAddProductPage() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6">
+      <div className="space-y-4 md:space-y-6 px-4 md:px-0">
         <div>
-          <div className="flex items-center gap-3 mb-2">
+          <div className="flex items-center gap-2 md:gap-3 mb-2">
             <button
               onClick={() => router.push("/inventory")}
               className="p-1 hover:bg-gray-100 cursor-pointer rounded-md transition-colors"
@@ -1142,9 +1142,9 @@ export default function InventoryAddProductPage() {
             >
               <ArrowLeft className="w-4 h-4" />
             </button>
-            <h1 className="text-xl font-semibold text-gray-900">Add Product</h1>
+            <h1 className="text-lg md:text-xl font-semibold text-gray-900">Add Product</h1>
           </div>
-          <p className="text-gray-500 mt-1 text-sm">
+          <p className="text-gray-500 mt-1 text-xs md:text-sm">
             Add new items to your inventory with complete details.
           </p>
         </div>
@@ -1198,7 +1198,7 @@ export default function InventoryAddProductPage() {
 
                 {/* Image Upload Area */}
                 <div
-                  className={`flex items-center justify-center gap-12 rounded-xl border border-dashed border-gray-400 bg-white p-8 transition-colors ${
+                  className={`flex flex-col md:flex-row items-center justify-center gap-4 md:gap-12 rounded-xl border border-dashed border-gray-400 bg-white p-4 md:p-8 transition-colors ${
                     uploadingImages
                       ? "opacity-50 cursor-not-allowed"
                       : "hover:border-blue-400 hover:bg-blue-50/30 cursor-pointer"
@@ -1212,9 +1212,9 @@ export default function InventoryAddProductPage() {
                     document.getElementById("file-upload")?.click()
                   }
                 >
-                  <div className="w-40 h-40 rounded-full bg-sky-100 flex items-center justify-center overflow-hidden relative flex-shrink-0">
+                  <div className="w-24 h-24 md:w-40 md:h-40 rounded-full bg-sky-100 flex items-center justify-center overflow-hidden relative flex-shrink-0">
                     <ImageIcon
-                      className="w-24 h-24 text-sky-500"
+                      className="w-14 h-14 md:w-24 md:h-24 text-sky-500"
                       strokeWidth={1.2}
                     />
                   </div>
@@ -1222,11 +1222,11 @@ export default function InventoryAddProductPage() {
                     {uploadingImages ? (
                       <div className="text-center">
                         <div className="w-8 h-8 border-2 border-gray-300 border-t-primary rounded-full animate-spin mx-auto mb-3" />
-                        <p className="text-sm text-gray-600 mb-2 font-medium">
+                        <p className="text-xs md:text-sm text-gray-600 mb-2 font-medium">
                           Uploading Images...
                         </p>
                         {Object.keys(uploadProgress).length > 0 && (
-                          <div className="w-48 bg-gray-200 rounded-full h-1.5 mb-2">
+                          <div className="w-32 md:w-48 bg-gray-200 rounded-full h-1.5 mb-2">
                             <div
                               className="bg-primary h-1.5 rounded-full transition-all duration-300"
                               style={{
@@ -1246,15 +1246,16 @@ export default function InventoryAddProductPage() {
                       </div>
                     ) : (
                       <>
-                        <p className="text-sm text-gray-400 mb-3 text-center font-medium">
+                        <p className="text-xs md:text-sm text-gray-400 mb-2 md:mb-3 text-center font-medium">
                           Drag and Drop
                         </p>
-                        <p className="text-xs text-gray-400 mb-3 text-center">
+                        <p className="text-xs text-gray-400 mb-2 md:mb-3 text-center">
                           or
                         </p>
                         <Button
                           variant="secondary"
                           icon={<Upload className="w-4 h-4" />}
+                          className="text-xs md:text-sm"
                         >
                           Upload Images
                         </Button>
@@ -1326,7 +1327,7 @@ export default function InventoryAddProductPage() {
               <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
                 {/* Basic Information */}
                 <div className="space-y-4">
-                  <h3 className="text-lg font-medium text-gray-900">
+                  <h3 className="text-base md:text-lg font-medium text-gray-900">
                     Basic Information
                   </h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -1437,7 +1438,7 @@ export default function InventoryAddProductPage() {
                         loadingMore={loadingSubcategories}
                       />
                     </div>
-                    <div className="space-y-2 md:col-span-2">
+                    {/* <div className="space-y-2 md:col-span-2">
                       <label className="text-sm font-medium text-gray-700">
                         Description *{" "}
                         <span className="text-gray-500 text-xs">
@@ -1495,7 +1496,7 @@ export default function InventoryAddProductPage() {
                             : "0 characters"}
                         </span>
                       </div>
-                    </div>
+                    </div> */}
                     <div className="space-y-2 md:col-span-2">
                       <label className="text-sm font-medium text-gray-700">
                         Highlights *{" "}
@@ -1504,7 +1505,7 @@ export default function InventoryAddProductPage() {
                         </span>
                       </label>
                       <div className="space-y-2">
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
                           <Input
                             variant="muted"
                             placeholder="Highlight key (e.g., Material)"
@@ -1512,6 +1513,7 @@ export default function InventoryAddProductPage() {
                             onChange={(e) =>
                               setHighlightKeyInput(e.target.value)
                             }
+                            className="text-xs md:text-sm"
                           />
                           <Input
                             variant="muted"
@@ -1524,12 +1526,14 @@ export default function InventoryAddProductPage() {
                               e.key === "Enter" &&
                               (e.preventDefault(), addHighlight())
                             }
+                            className="text-xs md:text-sm"
                           />
                           <Button
                             type="button"
                             variant="secondary"
                             onClick={addHighlight}
                             icon={<Plus className="w-4 h-4" />}
+                            className="w-full sm:w-auto text-xs md:text-sm"
                           >
                             Add
                           </Button>
@@ -1565,7 +1569,7 @@ export default function InventoryAddProductPage() {
 
                 {/* Pricing Information */}
                 <div className="space-y-4">
-                  <h3 className="text-lg font-medium text-gray-900">
+                  <h3 className="text-base md:text-lg font-medium text-gray-900">
                     Pricing Information
                   </h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -1583,15 +1587,21 @@ export default function InventoryAddProductPage() {
                         render={({ field }) => (
                           <Input
                             variant="muted"
-                            icon={<DollarSign className="w-4 h-4" />}
+                            icon={<IndianRupee className="w-4 h-4" />}
                             className="text-sm"
                             placeholder="Enter MRP"
                             type="number"
                             step="0.01"
-                            {...field}
-                            onChange={(e) =>
-                              field.onChange(parseFloat(e.target.value) || 0)
-                            }
+                            value={field.value === 0 ? "" : field.value || ""}
+                            onChange={(e) => {
+                              const value = e.target.value;
+                              if (value === "" || value === null || value === undefined) {
+                                field.onChange("");
+                              } else {
+                                const numValue = parseFloat(value);
+                                field.onChange(isNaN(numValue) ? "" : numValue);
+                              }
+                            }}
                           />
                         )}
                       />
@@ -1770,24 +1780,24 @@ export default function InventoryAddProductPage() {
 
                   {/* Pricing Ranges */}
                   <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <h4 className="text-md font-medium text-gray-900">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+                      <h4 className="text-sm md:text-md font-medium text-gray-900">
                         Pricing Ranges
                       </h4>
-                      <p className="text-sm text-gray-500">
+                      <p className="text-xs md:text-sm text-gray-500">
                         Set different prices based on quantity ranges
                       </p>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
                       <div className="space-y-2">
-                        <label className="text-sm font-medium text-gray-700">
+                        <label className="text-xs md:text-sm font-medium text-gray-700">
                           Quantity Start
                         </label>
                         <Input
                           variant="muted"
                           icon={<Package className="w-4 h-4" />}
-                          className="text-sm"
+                          className="text-xs md:text-sm"
                           placeholder="Start quantity"
                           type="number"
                           value={newPricingRange.quantity_start}
@@ -1800,13 +1810,13 @@ export default function InventoryAddProductPage() {
                         />
                       </div>
                       <div className="space-y-2">
-                        <label className="text-sm font-medium text-gray-700">
+                        <label className="text-xs md:text-sm font-medium text-gray-700">
                           Quantity End
                         </label>
                         <Input
                           variant="muted"
                           icon={<Package className="w-4 h-4" />}
-                          className="text-sm"
+                          className="text-xs md:text-sm"
                           placeholder="End quantity"
                           type="number"
                           value={newPricingRange.quantity_end}
@@ -1819,13 +1829,13 @@ export default function InventoryAddProductPage() {
                         />
                       </div>
                       <div className="space-y-2">
-                        <label className="text-sm font-medium text-gray-700">
+                        <label className="text-xs md:text-sm font-medium text-gray-700">
                           Price
                         </label>
                         <Input
                           variant="muted"
-                          icon={<DollarSign className="w-4 h-4" />}
-                          className="text-sm"
+                          icon={<IndianRupee className="w-4 h-4" />}
+                          className="text-xs md:text-sm"
                           placeholder="Price for this range"
                           type="number"
                           step="0.01"
@@ -1839,7 +1849,7 @@ export default function InventoryAddProductPage() {
                         />
                       </div>
                       <div className="space-y-2">
-                        <label className="text-sm font-medium text-gray-700">
+                        <label className="text-xs md:text-sm font-medium text-gray-700">
                           Action
                         </label>
                         <Button
@@ -1847,7 +1857,7 @@ export default function InventoryAddProductPage() {
                           variant="secondary"
                           onClick={addPricingRange}
                           icon={<Plus className="w-4 h-4" />}
-                          className="w-full"
+                          className="w-full text-xs md:text-sm"
                         >
                           Add Range
                         </Button>
@@ -1865,9 +1875,9 @@ export default function InventoryAddProductPage() {
                             {watch("pricing_range").map((range, index) => (
                               <div
                                 key={index}
-                                className="flex items-center gap-4 p-3 bg-gray-50 rounded-lg border border-gray-200"
+                                className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4 p-3 bg-gray-50 rounded-lg border border-gray-200"
                               >
-                                <div className="flex-1 grid grid-cols-3 gap-4">
+                                <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 sm:gap-4">
                                   <div>
                                     <label className="text-xs text-gray-500">
                                       Quantity: {range.quantity_start} -{" "}
@@ -1885,7 +1895,7 @@ export default function InventoryAddProductPage() {
                                   variant="secondary"
                                   onClick={() => removePricingRange(index)}
                                   icon={<X className="w-4 h-4" />}
-                                  className="px-2 py-1"
+                                  className="px-2 py-1 w-full sm:w-auto text-xs"
                                 >
                                   Remove
                                 </Button>
@@ -1899,7 +1909,7 @@ export default function InventoryAddProductPage() {
 
                 {/* Inventory Information */}
                 <div className="space-y-4">
-                  <h3 className="text-lg font-medium text-gray-900">
+                  <h3 className="text-base md:text-lg font-medium text-gray-900">
                     Inventory Information
                   </h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -2134,23 +2144,23 @@ export default function InventoryAddProductPage() {
 
                 {/* Collection Information */}
                 <div className="space-y-4">
-                  <h3 className="text-lg font-medium text-gray-900">
+                  <h3 className="text-base md:text-lg font-medium text-gray-900">
                     Collection Information
                   </h3>
-                  <p className="text-sm text-gray-500">
+                  <p className="text-xs md:text-sm text-gray-500">
                     Add different collection options for this product (e.g.,
                     5kg, 2 packets, etc.)
                   </p>
                   <div className="space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
                       <div className="space-y-2">
-                        <label className="text-sm font-medium text-gray-700">
+                        <label className="text-xs md:text-sm font-medium text-gray-700">
                           Quantity
                         </label>
                         <Input
                           variant="muted"
                           icon={<Package className="w-4 h-4" />}
-                          className="text-sm"
+                          className="text-xs md:text-sm"
                           placeholder="Enter quantity"
                           type="number"
                           value={newCollection.quantity}
@@ -2163,13 +2173,13 @@ export default function InventoryAddProductPage() {
                         />
                       </div>
                       <div className="space-y-2">
-                        <label className="text-sm font-medium text-gray-700">
+                        <label className="text-xs md:text-sm font-medium text-gray-700">
                           Price
                         </label>
                         <Input
                           variant="muted"
-                          icon={<DollarSign className="w-4 h-4" />}
-                          className="text-sm"
+                          icon={<IndianRupee className="w-4 h-4" />}
+                          className="text-xs md:text-sm"
                           placeholder="Enter price"
                           type="number"
                           step="0.01"
@@ -2183,13 +2193,13 @@ export default function InventoryAddProductPage() {
                         />
                       </div>
                       <div className="space-y-2">
-                        <label className="text-sm font-medium text-gray-700">
+                        <label className="text-xs md:text-sm font-medium text-gray-700">
                           Unit
                         </label>
                         <Input
                           variant="muted"
                           icon={<Weight className="w-4 h-4" />}
-                          className="text-sm"
+                          className="text-xs md:text-sm"
                           placeholder="e.g., kg, packets"
                           value={newCollection.unit}
                           onChange={(e) =>
@@ -2201,7 +2211,7 @@ export default function InventoryAddProductPage() {
                         />
                       </div>
                       <div className="space-y-2">
-                        <label className="text-sm font-medium text-gray-700">
+                        <label className="text-xs md:text-sm font-medium text-gray-700">
                           Action
                         </label>
                         <Button
@@ -2209,7 +2219,7 @@ export default function InventoryAddProductPage() {
                           variant="secondary"
                           onClick={addCollection}
                           icon={<Plus className="w-4 h-4" />}
-                          className="w-full"
+                          className="w-full text-xs md:text-sm"
                         >
                           Add Collection
                         </Button>
@@ -2226,9 +2236,9 @@ export default function InventoryAddProductPage() {
                           {productCollections.map((collection, index) => (
                             <div
                               key={index}
-                              className="flex items-center gap-4 p-3 bg-gray-50 rounded-lg border border-gray-200"
+                              className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4 p-3 bg-gray-50 rounded-lg border border-gray-200"
                             >
-                              <div className="flex-1 grid grid-cols-3 gap-4">
+                              <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
                                 <div>
                                   <label className="text-xs text-gray-500">
                                     Quantity
@@ -2303,12 +2313,12 @@ export default function InventoryAddProductPage() {
 
                 {/* SEO Information */}
                 <div className="space-y-4">
-                  <div className="flex items-center justify-between">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                     <div>
-                      <h3 className="text-lg font-medium text-gray-900">
+                      <h3 className="text-base md:text-lg font-medium text-gray-900">
                         SEO Information
                       </h3>
-                      <p className="text-sm text-gray-500 mt-1">
+                      <p className="text-xs md:text-sm text-gray-500 mt-1">
                         Generate SEO fields automatically from product name
                       </p>
                     </div>
@@ -2318,6 +2328,7 @@ export default function InventoryAddProductPage() {
                       size="sm"
                       onClick={autoGenerateSEO}
                       icon={<Search className="w-4 h-4" />}
+                      className="w-full sm:w-auto"
                     >
                       Auto Generate
                     </Button>
@@ -2406,11 +2417,12 @@ export default function InventoryAddProductPage() {
                   </div>
                 </div>
 
-                <div className="flex justify-end gap-4 pt-6 border-t border-gray-200">
+                <div className="flex flex-col sm:flex-row justify-end gap-3 sm:gap-4 pt-6 border-t border-gray-200">
                   <Button
                     type="button"
                     variant="secondary"
                     onClick={() => router.push("/inventory")}
+                    className="w-full sm:w-auto"
                   >
                     Cancel
                   </Button>
@@ -2418,6 +2430,7 @@ export default function InventoryAddProductPage() {
                     type="submit"
                     variant="primary"
                     disabled={isSubmitting}
+                    className="w-full sm:w-auto"
                   >
                     {isSubmitting ? "Adding Product..." : "Add Product"}
                   </Button>
@@ -2605,7 +2618,7 @@ function CreateCategoryModal({
             />
           </div>
 
-          <div>
+          {/* <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Description *{" "}
               <span className="text-gray-500 text-xs">(min 10 characters)</span>
@@ -2643,7 +2656,7 @@ function CreateCategoryModal({
                   : `${formData.description.length} characters`}
               </span>
             </div>
-          </div>
+          </div> */}
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -2920,7 +2933,7 @@ function CreateSubcategoryModal({
             />
           </div>
 
-          <div>
+          {/* <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Description *{" "}
               <span className="text-gray-500 text-xs">(min 10 characters)</span>
@@ -2958,7 +2971,7 @@ function CreateSubcategoryModal({
                   : `${formData.description.length} characters`}
               </span>
             </div>
-          </div>
+          </div> */}
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">

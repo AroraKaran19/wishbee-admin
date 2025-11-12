@@ -80,11 +80,11 @@ export function SearchBar({
   const allActions = actions.length > 0 ? actions : defaultActions;
 
   return (
-    <div className={`flex items-center justify-between ${className}`}>
+    <div className={`flex items-center justify-between gap-2 md:gap-3 ${className}`}>
       {/* Search Section */}
-      <div className="flex items-center space-x-3">
-        <form onSubmit={handleSearchSubmit} className="w-lg">
-          <div className="relative w-lg">
+      <div className="flex items-center space-x-2 md:space-x-3 min-w-0">
+        <form onSubmit={handleSearchSubmit} className="flex-1 min-w-0 md:w-lg">
+          <div className="relative w-full md:w-lg">
             <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">
               <Search className="w-4 h-4" />
             </div>
@@ -94,7 +94,7 @@ export function SearchBar({
               placeholder={placeholder}
               value={searchQuery}
               onChange={handleSearchChange}
-              className="w-full pl-10 pr-20 py-3 bg-gray-100 border-0 rounded-lg text-gray-700 placeholder-gray-500 focus:outline-none focus:bg-white transition-colors"
+              className="w-full pl-10 pr-20 py-2 md:py-3 bg-gray-100 border-0 rounded-lg text-gray-700 placeholder-gray-500 focus:outline-none focus:bg-white transition-colors text-sm md:text-base"
             />
             
             {showVoiceSearch && (
@@ -116,7 +116,7 @@ export function SearchBar({
         {showFilter && (
           <button 
             onClick={handleFilterClick}
-            className="bg-[#d9f4ff] hover:text-[#00b8fbc9] hover:bg-[#00b8fb28]/20 text-[#00b7fb] p-3 rounded-lg cursor-pointer transition-colors focus:outline-none relative"
+            className="bg-[#d9f4ff] hover:text-[#00b8fbc9] hover:bg-[#00b8fb28]/20 text-[#00b7fb] p-2 md:p-3 rounded-lg cursor-pointer transition-colors focus:outline-none relative flex-shrink-0"
             aria-label="Filter options"
           >
             <SlidersHorizontal className="w-5 h-5" />
@@ -126,7 +126,7 @@ export function SearchBar({
       </div>
 
       {/* Action Buttons Section */}
-      <div className="flex items-center space-x-3">
+      <div className="flex items-center space-x-2 md:space-x-3 flex-shrink-0">
         {allActions.map((action) => {
           const buttonContent = (
             <Button
@@ -134,9 +134,11 @@ export function SearchBar({
               variant={action.variant || 'primary'}
               icon={action.icon}
               onClick={action.onClick}
-              className={action.className}
+              className={`${action.className || ''} text-xs md:text-sm whitespace-nowrap`}
+              size="sm"
             >
-              {action.label}
+              <span className="hidden sm:inline">{action.label}</span>
+              <span className="sm:hidden">{action.label.split(' ')[0]}</span>
             </Button>
           );
 

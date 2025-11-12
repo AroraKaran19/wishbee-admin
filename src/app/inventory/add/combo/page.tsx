@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import {
   ArrowLeft,
   FileText,
-  DollarSign,
+  IndianRupee,
   Upload,
   Package,
   Search,
@@ -434,9 +434,9 @@ export default function AddComboProduct() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6">
+      <div className="space-y-4 md:space-y-6 px-4 md:px-0">
         <div>
-          <div className="flex items-center gap-3 mb-2">
+          <div className="flex items-center gap-2 md:gap-3 mb-2">
             <button
               onClick={() => router.push("/inventory")}
               className="p-1 hover:bg-gray-100 cursor-pointer rounded-md transition-colors"
@@ -444,11 +444,11 @@ export default function AddComboProduct() {
             >
               <ArrowLeft className="w-4 h-4" />
             </button>
-            <h1 className="text-xl font-semibold text-gray-900">
+            <h1 className="text-lg md:text-xl font-semibold text-gray-900">
               Add Combo Product
             </h1>
           </div>
-          <p className="text-gray-500 mt-1 text-sm">
+          <p className="text-gray-500 mt-1 text-xs md:text-sm">
             Create product combinations and bundles with special pricing and
             offers.
           </p>
@@ -536,7 +536,7 @@ export default function AddComboProduct() {
                         <option value="DISCONTINUED">Discontinued</option>
                       </select>
                     </div>
-                    <div className="space-y-2 md:col-span-2">
+                    {/* <div className="space-y-2 md:col-span-2">
                       <label className="text-sm font-medium text-gray-700">
                         Description *{" "}
                         <span className="text-gray-500 text-xs">
@@ -594,7 +594,7 @@ export default function AddComboProduct() {
                             : "0 characters"}
                         </span>
                       </div>
-                    </div>
+                    </div> */}
                   </div>
                 </div>
 
@@ -606,7 +606,7 @@ export default function AddComboProduct() {
 
                   {/* Image Upload Area */}
                   <div
-                    className={`flex items-center justify-center gap-12 rounded-xl border border-dashed border-gray-400 bg-white p-8 transition-colors ${
+                    className={`flex flex-col md:flex-row items-center justify-center gap-4 md:gap-12 rounded-xl border border-dashed border-gray-400 bg-white p-4 md:p-8 transition-colors ${
                       uploadingImages
                         ? "opacity-50 cursor-not-allowed"
                         : "hover:border-blue-400 hover:bg-blue-50/30 cursor-pointer"
@@ -620,9 +620,9 @@ export default function AddComboProduct() {
                       document.getElementById("combo-file-upload")?.click()
                     }
                   >
-                    <div className="w-40 h-40 rounded-full bg-green-100 flex items-center justify-center overflow-hidden relative flex-shrink-0">
+                    <div className="w-24 h-24 md:w-40 md:h-40 rounded-full bg-green-100 flex items-center justify-center overflow-hidden relative flex-shrink-0">
                       <Layers
-                        className="w-24 h-24 text-green-500"
+                        className="w-14 h-14 md:w-24 md:h-24 text-green-500"
                         strokeWidth={1.2}
                       />
                     </div>
@@ -630,11 +630,11 @@ export default function AddComboProduct() {
                       {uploadingImages ? (
                         <div className="text-center">
                           <div className="w-8 h-8 border-2 border-gray-300 border-t-primary rounded-full animate-spin mx-auto mb-3" />
-                          <p className="text-sm text-gray-600 mb-2 font-medium">
+                          <p className="text-xs md:text-sm text-gray-600 mb-2 font-medium">
                             Uploading Images...
                           </p>
                           {Object.keys(uploadProgress).length > 0 && (
-                            <div className="w-48 bg-gray-200 rounded-full h-1.5 mb-2">
+                            <div className="w-32 md:w-48 bg-gray-200 rounded-full h-1.5 mb-2">
                               <div
                                 className="bg-primary h-1.5 rounded-full transition-all duration-300"
                                 style={{
@@ -655,15 +655,16 @@ export default function AddComboProduct() {
                         </div>
                       ) : (
                         <>
-                          <p className="text-sm text-gray-400 mb-3 text-center font-medium">
+                          <p className="text-xs md:text-sm text-gray-400 mb-2 md:mb-3 text-center font-medium">
                             Drag and Drop
                           </p>
-                          <p className="text-xs text-gray-400 mb-3 text-center">
+                          <p className="text-xs text-gray-400 mb-2 md:mb-3 text-center">
                             or
                           </p>
                           <Button
                             variant="secondary"
                             icon={<Upload className="w-4 h-4" />}
+                            className="text-xs md:text-sm"
                           >
                             Upload Images
                           </Button>
@@ -734,8 +735,8 @@ export default function AddComboProduct() {
 
                 {/* Product Selection */}
                 <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-lg font-medium text-gray-900">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                    <h3 className="text-base md:text-lg font-medium text-gray-900">
                       Select Products *
                     </h3>
                     <Button
@@ -743,6 +744,7 @@ export default function AddComboProduct() {
                       variant="secondary"
                       onClick={() => setShowProductModal(true)}
                       icon={<Plus className="w-4 h-4" />}
+                      className="w-full sm:w-auto"
                     >
                       Add Products
                     </Button>
@@ -816,15 +818,21 @@ export default function AddComboProduct() {
                         render={({ field }) => (
                           <Input
                             variant="muted"
-                            icon={<DollarSign className="w-4 h-4" />}
+                            icon={<IndianRupee className="w-4 h-4" />}
                             className="text-sm"
                             placeholder="Enter MRP"
                             type="number"
                             step="0.01"
-                            {...field}
-                            onChange={(e) =>
-                              field.onChange(parseFloat(e.target.value) || 0)
-                            }
+                            value={field.value === 0 ? "" : field.value || ""}
+                            onChange={(e) => {
+                              const value = e.target.value;
+                              if (value === "" || value === null || value === undefined) {
+                                field.onChange("");
+                              } else {
+                                const numValue = parseFloat(value);
+                                field.onChange(isNaN(numValue) ? "" : numValue);
+                              }
+                            }}
                           />
                         )}
                       />
@@ -921,11 +929,12 @@ export default function AddComboProduct() {
                   </div>
                 </div>
 
-                <div className="flex justify-end gap-4 pt-6 border-t border-gray-200">
+                <div className="flex flex-col sm:flex-row justify-end gap-3 sm:gap-4 pt-6 border-t border-gray-200">
                   <Button
                     type="button"
                     variant="secondary"
                     onClick={() => router.push("/inventory")}
+                    className="w-full sm:w-auto"
                   >
                     Cancel
                   </Button>
@@ -933,6 +942,7 @@ export default function AddComboProduct() {
                     type="submit"
                     variant="primary"
                     disabled={isSubmitting}
+                    className="w-full sm:w-auto"
                   >
                     {isSubmitting ? "Creating Combo..." : "Create Combo"}
                   </Button>
@@ -944,21 +954,21 @@ export default function AddComboProduct() {
 
         {/* Product Selection Modal */}
         {showProductModal && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg p-6 w-full max-w-4xl mx-4 max-h-[80vh] overflow-hidden flex flex-col">
-              <div className="flex items-center justify-between mb-4">
-                <div>
-                  <h2 className="text-lg font-semibold">
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-lg p-4 md:p-6 w-full max-w-4xl max-h-[90vh] md:max-h-[80vh] overflow-hidden flex flex-col">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-4">
+                <div className="flex-1 min-w-0">
+                  <h2 className="text-base md:text-lg font-semibold">
                     Select Products for Combo
                   </h2>
                   {selectedProducts.length > 0 && (
-                    <p className="text-sm text-gray-500 mt-1">
+                    <p className="text-xs md:text-sm text-gray-500 mt-1">
                       {selectedProducts.length} product
                       {selectedProducts.length !== 1 ? "s" : ""} selected
                     </p>
                   )}
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 w-full sm:w-auto">
                   {selectedProducts.length > 0 && (
                     <Button
                       type="button"
@@ -968,6 +978,7 @@ export default function AddComboProduct() {
                         setShowProductModal(false);
                         setSearchTerm("");
                       }}
+                      className="flex-1 sm:flex-none"
                     >
                       Done
                     </Button>
@@ -1020,11 +1031,11 @@ export default function AddComboProduct() {
                   </div>
                 ) : filteredProducts.length > 0 ? (
                   <>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
                       {filteredProducts.map((product) => (
                         <div
                           key={product._id}
-                          className="flex items-center gap-3 p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer"
+                          className="flex items-center gap-2 md:gap-3 p-2 md:p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer"
                           onClick={() => addProductToCombo(product)}
                         >
                           {product.images && product.images.length > 0 && (
@@ -1033,20 +1044,20 @@ export default function AddComboProduct() {
                               alt={product.name}
                               width={50}
                               height={50}
-                              className="w-12 h-12 object-cover rounded-lg"
+                              className="w-10 h-10 md:w-12 md:h-12 object-cover rounded-lg flex-shrink-0"
                               loading="lazy"
                               unoptimized
                               quality={100}
                             />
                           )}
                           <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium text-gray-900 truncate">
+                            <p className="text-xs md:text-sm font-medium text-gray-900 truncate">
                               {product.name}
                             </p>
                             <p className="text-xs text-gray-500">
                               SKU: {product.sku} | ₹{product.mrp}
                             </p>
-                            <p className="text-xs text-gray-400 truncate">
+                            <p className="text-xs text-gray-400 truncate hidden sm:block">
                               {product.description}
                             </p>
                           </div>
@@ -1054,9 +1065,10 @@ export default function AddComboProduct() {
                             type="button"
                             variant="secondary"
                             size="sm"
-                            icon={<Plus className="w-4 h-4" />}
+                            icon={<Plus className="w-3 h-3 md:w-4 md:h-4" />}
+                            className="flex-shrink-0 text-xs md:text-sm"
                           >
-                            Add
+                            <span className="hidden sm:inline">Add</span>
                           </Button>
                         </div>
                       ))}

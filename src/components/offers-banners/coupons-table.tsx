@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Download, Edit, Pause, Trash2 } from 'lucide-react';
+import { Download, Edit, Pause, Trash2, Upload } from 'lucide-react';
 import { DataTable } from '@/components/ui/data-table';
 import { TableConfig } from '@/lib/types/table';
 import { Button } from '@/components/ui/button';
@@ -132,11 +132,12 @@ export function CouponsTable({
 
   return (
     <div className="">
-      <div className="px-6 py-3 flex items-center justify-between">
+      <div className="px-4 md:px-6 py-3 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <h2 className="text-sm font-semibold text-gray-900">Coupons and Promo Codes</h2>
-        <Button onClick={onExportCSV} variant="danger" size="sm" className="flex py-2 items-center gap-2">
-          <Download className="w-4 h-4" />
-          Export CSV
+        <Button onClick={onExportCSV} variant="danger" size="sm" className="flex py-2 items-center gap-2 w-full sm:w-auto text-xs md:text-sm">
+          <Upload className="w-4 h-4" />
+          <span className="hidden sm:inline">Export CSV</span>
+          <span className="sm:hidden">Export</span>
         </Button>
       </div>
       <div>
