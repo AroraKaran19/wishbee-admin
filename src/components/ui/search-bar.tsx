@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Search, Mic, SlidersHorizontal, Upload, Plus } from 'lucide-react';
 import { Button } from './button';
 
@@ -39,6 +40,7 @@ export function SearchBar({
   searchValue = "",
   onSearchChange
 }: SearchBarProps) {
+  const router = useRouter();
   const [searchQuery, setSearchQuery] = useState(searchValue);
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -79,10 +81,17 @@ export function SearchBar({
 
   const allActions = actions.length > 0 ? actions : defaultActions;
 
+  const handleActionClick = (action: SearchBarAction) => {
+    if (action.href) {
+      router.push(action.href);
+    }
+    action.onClick();
+  };
+
   return (
     <div className={`flex items-center justify-between gap-2 md:gap-3 ${className}`}>
       {/* Search Section */}
-      <div className="flex items-center space-x-2 md:space-x-3 min-w-0">
+      <div className="flex items-center space-x-2 md:space-x-3 min-w-0 flex-1">
         <form onSubmit={handleSearchSubmit} className="flex-1 min-w-0 md:w-lg">
           <div className="relative w-full md:w-lg">
             <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">
@@ -124,6 +133,24 @@ export function SearchBar({
           </button>
         )}
       </div>
+
+      {/* Action Buttons */}
+      {allActions.length > 0 && (
+        <div className="flex items-center gap-2 flex-shrink-0">
+          {allActions.map((action) => (
+            <Button
+              key={action.key}
+              variant={action.variant || 'primary'}
+              icon={action.icon}
+              onClick={() => handleActionClick(action)}
+              className={action.className}
+            >
+              <span className="hidden sm:inline">{action.label}</span>
+              <span className="sm:hidden">{action.label.split(' ')[0]}</span>
+            </Button>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
