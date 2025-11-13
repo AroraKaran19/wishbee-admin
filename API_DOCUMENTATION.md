@@ -56,20 +56,18 @@
   {
     "success": true,
     "data": {
-      "user": {
-        "_id": "string",
-        "phoneNumber": "string",
-        "role": "CUSTOMER",
-        "isActive": true,
-        "firstTimeLogin": true,
-        "createdAt": "2024-01-01T00:00:00.000Z",
-        "updatedAt": "2024-01-01T00:00:00.000Z"
-      }
+      "_id": "string",
+      "phoneNumber": "string",
+      "role": "CUSTOMER",
+      "isActive": true,
+      "firstTimeLogin": true,
+      "createdAt": "2024-01-01T00:00:00.000Z",
+      "updatedAt": "2024-01-01T00:00:00.000Z"
     },
-    "message": "OTP verified successfully"
+    "message": "OTP verified successfully!"
   }
   ```
-- **Note**: 
+- **Note**:
   - Refresh token is automatically set in HTTP-only cookie
   - Frontend should use NextAuth to manage session and generate access tokens
   - Use refresh token endpoint to get access tokens for API calls
@@ -213,6 +211,7 @@
     "photo": "string"
   }
   ```
+- **Note**: Either both `firstName` and `lastName` must be provided, or `photo` must be provided (or both)
 - **Response**: Updated profile object
 
 ### Delete Profile
@@ -244,7 +243,9 @@
     "data": {
       "addresses": [
         {
-          "street": "string",
+          "type": "HOME",
+          "addressLine": "string",
+          "landmark": "string",
           "city": "string",
           "state": "string",
           "postalCode": "string",
@@ -279,13 +280,23 @@
 - **Request**:
   ```json
   {
-    "street": "string",
+    "type": "HOME",
+    "addressLine": "string",
+    "landmark": "string",
     "city": "string",
     "state": "string",
     "postalCode": "string",
-    "country": "string"
+    "country": "string",
+    "storeName": "string",
+    "latitude": 0,
+    "longitude": 0
   }
   ```
+- **Note**:
+  - Maximum 25 addresses allowed per user
+  - `type` must be one of: "HOME", "WORK", "OTHER", "STORE"
+  - `storeName` is required when `type` is "STORE"
+  - `latitude` and `longitude` are optional
 - **Response**: Updated addresses array
 
 ### Update Address
@@ -309,6 +320,177 @@
     "success": true,
     "data": null,
     "message": "Address deleted successfully"
+  }
+  ```
+
+### Get All Users (Admin)
+
+- **API**: `GET /api/users/all`
+- **Access**: Admin
+- **Query Parameters**:
+  - `page` (number, default: 1)
+  - `limit` (number, default: 10, max: 100)
+  - `role` (string, default: "CUSTOMER") - Filter by user role
+  - `isActive` (boolean) - Filter by active status
+  - `search` (string) - Search in firstName, lastName, phoneNumber, email
+  - `sortBy` (string, default: "createdAt") - Field to sort by
+  - `sortOrder` (string, default: "desc") - "asc" or "desc"
+- **Response**:
+  ```json
+  {
+    "success": true,
+    "data": {
+      "users": [
+        {
+          "_id": "string",
+          "email": "string",
+          "photo": "string",
+          "gender": "MALE",
+          "firstName": "string",
+          "lastName": "string",
+          "phoneNumber": "string",
+          "role": "CUSTOMER",
+          "isActive": true,
+          "gstNumber": "string",
+          "storeName": "string",
+          "loyaltyTier": "BRONZE",
+          "loyaltyPoints": 100,
+          "addresses": [
+            {
+              "type": "HOME",
+              "addressLine": "string",
+              "landmark": "string",
+              "city": "string",
+              "state": "string",
+              "postalCode": "string",
+              "country": "string",
+              "isDefault": true
+            }
+          ],
+          "orders": ["string"],
+          "createdAt": "2024-01-01T00:00:00.000Z",
+          "updatedAt": "2024-01-01T00:00:00.000Z"
+        }
+      ],
+      "pagination": {
+        "page": 1,
+        "limit": 10,
+        "total": 100,
+        "pages": 10
+      }
+    },
+    "message": "All users fetched successfully"
+  }
+  ```
+- **Note**:
+  - Returns only CUSTOMER users by default (can be filtered by role)
+  - Sensitive fields like `refreshTokens` and `permissions` are excluded
+  - Supports search across firstName, lastName, phoneNumber, and email
+  - Results are paginated and sortable
+
+### Get User by ID (Admin)
+
+- **API**: `GET /api/users/:userId`
+- **Access**: Admin
+- **Parameters**:
+  - `userId` (string) - User ID
+- **Response**:
+  ```json
+  {
+    "success": true,
+    "data": {
+      "_id": "string",
+      "email": "string",
+      "photo": "string",
+      "gender": "MALE",
+      "firstName": "string",
+      "lastName": "string",
+      "phoneNumber": "string",
+      "role": "CUSTOMER",
+      "isActive": true,
+      "gstNumber": "string",
+      "storeName": "string",
+      "loyaltyTier": "BRONZE",
+      "loyaltyPoints": 100,
+      "orders": ["string"],
+      "defaultAddress": {
+        "type": "HOME",
+        "addressLine": "string",
+        "city": "string",
+        "state": "string",
+        "postalCode": "string",
+        "country": "string",
+        "isDefault": true
+      },
+      "joinedAt": "2024-01-01T00:00:00.000Z"
+    },
+    "message": "User fetched successfully"
+  }
+  ```
+- **Note**:
+  - Returns user in protected format (sensitive fields excluded)
+  - Includes default address if available
+  - Returns 404 if user not found
+
+### Update User (Admin)
+
+- **API**: `PATCH /api/users/:userId`
+- **Access**: Admin
+- **Parameters**:
+  - `userId` (string) - User ID to update
+- **Request**:
+  ```json
+  {
+    "firstName": "string",
+    "lastName": "string",
+    "photo": "string",
+    "email": "string",
+    "gender": "MALE",
+    "isActive": true,
+    "gstNumber": "string",
+    "storeName": "string",
+    "loyaltyTier": "BRONZE",
+    "loyaltyPoints": 100,
+    "password": "string"
+  }
+  ```
+- **Note**:
+  - All fields are optional, but at least one field must be provided
+  - Only allowed fields can be updated (filters out unauthorized fields)
+  - `gender` must be one of: "MALE", "FEMALE", "OTHER"
+  - `loyaltyTier` must be one of: "BRONZE", "SILVER", "GOLD", "PLATINUM", "DIAMOND"
+  - `isActive` is a boolean field
+  - `password`: Only applicable for Admin users. Password is automatically hashed using bcrypt before storing. For Consumer users, password field is ignored (they use OTP authentication)
+- **Response**:
+  ```json
+  {
+    "success": true,
+    "data": {
+      "_id": "string",
+      "email": "string",
+      "photo": "string",
+      "gender": "MALE",
+      "firstName": "string",
+      "lastName": "string",
+      "phoneNumber": "string",
+      "role": "CUSTOMER",
+      "isActive": true,
+      "gstNumber": "string",
+      "storeName": "string",
+      "loyaltyTier": "BRONZE",
+      "loyaltyPoints": 100,
+      "defaultAddress": {
+        "type": "HOME",
+        "addressLine": "string",
+        "city": "string",
+        "state": "string",
+        "postalCode": "string",
+        "country": "string",
+        "isDefault": true
+      },
+      "joinedAt": "2024-01-01T00:00:00.000Z"
+    },
+    "message": "User updated successfully"
   }
   ```
 
@@ -349,7 +531,8 @@
 ### Get User Enquiries
 
 - **API**: `GET /api/enquiry`
-- **Access**: User
+- **Access**: User (requires authentication)
+- **Note**: This endpoint returns enquiries for the authenticated user only
 - **Response**:
   ```json
   {
@@ -372,14 +555,14 @@
 
 ### Get All Enquiries (Admin)
 
-- **API**: `GET /api/enquiry`
+- **API**: `GET /api/enquiry/all`
 - **Access**: Admin
 - **Query Parameters**:
-  - `page` (number, default: 1)
-  - `limit` (number, default: 10)
-  - `type` (string)
-  - `status` (string)
-  - `userId` (string)
+  - `page` (number, default: 1) - Page number
+  - `limit` (number, default: 10) - Items per page
+  - `type` (string, optional) - Filter by enquiry type
+  - `status` (string, optional) - Filter by status (PENDING, RESOLVED, CLOSED)
+  - `userId` (string, optional) - Filter by user ID
 - **Response**:
   ```json
   {
@@ -388,7 +571,14 @@
       "enquiries": [
         {
           "_id": "string",
-          "userId": "string",
+          "user": {
+            "_id": "string",
+            "firstName": "string",
+            "lastName": "string",
+            "phoneNumber": "string",
+            "email": "string",
+            "role": "CUSTOMER"
+          },
           "type": "string",
           "message": "string",
           "images": ["string"],
@@ -397,13 +587,9 @@
           "updatedAt": "2024-01-01T00:00:00.000Z"
         }
       ],
-      "pagination": {
-        "currentPage": 1,
-        "totalPages": 5,
-        "totalItems": 50,
-        "hasNext": true,
-        "hasPrev": false
-      }
+      "total": 50,
+      "totalPages": 5,
+      "page": 1
     },
     "message": "Enquiries retrieved successfully"
   }
@@ -425,6 +611,7 @@
     "status": "PENDING"
   }
   ```
+- **Note**: Status must be one of: "PENDING", "RESOLVED", "CLOSED"
 - **Response**: Updated enquiry object
 
 ### Delete Enquiry
@@ -452,12 +639,14 @@
   - `page` (number, default: 1)
   - `limit` (number, default: 10, max: 100)
   - `category` (string) - Category ID
+  - `subCategory` (string) - Subcategory ID
   - `status` (string) - ACTIVE, OUT_OF_STOCK, DISCONTINUED
   - `isOrganic` (boolean)
   - `minPrice` (number)
   - `maxPrice` (number)
   - `search` (string) - Search in name, description, SKU
   - `name` (string) - Filter by product name
+  - `filter` (string) - "pfy" for Pay For Yourself products, "dotd" for Deal of the Day products
 - **Response**:
   ```json
   {
@@ -556,6 +745,15 @@
   - `limit` (number, default: 10)
 - **Response**: Same as products list response
 
+### Get PFY Products
+
+- **API**: `GET /api/products/pfy`
+- **Access**: Public
+- **Query Parameters**:
+  - `page` (number, default: 1)
+  - `limit` (number, default: 10)
+- **Response**: Same as products list response
+
 ### Get Out of Stock Products
 
 - **API**: `GET /api/products/inventory/out-of-stock`
@@ -577,8 +775,105 @@
 
 - **API**: `GET /api/products/inventory/close-to-expiry`
 - **Access**: Admin
-- **Query Parameters**: Same as out of stock
+- **Query Parameters**:
+  - `page` (number, default: 1)
+  - `limit` (number, default: 10, max: 100)
+  - `search` (string)
 - **Response**: Same as products list response
+- **Note**: Returns products expiring within the next 7 days
+
+### Get Long Unsold Products
+
+- **API**: `GET /api/products/inventory/long-unsold`
+- **Access**: Admin
+- **Query Parameters**:
+  - `page` (number, default: 1)
+  - `limit` (number, default: 10, max: 100)
+  - `daysThreshold` (number, default: 90) - Number of days to check for unsold products
+  - `search` (string)
+- **Response**:
+  ```json
+  {
+    "success": true,
+    "data": {
+      "products": [
+        {
+          "_id": "string",
+          "sku": "string",
+          "name": "string",
+          "type": "product",
+          "description": "string",
+          "highlights": [
+            {
+              "key": "string",
+              "value": "string"
+            }
+          ],
+          "category": {
+            "_id": "string",
+            "name": "string"
+          },
+          "subCategory": {
+            "_id": "string",
+            "name": "string"
+          },
+          "images": ["string"],
+          "status": "ACTIVE",
+          "isOrganic": true,
+          "mrp": 100,
+          "pricing_range": [
+            {
+              "quantity_start": 1,
+              "quantity_end": 10,
+              "price": 90
+            }
+          ],
+          "discount": {
+            "type": "percentage",
+            "value": 10,
+            "startDate": "2024-01-01T00:00:00.000Z",
+            "endDate": "2024-12-31T23:59:59.000Z",
+            "isActive": true
+          },
+          "minimumOrderQuantity": 1,
+          "maximumOrderQuantity": 100,
+          "stock": 50,
+          "weight": {
+            "value": 1,
+            "unit": "kg"
+          },
+          "reviewsCount": 10,
+          "totalRating": 4.5,
+          "productCollections": [
+            {
+              "quantity": 1,
+              "price": 90,
+              "unit": "kg"
+            }
+          ],
+          "alertExpiry": 7,
+          "expiry": "2024-12-31T23:59:59.000Z",
+          "metaTitle": "string",
+          "metaDescription": "string",
+          "metaKeywords": ["string"],
+          "slug": "string",
+          "isB2B": false,
+          "lastSoldAt": "2024-01-01T00:00:00.000Z",
+          "createdAt": "2024-01-01T00:00:00.000Z",
+          "updatedAt": "2024-01-01T00:00:00.000Z"
+        }
+      ],
+      "total": 50,
+      "totalPages": 5,
+      "page": 1
+    },
+    "message": "Long unsold products retrieved successfully"
+  }
+  ```
+- **Note**:
+  - Returns products that haven't been sold in completed/delivered orders within the specified number of days
+  - Each product includes `lastSoldAt` field which is the date when the product was last sold (null if never sold)
+  - Only checks orders with status "COMPLETED" or "DELIVERED"
 
 ### Create Product
 
@@ -755,7 +1050,7 @@
 
 ### Get Subcategory by ID
 
-- **API**: `GET /api/subcategories/:id`
+- **API**: `GET /api/categories/subcategories/:id`
 - **Access**: Public
 - **Response**: Single subcategory object
 
@@ -781,7 +1076,7 @@
 
 ### Create Subcategory
 
-- **API**: `POST /api/subcategories`
+- **API**: `POST /api/categories/subcategories`
 - **Access**: Admin
 - **Request**:
   ```json
@@ -803,7 +1098,7 @@
 
 ### Update Subcategory
 
-- **API**: `PUT /api/subcategories/:id`
+- **API**: `PUT /api/categories/subcategories/:id`
 - **Access**: Admin
 - **Request**: Any subcategory fields to update
 - **Response**: Updated subcategory object
@@ -823,7 +1118,7 @@
 
 ### Delete Subcategory
 
-- **API**: `DELETE /api/subcategories/:id`
+- **API**: `DELETE /api/categories/subcategories/:id`
 - **Access**: Admin
 - **Response**:
   ```json
@@ -868,7 +1163,6 @@
   }
   ```
 
-
 ### Add to Cart
 
 - **API**: `POST /api/cart/add`
@@ -881,6 +1175,9 @@
     "quantity": 1
   }
   ```
+- **Note**:
+  - `productType` must be either "product" or "combo"
+  - `quantity` must be greater than 0
 - **Response**: Updated cart object
 
 ### Update Cart Item
@@ -895,6 +1192,9 @@
     "quantity": 3
   }
   ```
+- **Note**:
+  - `productType` must be either "product" or "combo"
+  - `quantity` must be greater than or equal to 0 (0 removes the item)
 - **Response**: Updated cart object
 
 ### Remove from Cart
@@ -910,9 +1210,7 @@
   ```
 - **Response**: Updated cart object
 
-
 ---
-
 
 ## 5. Combo Endpoints
 
@@ -928,6 +1226,7 @@
   - `minPrice` (number)
   - `maxPrice` (number)
   - `search` (string)
+  - `random` (boolean) - If true, returns random combos
 - **Response**:
   ```json
   {
@@ -1037,10 +1336,11 @@
     "status": "ACTIVE",
     "isOrganic": true,
     "mrp": 200,
-    "productIds": ["string"],
+    "products": ["string"],
     "stock": 10
   }
   ```
+- **Note**: `products` array is required and must contain at least one product ID
 - **Response**: Created combo object
 
 ### Update Combo
@@ -1308,16 +1608,113 @@
 - **API**: `GET /api/dashboard/top-selling`
 - **Access**: Admin
 - **Query Parameters**:
-  - `limit` (number, default: 10, max: 50)
-- **Response**: Top selling products array
+  - `limit` (number, default: 10, max: 50) - Number of top products to return
+- **Response**:
+  ```json
+  {
+    "success": true,
+    "data": [
+      {
+        "_id": "string",
+        "sku": "string",
+        "name": "string",
+        "type": "product",
+        "description": "string",
+        "highlights": [
+          {
+            "key": "string",
+            "value": "string"
+          }
+        ],
+        "category": {
+          "_id": "string",
+          "name": "string"
+        },
+        "subCategory": {
+          "_id": "string",
+          "name": "string"
+        },
+        "images": ["string"],
+        "status": "ACTIVE",
+        "isOrganic": true,
+        "mrp": 100,
+        "pricing_range": [
+          {
+            "quantity_start": 1,
+            "quantity_end": 10,
+            "price": 90
+          }
+        ],
+        "discount": {
+          "type": "percentage",
+          "value": 10,
+          "startDate": "2024-01-01T00:00:00.000Z",
+          "endDate": "2024-12-31T23:59:59.000Z",
+          "isActive": true
+        },
+        "minimumOrderQuantity": 1,
+        "maximumOrderQuantity": 100,
+        "stock": 50,
+        "weight": {
+          "value": 1,
+          "unit": "kg"
+        },
+        "reviewsCount": 10,
+        "totalRating": 4.5,
+        "productCollections": [
+          {
+            "quantity": 1,
+            "price": 90,
+            "unit": "kg"
+          }
+        ],
+        "alertExpiry": 7,
+        "expiry": "2024-12-31T23:59:59.000Z",
+        "metaTitle": "string",
+        "metaDescription": "string",
+        "metaKeywords": ["string"],
+        "slug": "string",
+        "isB2B": false,
+        "soldQuantity": 150,
+        "revenue": 13500,
+        "createdAt": "2024-01-01T00:00:00.000Z",
+        "updatedAt": "2024-01-01T00:00:00.000Z"
+      }
+    ],
+    "message": "Top selling products retrieved successfully"
+  }
+  ```
+- **Note**:
+  - Returns products sorted by sold quantity (last 30 days)
+  - Only includes products from completed/delivered orders in the last 30 days
+  - Each product includes full product information plus:
+    - `soldQuantity`: Total quantity sold in the last 30 days
+    - `revenue`: Total revenue generated in the last 30 days
+  - Only returns products (not combos)
 
 ### Get Low Stock Products
 
 - **API**: `GET /api/dashboard/low-stock`
 - **Access**: Admin
 - **Query Parameters**:
-  - `threshold` (number, default: 100)
-- **Response**: Low stock products array
+  - `threshold` (number, default: 100) - Stock threshold for low stock alert
+- **Response**:
+  ```json
+  {
+    "success": true,
+    "data": [
+      {
+        "productId": "string",
+        "name": "string",
+        "currentStock": 5,
+        "type": "product",
+        "status": "ACTIVE"
+      }
+    ],
+    "message": "Low stock products retrieved successfully"
+  }
+  ```
+- **Note**: Returns both products and combos with stock at or below the threshold, sorted by stock (lowest first)
 
 ### Get Inventory Summary
 
@@ -1352,14 +1749,289 @@
   - `period` (string) - "7days", "30days", "6months", "12months" (default: "12months")
 - **Response**: Excel file download
 
+### Get Inventory
+
+- **API**: `GET /api/dashboard/inventory`
+- **Access**: Admin
+- **Query Parameters**:
+  - `page` (number, default: 1) - Page number
+  - `limit` (number, default: 10, max: 100) - Items per page
+- **Response**:
+  ```json
+  {
+    "success": true,
+    "data": {
+      "totalInventoryValue": 1000000,
+      "totalProducts": 150,
+      "totalCombos": 25,
+      "data": {
+        "products": [
+          {
+            "_id": "string",
+            "sku": "string",
+            "name": "string",
+            "type": "product",
+            "description": "string",
+            "highlights": [
+              {
+                "key": "string",
+                "value": "string"
+              }
+            ],
+            "category": {
+              "_id": "string",
+              "name": "string"
+            },
+            "subCategory": {
+              "_id": "string",
+              "name": "string"
+            },
+            "images": ["string"],
+            "status": "ACTIVE",
+            "isOrganic": true,
+            "mrp": 100,
+            "pricing_range": [
+              {
+                "quantity_start": 1,
+                "quantity_end": 10,
+                "price": 90
+              }
+            ],
+            "discount": {
+              "type": "percentage",
+              "value": 10,
+              "startDate": "2024-01-01T00:00:00.000Z",
+              "endDate": "2024-12-31T23:59:59.000Z",
+              "isActive": true
+            },
+            "minimumOrderQuantity": 1,
+            "maximumOrderQuantity": 100,
+            "stock": 50,
+            "weight": {
+              "value": 1,
+              "unit": "kg"
+            },
+            "reviewsCount": 10,
+            "totalRating": 4.5,
+            "productCollections": [
+              {
+                "quantity": 1,
+                "price": 90,
+                "unit": "kg"
+              }
+            ],
+            "alertExpiry": 7,
+            "expiry": "2024-12-31T23:59:59.000Z",
+            "metaTitle": "string",
+            "metaDescription": "string",
+            "metaKeywords": ["string"],
+            "slug": "string",
+            "isB2B": false,
+            "createdAt": "2024-01-01T00:00:00.000Z",
+            "updatedAt": "2024-01-01T00:00:00.000Z"
+          }
+        ],
+        "page": 1,
+        "totalPages": 15
+      }
+    },
+    "message": "Inventory data retrieved successfully"
+  }
+  ```
+- **Note**:
+  - `totalInventoryValue` is calculated as the sum of (MRP × stock) for all active products plus (price × stock) for all active combos
+  - `totalProducts` is the total count of all products (regardless of status)
+  - `totalCombos` is the total count of all combos (regardless of status)
+  - Products are sorted by creation date (newest first)
+  - Products include populated category and subCategory fields
+
+### Get Dashboard Statistics
+
+- **API**: `GET /api/dashboard/statistics`
+- **Access**: Admin
+- **Response**:
+  ```json
+  {
+    "success": true,
+    "data": {
+      "performanceSummary": {
+        "todaySales": 5000,
+        "totalSales": 500000,
+        "totalOrders": 2000,
+        "totalCustomers": 1500
+      },
+      "orderStatistics": {
+        "totalReceivedOrders": 1800,
+        "totalReceivedRevenue": 450000,
+        "totalReturnedOrders": 50,
+        "totalReturnedRevenue": 12500,
+        "ordersOnTheWay": 150,
+        "ordersOnTheWayCost": 37500
+      },
+      "salesReport": {
+        "salesTrend": [
+          {
+            "date": "2024-01-01",
+            "sales": 5000
+          }
+        ],
+        "ordersTrend": [
+          {
+            "date": "2024-01-01",
+            "orders": 20
+          }
+        ]
+      },
+      "inventorySummary": {
+        "totalProducts": 150,
+        "outOfStockProducts": 10,
+        "lowStockProducts": 25,
+        "totalInventoryValue": 1000000
+      },
+      "productAnalytics": {
+        "topSellingProducts": [
+          {
+            "name": "Product Name",
+            "soldQuantity": 150,
+            "revenue": 13500,
+            "stock": 50
+          }
+        ],
+        "lowQuantityStock": [
+          {
+            "name": "Product Name",
+            "currentStock": 5,
+            "threshold": 100
+          }
+        ]
+      },
+      "customerAnalytics": {
+        "newCustomers": 25,
+        "newCustomersGrowth": 15.5
+      },
+      "categoryAnalytics": [
+        {
+          "categoryName": "Category Name",
+          "totalSales": 50000,
+          "percentage": 30.5
+        }
+      ],
+      "growthMetrics": {
+        "todaySalesGrowth": 10.5,
+        "totalSalesGrowth": 20.3,
+        "totalOrdersGrowth": 15.2,
+        "totalCustomersGrowth": 12.8
+      }
+    },
+    "message": "Dashboard statistics retrieved successfully"
+  }
+  ```
+- **Note**:
+  - **Performance Summary**: Today's sales, total sales, total orders, and total customers
+  - **Order Statistics**: All-time statistics for received, returned, and on-the-way orders
+  - **Sales Report**: Last 30 days trends for sales and orders (daily breakdown)
+  - **Inventory Summary**: Total products, out of stock count, low stock count, and total inventory value
+  - **Product Analytics**:
+    - Top selling products (last 30 days) with sold quantity, revenue, and stock
+    - Low quantity stock products (threshold: 100)
+  - **Customer Analytics**: New customers in last 30 days with growth percentage (compared to previous 30 days)
+  - **Category Analytics**: Sales breakdown by category with percentages
+  - **Growth Metrics**:
+    - Today's sales growth (compared to yesterday)
+    - Total sales growth (compared to previous 30 days)
+    - Total orders growth (compared to previous 30 days)
+    - Total customers growth (compared to previous 30 days)
+  - All growth percentages are rounded to 2 decimal places
+
 ---
 
 ## 10. Analytics Endpoints (Admin Only)
+
+### Get Analytics Page
+
+- **API**: `GET /api/analytics/page`
+- **Access**: Admin
+- **Query Parameters**:
+  - `period` (string, default: "30days") - Time period: "7days", "30days", "6months", "12months", "all-time"
+- **Response**:
+  ```json
+  {
+    "success": true,
+    "data": {
+      "keyMetrics": {
+        "totalOrders": {
+          "count": 2000,
+          "growthPercentage": 15.5,
+          "periodLabel": "Last 30 Days"
+        },
+        "totalRevenue": {
+          "amount": 500000,
+          "growthPercentage": 20.3,
+          "periodLabel": "Last 30 Days"
+        },
+        "newCustomers": {
+          "count": 150,
+          "growthPercentage": 12.8,
+          "periodLabel": "Last 30 Days"
+        }
+      },
+      "profitAndRevenueChart": {
+        "trend": [
+          {
+            "date": "2024-01-01",
+            "revenue": 5000,
+            "profit": 5000
+          }
+        ],
+        "totalRevenue": 500000,
+        "totalProfit": 500000,
+        "revenueGrowth": 20.3,
+        "profitGrowth": 20.3,
+        "periodLabel": "Last 30 Days"
+      },
+      "salesByCategory": [
+        {
+          "categoryName": "Category Name",
+          "totalSales": 50000,
+          "percentage": 30.5
+        }
+      ],
+      "summary": {
+        "totalOrders": {
+          "count": 2000,
+          "growthPercentage": 15.5
+        },
+        "totalRevenue": {
+          "amount": 500000,
+          "growthPercentage": 20.3
+        },
+        "newCustomers": {
+          "count": 150,
+          "growthPercentage": 12.8
+        }
+      },
+      "period": "30days"
+    },
+    "message": "Analytics page data retrieved successfully"
+  }
+  ```
+- **Note**:
+  - **Key Metrics**: Total orders, total revenue, and new customers with growth percentages compared to previous period
+  - **Profit & Revenue Chart**: Daily time-series data for profit and revenue trends (profit currently equals revenue as cost tracking is not implemented)
+  - **Sales by Category**: Top 20 categories with sales amounts and percentages
+  - **Summary**: Aggregated summary of key metrics
+  - All growth percentages are rounded to 2 decimal places
+  - Period labels are human-readable (e.g., "Last 30 Days", "Last 6 Months")
+  - Valid periods: "7days", "30days", "6months", "12months", "all-time"
 
 ### Get New Customers
 
 - **API**: `GET /api/analytics/new-customers`
 - **Access**: Admin
+- **Query Parameters**:
+  - `period` (string, default: "30days") - "7days", "30days", "6months", "12months"
+  - `startDate` (string, ISO date) - Custom start date (optional, overrides period)
+  - `endDate` (string, ISO date) - Custom end date (optional, overrides period)
 - **Response**:
   ```json
   {
@@ -1377,6 +2049,8 @@
 
 - **API**: `GET /api/analytics/total-revenue`
 - **Access**: Admin
+- **Query Parameters**:
+  - `period` (string, default: "30days") - "7days", "30days", "6months", "12months", "all-time"
 - **Response**:
   ```json
   {
@@ -1394,6 +2068,8 @@
 
 - **API**: `GET /api/analytics/total-orders`
 - **Access**: Admin
+- **Query Parameters**:
+  - `period` (string, default: "30days") - "7days", "30days", "6months", "12months", "all-time"
 - **Response**:
   ```json
   {
@@ -1411,6 +2087,9 @@
 
 - **API**: `GET /api/analytics/sales-by-category`
 - **Access**: Admin
+- **Query Parameters**:
+  - `period` (string, default: "30days") - "7days", "30days", "6months", "12months", "all-time"
+  - `limit` (number, default: 10, max: 50) - Number of top categories to return
 - **Response**:
   ```json
   {
@@ -1431,6 +2110,8 @@
 
 - **API**: `GET /api/analytics/dashboard`
 - **Access**: Admin
+- **Query Parameters**:
+  - `period` (string, default: "30days") - "7days", "30days", "6months", "12months"
 - **Response**:
   ```json
   {
@@ -1587,7 +2268,7 @@
       "isDefault": true
     },
     "payment": {
-      "method": "CARD",
+      "method": "COD",
       "transactionId": "string",
       "status": "PENDING",
       "amount": 100
@@ -1596,6 +2277,12 @@
     "deliverySlot": "string"
   }
   ```
+- **Note**:
+  - Payment method can be "COD" (Cash on Delivery) or other payment methods
+  - For COD orders, order is created directly
+  - For online payments, a Razorpay order is created first
+  - `shippingAddress`, `billingAddress`, and `payment` are required fields
+  - `orderNotes` and `deliverySlot` are optional
 - **Response**:
   ```json
   {
@@ -1776,6 +2463,7 @@
     "notes": "string"
   }
   ```
+- **Note**: Valid statuses are: "PENDING", "PROCESSING", "SHIPPED", "DELIVERED", "CANCELLED", "RETURNED"
 - **Response**: Updated order object
 
 ### Cancel Order
@@ -1825,6 +2513,40 @@
   }
   ```
 
+### Get Order Statistics (Dashboard)
+
+- **API**: `GET /api/orders/stats`
+- **Access**: Admin
+- **Response**:
+  ```json
+  {
+    "success": true,
+    "data": {
+      "totalOrders": 2,
+      "totalReceived": {
+        "count": 0,
+        "revenue": 2820
+      },
+      "totalReturned": {
+        "count": 0,
+        "revenue": 0
+      },
+      "onTheWay": {
+        "count": 0,
+        "cost": 0
+      },
+      "period": "Last Seven Days"
+    },
+    "message": "Order statistics retrieved successfully"
+  }
+  ```
+- **Note**:
+  - Returns order statistics for the last 7 days
+  - `totalOrders`: Total count of all orders in last 7 days
+  - `totalReceived`: Count and revenue of DELIVERED orders
+  - `totalReturned`: Count and revenue of RETURNED orders
+  - `onTheWay`: Count and cost (total amount) of PROCESSING or SHIPPED orders
+
 ---
 
 ## 13. Search Endpoints
@@ -1841,8 +2563,14 @@
   - `showAll` (boolean, default: false) - If true, returns all active items without search filtering
 
 **Usage Examples**:
+
 - Search for specific term: `GET /api/search/rice?page=1&limit=10`
 - Get all items: `GET /api/search/all?showAll=true&page=1&limit=20`
+
+**Note**:
+
+- If `showAll` is false, search term is required
+- If `showAll` is true, search term can be any value (e.g., "all")
 
 - **Response**:
   ```json
@@ -1932,6 +2660,206 @@
 
 ---
 
+## 15. Banner Endpoints (Hero Section)
+
+### Get Active Banners (Public)
+
+- **API**: `GET /api/banners/active`
+- **Access**: Public
+- **Query Parameters**:
+  - `type` (string, optional) - Filter by type: "hero" or "offers"
+- **Response**:
+  ```json
+  {
+    "success": true,
+    "data": [
+      {
+        "_id": "string",
+        "imageUrl": "string",
+        "type": "hero",
+        "order": 0,
+        "isActive": true,
+        "link": "string",
+        "title": "string",
+        "createdAt": "2024-01-01T00:00:00.000Z",
+        "updatedAt": "2024-01-01T00:00:00.000Z"
+      }
+    ],
+    "message": "Active banners retrieved successfully"
+  }
+  ```
+- **Note**:
+  - Returns only active banners, sorted by order (ascending)
+  - If `type` is provided, only returns banners of that type
+  - Valid types: "hero", "offers"
+
+### Get All Banners (Admin)
+
+- **API**: `GET /api/banners`
+- **Access**: Admin
+- **Query Parameters**:
+  - `type` (string, optional) - Filter by type: "hero" or "offers"
+- **Response**: Same as active banners, but includes inactive banners too
+
+### Create Banner (Admin)
+
+- **API**: `POST /api/banners`
+- **Access**: Admin
+- **Request**:
+  ```json
+  {
+    "imageUrl": "string",
+    "type": "hero",
+    "order": 0,
+    "isActive": true,
+    "link": "string",
+    "title": "string"
+  }
+  ```
+- **Note**:
+  - `imageUrl` is required (use presigned URL to upload, then save the URL here)
+  - `type` is required and must be "hero" or "offers"
+  - `order` is optional - if not provided, will be set to highest order + 1
+  - `isActive` defaults to true
+  - `link` and `title` are optional
+- **Response**: Created banner object
+
+### Update Banner (Admin)
+
+- **API**: `PATCH /api/banners/:bannerId`
+- **Access**: Admin
+- **Parameters**:
+  - `bannerId` (string) - Banner ID
+- **Request**:
+  ```json
+  {
+    "imageUrl": "string",
+    "type": "hero",
+    "order": 0,
+    "isActive": true,
+    "link": "string",
+    "title": "string"
+  }
+  ```
+- **Note**:
+  - All fields are optional, but at least one field must be provided
+  - `type` must be "hero" or "offers" if provided
+- **Response**: Updated banner object
+
+### Delete Banner (Admin)
+
+- **API**: `DELETE /api/banners/:bannerId`
+- **Access**: Admin
+- **Parameters**:
+  - `bannerId` (string) - Banner ID
+- **Response**:
+  ```json
+  {
+    "success": true,
+    "data": null,
+    "message": "Banner deleted successfully"
+  }
+  ```
+
+### Reorder Banners (Admin)
+
+- **API**: `PATCH /api/banners/reorder`
+- **Access**: Admin
+- **Request**:
+  ```json
+  {
+    "bannerOrders": [
+      {
+        "id": "string",
+        "order": 0
+      }
+    ]
+  }
+  ```
+- **Note**:
+  - Updates the order of multiple banners at once
+  - Each object must have `id` and `order` fields
+  - Lower order numbers appear first
+- **Response**: Updated banners array (sorted by order)
+
+---
+
+## 16. Most Selling Page Endpoints (Admin Only)
+
+### Get Most Selling Page Data
+
+- **API**: `GET /api/most-selling`
+- **Access**: Admin
+- **Query Parameters**:
+  - `periodType` (string, default: "monthly") - Time period type: "daily", "weekly", "monthly", "quarterly", "annually", "10years"
+- **Response**:
+  ```json
+  {
+    "success": true,
+    "data": {
+      "salePerformance": {
+        "salesAmount": 63750,
+        "growthPercentage": 36.0,
+        "period": "This Month",
+        "chartData": [
+          {
+            "date": "2024-01-01",
+            "sales": 5000
+          }
+        ]
+      },
+      "topSellingProducts": [
+        {
+          "productId": "string",
+          "productName": "Product Name",
+          "soldQuantity": 150,
+          "revenue": 13500,
+          "remainingQuantity": 50
+        }
+      ],
+      "leastSellingProducts": [
+        {
+          "productId": "string",
+          "productName": "Product Name",
+          "soldQuantity": 2,
+          "daysSinceLastOrder": 15,
+          "currentStock": 100
+        }
+      ],
+      "shortToExpiryProducts": [
+        {
+          "productId": "string",
+          "productName": "Product Name",
+          "expiryDate": "2024-01-15T00:00:00.000Z",
+          "daysLeft": 5,
+          "currentStock": 20
+        }
+      ]
+    },
+    "message": "Most selling page data retrieved successfully"
+  }
+  ```
+- **Note**: 
+  - **Sale Performance**: 
+    - Sales amount and growth percentage compared to previous period
+    - Chart data grouped by selected period type (daily, weekly, monthly, etc.)
+    - Period label is human-readable (e.g., "This Month", "This Year")
+  - **Top Selling Products**: 
+    - Top 20 products by sold quantity (last 30 days)
+    - Includes sold quantity, revenue, and remaining stock
+  - **Least Selling Products**: 
+    - Products with low or zero sales (sold quantity < 5)
+    - Includes days since last order (null if never sold)
+    - Sorted by days since last order (most recent first)
+  - **Short to Expiry Products**: 
+    - Products expiring in the next 30 days
+    - Includes expiry date, days left, and current stock
+    - Sorted by expiry date (earliest first)
+  - All revenue calculations include DELIVERED orders and PROCESSING/SHIPPED orders with COMPLETED payment
+  - Growth percentage is rounded to 2 decimal places
+
+---
+
 ## Error Responses
 
 All endpoints return consistent error responses:
@@ -1958,7 +2886,6 @@ All endpoints return consistent error responses:
 - `500` - Internal Server Error
 
 ---
-
 
 ## CORS
 

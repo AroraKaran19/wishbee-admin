@@ -803,12 +803,12 @@ export const navigationItems: NavItem[] = [
     icon: 'Users',
     href: '/customers'
   },
-  {
-    id: 'auto-reorders',
-    label: 'Auto-Reorders',
-    icon: 'RotateCcw',
-    href: '/auto-reorders'
-  },
+  // {
+  //   id: 'auto-reorders',
+  //   label: 'Auto-Reorders',
+  //   icon: 'RotateCcw',
+  //   href: '/auto-reorders'
+  // },
   {
     id: 'offers-banners',
     label: 'Offers & Banners',

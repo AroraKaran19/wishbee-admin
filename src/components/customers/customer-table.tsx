@@ -1,26 +1,37 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { DataTable } from '@/components/ui/data-table';
 import { Customer, TableConfig } from '@/lib/types';
 import { Edit, Trash2 } from 'lucide-react';
+import { CustomerEditModal } from './customer-edit-modal';
 
 interface CustomerTableProps {
   customers: Customer[];
   currentPage: number;
   totalPages: number;
   onPageChange: (page: number) => void;
+  onCustomerUpdate?: () => Promise<void>;
 }
 
 export function CustomerTable({ 
   customers, 
   currentPage, 
   totalPages, 
-  onPageChange 
+  onPageChange,
+  onCustomerUpdate
 }: CustomerTableProps) {
+  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
   const handleEdit = (customer: Customer) => {
-    console.log('Edit customer:', customer);
+    setSelectedCustomer(customer);
+    setIsEditModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setIsEditModalOpen(false);
+    setSelectedCustomer(null);
   };
 
   const handleDelete = (customer: Customer) => {
@@ -135,6 +146,14 @@ export function CustomerTable({
     <div>
       <DataTable data={customers} config={tableConfig} />
       <div className="h-4"></div>
+      
+      {/* Customer Edit Modal */}
+      <CustomerEditModal
+        customer={selectedCustomer}
+        isOpen={isEditModalOpen}
+        onClose={handleCloseModal}
+        onCustomerUpdate={onCustomerUpdate}
+      />
     </div>
   );
 }

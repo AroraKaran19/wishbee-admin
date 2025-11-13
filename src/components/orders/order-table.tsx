@@ -5,6 +5,7 @@ import { DataTable } from '@/components/ui/data-table';
 import { Order, TableConfig } from '@/lib/types';
 import { Edit, Trash2 } from 'lucide-react';
 import { OrderStatusModal } from './order-status-modal';
+import { OrderDetailsModal } from './order-details-modal';
 
 interface OrderTableProps {
   orders: Order[];
@@ -23,6 +24,8 @@ export function OrderTable({
 }: OrderTableProps) {
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);
+  const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
+  const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
 
   const handleEdit = (order: Order) => {
     setSelectedOrder(order);
@@ -47,6 +50,16 @@ export function OrderTable({
     console.log('Delete order:', order);
   };
 
+  const handleOrderIdClick = (order: Order) => {
+    setSelectedOrderId(order.id);
+    setIsDetailsModalOpen(true);
+  };
+
+  const handleCloseDetailsModal = () => {
+    setIsDetailsModalOpen(false);
+    setSelectedOrderId(null);
+  };
+
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-IN', {
       style: 'currency',
@@ -62,10 +75,13 @@ export function OrderTable({
         key: 'orderId',
         title: 'Order ID',
         align: 'center',
-        render: (value) => (
-          <div className="text-sm text-gray-900">
+        render: (value, record) => (
+          <button
+            onClick={() => handleOrderIdClick(record)}
+            className="text-sm text-blue-600 hover:text-blue-800 hover:underline font-medium transition-colors"
+          >
             {value}
-          </div>
+          </button>
         )
       },
       {
@@ -168,6 +184,13 @@ export function OrderTable({
         isOpen={isStatusModalOpen}
         onClose={handleCloseModal}
         onStatusUpdate={handleStatusUpdate}
+      />
+
+      {/* Order Details Modal */}
+      <OrderDetailsModal
+        orderId={selectedOrderId}
+        isOpen={isDetailsModalOpen}
+        onClose={handleCloseDetailsModal}
       />
     </div>
   );

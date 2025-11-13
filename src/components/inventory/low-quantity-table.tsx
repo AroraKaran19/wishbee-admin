@@ -2,26 +2,33 @@
 
 import React from 'react';
 import { DataTable } from '@/components/ui/data-table';
-import { LowQuantityItem, TableConfig } from '@/lib/types';
+import { LowStockItem, TableConfig } from '@/lib/types';
 import { RotateCcw } from 'lucide-react';
 import Link from 'next/link';
 
 interface LowQuantityTableProps {
-  items: LowQuantityItem[];
+  items: LowStockItem[];
   currentPage: number;
   totalPages: number;
   onPageChange: (page: number) => void;
+  threshold: number;
 }
 
 export function LowQuantityTable({ 
   items, 
   currentPage, 
   totalPages, 
-  onPageChange 
+  onPageChange,
+  threshold
 }: LowQuantityTableProps) {
 
-  const handleRestock = (item: LowQuantityItem) => {
-    console.log('Restock item:', item);
+  const handleRestock = (item: LowStockItem) => {
+    // Navigate to product/combo edit page based on type
+    if (item.type === 'product') {
+      window.location.href = `/inventory/product/${item.productId}/edit`;
+    } else {
+      window.location.href = `/inventory/combo/${item.productId}/edit`;
+    }
   };
 
   const getQuantityColor = (quantity: number, threshold: number) => {
@@ -31,16 +38,18 @@ export function LowQuantityTable({
     return 'bg-green-500';
   };
 
-
-  const tableConfig: TableConfig<LowQuantityItem> = {
+  const tableConfig: TableConfig<LowStockItem> = {
     columns: [
       {
-        key: 'productName',
+        key: 'name',
         title: 'Product Name',
         align: 'center',
         render: (value, record) => (
           <Link 
-            href={`/inventory/product/${record.id}`}
+            href={record.type === 'product' 
+              ? `/inventory/product/${record.productId}`
+              : `/inventory/combo/${record.productId}`
+            }
             className="text-sm text-gray-900 hover:text-gray-700 font-medium transition-colors"
           >
             {value}
@@ -48,21 +57,22 @@ export function LowQuantityTable({
         )
       },
       {
-        key: 'availableQuantity',
+        key: 'currentStock',
         title: 'Available Quantity',
         align: 'center',
-        render: (value, record) => {
-          const percentage = (value / record.thresholdLevel) * 100;
+        render: (value) => {
+          const stockValue = value ?? 0;
+          const percentage = (stockValue / threshold) * 100;
           const width = Math.min(percentage, 100);
           
           return (
             <div className="space-y-2">
               <div className="text-sm text-gray-900 font-medium">
-                {value.toString().padStart(2, '0')} {record.unit}
+                {stockValue.toString().padStart(2, '0')} units
               </div>
               <div className="w-full bg-gray-200 rounded-full h-2">
                 <div 
-                  className={`h-2 rounded-full transition-all duration-300 ${getQuantityColor(value, record.thresholdLevel)}`}
+                  className={`h-2 rounded-full transition-all duration-300 ${getQuantityColor(stockValue, threshold)}`}
                   style={{ width: `${width}%` }}
                 />
               </div>
@@ -71,23 +81,31 @@ export function LowQuantityTable({
         }
       },
       {
-        key: 'thresholdLevel',
-        title: 'Threshold Level',
+        key: 'type',
+        title: 'Type',
         align: 'center',
         render: (value) => (
-          <div className="text-sm text-gray-900">
+          <div className="text-sm text-gray-900 capitalize">
             {value}
           </div>
         )
       },
       {
-        key: 'supplierName',
-        title: 'Supplier Name',
+        key: 'status',
+        title: 'Status',
         align: 'center',
         render: (value) => (
-          <div className="text-sm text-gray-900">
-            {value}
-          </div>
+          <span 
+            className={`text-sm px-2 py-1 rounded-full ${
+              value === 'ACTIVE' 
+                ? 'bg-green-100 text-green-800' 
+                : value === 'OUT_OF_STOCK'
+                ? 'bg-red-100 text-red-800'
+                : 'bg-gray-100 text-gray-800'
+            }`}
+          >
+            {value === 'ACTIVE' ? 'Active' : value === 'OUT_OF_STOCK' ? 'Out of Stock' : 'Discontinued'}
+          </span>
         )
       }
     ],
@@ -108,7 +126,7 @@ export function LowQuantityTable({
       onPageChange,
       showPageInfo: true
     },
-    rowKey: 'id',
+    rowKey: 'productId',
     className: 'rounded-xl shadow-sm',
     rowClassName: () => 'hover:bg-gray-50'
   };

@@ -1,10 +1,10 @@
-import { PlaceholderPage } from '@/components/dashboard/placeholder-page';
+import { DashboardLayout } from '@/components/layout/dashboard-layout';
+import { SupportPage as SupportPageComponent } from '@/components/support/support-page';
 
 export default function SupportPage() {
   return (
-    <PlaceholderPage 
-      title="Support" 
-      description="Get help and support for your WishBee account."
-    />
+    <DashboardLayout>
+      <SupportPageComponent />
+    </DashboardLayout>
   );
 }

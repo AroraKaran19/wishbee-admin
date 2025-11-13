@@ -1,32 +1,97 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { SearchBar } from '@/components/ui/search-bar';
 import { CustomerTable } from './customer-table';
-import { mockCustomers } from '@/lib/data/mockData_new';
+import { customerApi, convertApiCustomerToUICustomer } from '@/lib/api/customers';
+import { Customer } from '@/lib/types';
 import { Upload } from 'lucide-react';
 
 export function CustomerPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
+  const [customers, setCustomers] = useState<Customer[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [totalPages, setTotalPages] = useState(1);
   const itemsPerPage = 10;
-  
-  const filteredCustomers = mockCustomers.filter(customer => 
-    customer.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    customer.phone.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    customer.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    customer.customerId.toLowerCase().includes(searchQuery.toLowerCase())
-  );
-  
-  const totalPages = Math.ceil(filteredCustomers.length / itemsPerPage);
+
+  // Debounce search query - update debouncedSearchQuery after 500ms of no typing
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery);
+      setCurrentPage(1); // Reset to first page when search changes
+    }, 500);
+
+    // Cleanup function
+    return () => {
+      clearTimeout(timeoutId);
+    };
+  }, [searchQuery]);
+
+  // Fetch customers with pagination and search
+  useEffect(() => {
+    const fetchCustomers = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        
+        // Fetch customers with pagination and debounced search
+        const customerResponse = await customerApi.getAll({
+          page: currentPage,
+          limit: itemsPerPage,
+          search: debouncedSearchQuery || undefined,
+        });
+        
+        // Convert API users to UI format
+        const uiCustomers = customerResponse.users.map(convertApiCustomerToUICustomer);
+        setCustomers(uiCustomers);
+        setTotalPages(customerResponse.pagination.pages);
+        
+      } catch (err) {
+        console.error('Error fetching customers:', err);
+        setError(err instanceof Error ? err.message : 'Failed to fetch customers');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchCustomers();
+  }, [currentPage, debouncedSearchQuery]);
 
   const handlePageChange = (page: number) => {
-    setCurrentPage(page);
+    if (page >= 1 && page <= totalPages) {
+      setCurrentPage(page);
+    }
   };
 
   const handleSearch = (query: string) => {
     setSearchQuery(query);
-    setCurrentPage(1);
+    // Don't reset currentPage here - let the debounced effect handle it
+  };
+
+  const handleCustomerUpdate = async () => {
+    // Refetch customers after update
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const customerResponse = await customerApi.getAll({
+        page: currentPage,
+        limit: itemsPerPage,
+        search: debouncedSearchQuery || undefined,
+      });
+      
+      const uiCustomers = customerResponse.users.map(convertApiCustomerToUICustomer);
+      setCustomers(uiCustomers);
+      setTotalPages(customerResponse.pagination.pages);
+    } catch (err) {
+      console.error('Error refetching customers after update:', err);
+      setError(err instanceof Error ? err.message : 'Failed to refresh customers');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleExportCSV = () => {
@@ -34,7 +99,7 @@ export function CustomerPage() {
     const headers = ['Name', 'Phone', 'Email', 'Customer ID', 'Total Spend', 'Loyalty Tier', 'Last Order', 'Status'];
     const csvContent = [
       headers.join(','),
-      ...filteredCustomers.map(customer => [
+      ...customers.map(customer => [
         customer.name,
         customer.phone,
         customer.email,
@@ -55,10 +120,6 @@ export function CustomerPage() {
     window.URL.revokeObjectURL(url);
   };
 
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const endIndex = startIndex + itemsPerPage;
-  const currentCustomers = filteredCustomers.slice(startIndex, endIndex);
-
   return (
     <div className="space-y-6 h-full flex flex-col">
       <div className="flex-shrink-0">
@@ -74,6 +135,7 @@ export function CustomerPage() {
             placeholder="Search by: Name, Phone, Email, Customer ID"
             onSearch={handleSearch}
             onSearchChange={setSearchQuery}
+            searchValue={searchQuery}
             actions={[
               {
                 key: 'export',
@@ -86,13 +148,40 @@ export function CustomerPage() {
           />
         </div>
         
-        <div className="flex-1 min-h-0 pb-12 sm:pb-0">
-          <CustomerTable
-            customers={currentCustomers}
-            currentPage={currentPage}
-            totalPages={totalPages}
-            onPageChange={handlePageChange}
-          />
+        <div className="flex-1 min-h-0">
+          {error && (
+            <div className="p-4 bg-red-50 border border-red-200 rounded-lg mb-4">
+              <p className="text-red-600 text-sm">{error}</p>
+            </div>
+          )}
+          
+          {loading ? (
+            <div className="flex items-center justify-center h-64">
+              <div className="text-center">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                <p className="text-gray-500">Loading customers...</p>
+              </div>
+            </div>
+          ) : customers.length === 0 ? (
+            <div className="flex items-center justify-center h-64">
+              <div className="text-center">
+                <p className="text-gray-500 text-lg mb-2">No customers found</p>
+                <p className="text-gray-400 text-sm">
+                  {debouncedSearchQuery
+                    ? 'Try adjusting your search terms'
+                    : 'No customers available'}
+                </p>
+              </div>
+            </div>
+          ) : (
+            <CustomerTable
+              customers={customers}
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={handlePageChange}
+              onCustomerUpdate={handleCustomerUpdate}
+            />
+          )}
         </div>
       </div>
     </div>

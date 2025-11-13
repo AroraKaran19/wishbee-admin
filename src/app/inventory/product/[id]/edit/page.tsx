@@ -1,82 +1,66 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { useParams, useRouter } from "next/navigation";
+import Image from "next/image";
+import { useRouter, useParams } from "next/navigation";
 import { useForm, Controller } from "react-hook-form";
 import { DashboardLayout } from "@/components/layout/dashboard-layout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
+  Image as ImageIcon,
   ArrowLeft,
+  ScanBarcode,
   FileText,
   IndianRupee,
+  Percent,
+  Calendar,
   Upload,
   Package,
-  X,
-  Layers,
-  Save,
+  Weight,
   Tag,
   Search,
   Plus,
-  Calendar,
-  Weight,
-  ScanBarcode,
+  X,
 } from "lucide-react";
-import { productApi } from "@/lib/api/products";
+import { Product, Category, Discount } from "@/lib/types";
+import { productApi, getPresignedUrl, deleteImage } from "@/lib/api/products";
 import { categoryApi, subcategoryApi } from "@/lib/api/categories";
-import { getPresignedUrl, deleteImage } from "@/lib/api/products";
-import { ActionDropdown } from "@/components/ui/action-dropdown";
+import {
+  ActionDropdown,
+  DropdownOption,
+} from "@/components/ui/action-dropdown";
 import toast from "react-hot-toast";
-import { Product } from "@/lib/types";
 
-// Form data type for product editing
-interface ProductFormData {
-  sku: string;
-  name: string;
-  description: string;
-  highlights: { key: string; value: string }[];
+type ProductFormData = Omit<
+  Product,
+  | "_id"
+  | "createdAt"
+  | "updatedAt"
+  | "reviews"
+  | "category"
+  | "subCategory"
+  | "type"
+  | "expiry"
+  | "discount"
+> & {
   categoryId: string;
   subCategoryId: string;
-  images: string[];
-  status: "ACTIVE" | "OUT_OF_STOCK" | "DISCONTINUED";
-  isOrganic: boolean;
-  mrp: number;
-  pricing_range: {
-    quantity_start: number;
-    quantity_end: number;
-    price: number;
-  }[];
+  expiry?: string; // Form uses string for date input
   discount: {
     type: "percentage" | "fixed";
     value: number;
-    startDate: string;
-    endDate: string;
+    startDate?: string;
+    endDate?: string;
     isActive: boolean;
   };
-  minimumOrderQuantity: number;
-  maximumOrderQuantity: number;
-  stock: number;
-  weight: {
-    value: number;
-    unit: string;
-  };
-  productCollections: { quantity: number; price: number; unit: string }[];
-  alertExpiry: number;
-  expiry: string;
-  metaTitle: string;
-  metaDescription: string;
-  metaKeywords: string[];
-  slug: string;
-  isB2B: boolean;
-  dotd: boolean;
-  pfy: boolean;
-}
+};
 
-export default function EditProductPage() {
-  const params = useParams();
+export default function InventoryEditProductPage() {
   const router = useRouter();
-  const productId = params.id as string;
+  const params = useParams();
+  const productId = params?.id as string;
 
   const {
     register,
@@ -89,15 +73,15 @@ export default function EditProductPage() {
     mode: "onChange",
     defaultValues: {
       sku: "",
+      hsn: "",
       name: "",
       description: "",
       highlights: [],
-      categoryId: "",
-      subCategoryId: "",
       images: [],
       status: "ACTIVE",
       isOrganic: false,
       mrp: 0,
+      gst: 0,
       pricing_range: [],
       discount: {
         type: "percentage",
@@ -106,51 +90,34 @@ export default function EditProductPage() {
         endDate: "",
         isActive: true,
       },
-      minimumOrderQuantity: 1,
-      maximumOrderQuantity: 100,
       stock: 0,
       weight: {
         value: 0,
         unit: "kg",
       },
-      productCollections: [],
-      alertExpiry: 7,
-      expiry: "",
+      reviewsCount: 0,
+      totalRating: 0,
+      minimumOrderQuantity: 1,
+      maximumOrderQuantity: 100,
       metaTitle: "",
       metaDescription: "",
       metaKeywords: [],
       slug: "",
-      isB2B: false,
+      categoryId: "",
+      subCategoryId: "",
+      productCollections: [],
+      expiry: "",
+      alertExpiry: 7,
+      isB2B: true,
       dotd: false,
       pfy: false,
     },
   });
 
-  const [submitError, setSubmitError] = useState<string | null>(null);
-  const [submitSuccess, setSubmitSuccess] = useState(false);
-  const [uploadingImages, setUploadingImages] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState<{
-    [key: string]: number;
-  }>({});
-  const [loading, setLoading] = useState(true);
-  const [categories, setCategories] = useState<any[]>([]);
-  const [subcategories, setSubcategories] = useState<any[]>([]);
-  const [showDiscountFields, setShowDiscountFields] = useState(false);
-  const [categoriesPagination, setCategoriesPagination] = useState({
-    currentPage: 1,
-    totalPages: 1,
-    hasMore: true,
-  });
-  const [subcategoriesPagination, setSubcategoriesPagination] = useState({
-    currentPage: 1,
-    totalPages: 1,
-    hasMore: true,
-  });
-
-  // State for form inputs
   const highlights = watch("highlights") || [];
   const metaKeywords = watch("metaKeywords") || [];
   const productCollections = watch("productCollections") || [];
+
   const [highlightKeyInput, setHighlightKeyInput] = useState("");
   const [highlightValueInput, setHighlightValueInput] = useState("");
   const [keywordInput, setKeywordInput] = useState("");
@@ -165,103 +132,167 @@ export default function EditProductPage() {
     price: 0,
   });
 
-  // Load product data
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [submitSuccess, setSubmitSuccess] = useState(false);
+  const [categories, setCategories] = useState<any[]>([]);
+  const [subcategories, setSubcategories] = useState<any[]>([]);
+  const [loadingCategories, setLoadingCategories] = useState(false);
+  const [loadingSubcategories, setLoadingSubcategories] = useState(false);
+  const [categoriesPagination, setCategoriesPagination] = useState({
+    currentPage: 1,
+    totalPages: 1,
+    hasMore: true,
+  });
+  const [subcategoriesPagination, setSubcategoriesPagination] = useState({
+    currentPage: 1,
+    totalPages: 1,
+    hasMore: true,
+  });
+  const [showCategoryModal, setShowCategoryModal] = useState(false);
+  const [showSubcategoryModal, setShowSubcategoryModal] = useState(false);
+  const [uploadingImages, setUploadingImages] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<{
+    [key: string]: number;
+  }>({});
+  const [uploadingCategoryImage, setUploadingCategoryImage] = useState(false);
+  const [uploadingSubcategoryImage, setUploadingSubcategoryImage] =
+    useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [itemToDelete, setItemToDelete] = useState<{
+    type: "category" | "subcategory";
+    item: any;
+  } | null>(null);
+  const [showDiscountFields, setShowDiscountFields] = useState(false);
+  const [loadingProduct, setLoadingProduct] = useState(true);
+
+  // Load product data on mount
   useEffect(() => {
     const loadProduct = async () => {
+      if (!productId) {
+        toast.error("Product ID is missing");
+        router.push("/inventory");
+        return;
+      }
+
       try {
-        setLoading(true);
+        setLoadingProduct(true);
         const response = await productApi.getById(productId);
-        const product = response.data;
+        const product = response.data || response;
 
-        if (product) {
-          // Populate form with existing product data
-          setValue("sku", product.sku || "");
-          setValue("name", product.name || "");
-          setValue("description", product.description || "");
-          setValue("highlights", product.highlights || []);
-          setValue("categoryId", product.category?._id || "");
-          setValue("subCategoryId", product.subCategory?._id || "");
+        if (!product) {
+          toast.error("Product not found");
+          router.push("/inventory");
+          return;
+        }
 
-          // If we have category and subcategory data, add them to the dropdowns
-          if (product.category) {
-            setCategories([product.category]);
-          }
-          if (product.subCategory) {
-            setSubcategories([product.subCategory]);
-          }
-          setValue("images", product.images || []);
-          setValue("status", product.status || "ACTIVE");
-          setValue("isOrganic", product.isOrganic || false);
-          setValue("mrp", product.mrp || 0);
-          setValue("pricing_range", product.pricing_range || []);
-          setValue(
-            "discount",
-            product.discount || {
-              type: "percentage",
-              value: 0,
-              startDate: "",
-              endDate: "",
-              isActive: true,
-            }
-          );
-          setValue("minimumOrderQuantity", product.minimumOrderQuantity || 1);
-          setValue("maximumOrderQuantity", product.maximumOrderQuantity || 100);
-          setValue("stock", product.stock || 0);
-          setValue("weight", product.weight || { value: 0, unit: "kg" });
-          setValue("productCollections", product.productCollections || []);
-          setValue("alertExpiry", product.alertExpiry || 7);
-          setValue(
-            "expiry",
-            product.expiry
-              ? new Date(product.expiry).toISOString().split("T")[0]
-              : ""
-          );
-          setValue("metaTitle", product.metaTitle || "");
-          setValue("metaDescription", product.metaDescription || "");
-          setValue("metaKeywords", product.metaKeywords || []);
-          setValue("slug", product.slug || "");
-          setValue("isB2B", product.isB2B || false);
-          setValue("dotd", product.dotd || false);
-          setValue("pfy", product.pfy || false);
+        // Pre-populate form with product data
+        setValue("sku", product.sku || "");
+        setValue("hsn", product.hsn || "");
+        setValue("name", product.name || "");
+        setValue("description", product.description || "");
+        setValue("highlights", product.highlights || []);
+        setValue("images", product.images || []);
+        setValue("status", product.status || "ACTIVE");
+        setValue("isOrganic", product.isOrganic || false);
+        setValue("mrp", product.mrp || 0);
+        setValue("gst", product.gst || 0);
+        setValue("pricing_range", product.pricing_range || []);
+        setValue("stock", product.stock || 0);
+        setValue("weight", product.weight || { value: 0, unit: "kg" });
+        setValue("minimumOrderQuantity", product.minimumOrderQuantity || 1);
+        setValue("maximumOrderQuantity", product.maximumOrderQuantity || 100);
+        setValue("metaTitle", product.metaTitle || "");
+        setValue("metaDescription", product.metaDescription || "");
+        setValue("metaKeywords", product.metaKeywords || []);
+        setValue("slug", product.slug || "");
+        setValue("productCollections", product.productCollections || []);
+        setValue("alertExpiry", product.alertExpiry || 7);
+        setValue("isB2B", product.isB2B ?? true);
+        setValue("dotd", product.dotd || false);
+        setValue("pfy", product.pfy || false);
 
-          // Set discount fields visibility
-          setShowDiscountFields(!!product.discount);
+        // Handle category and subcategory
+        if (product.category) {
+          const categoryId = typeof product.category === "string" 
+            ? product.category 
+            : product.category._id;
+          setValue("categoryId", categoryId);
+        }
+        if (product.subCategory) {
+          const subCategoryId = typeof product.subCategory === "string"
+            ? product.subCategory
+            : product.subCategory._id;
+          setValue("subCategoryId", subCategoryId);
+        }
+
+        // Handle expiry date
+        if (product.expiry) {
+          const expiryDate = new Date(product.expiry);
+          setValue("expiry", expiryDate.toISOString().split("T")[0]);
+        }
+
+        // Handle discount
+        if (product.discount) {
+          setShowDiscountFields(true);
+          setValue("discount", {
+            type: product.discount.type || "percentage",
+            value: product.discount.value || 0,
+            startDate: product.discount.startDate
+              ? new Date(product.discount.startDate).toISOString().split("T")[0]
+              : "",
+            endDate: product.discount.endDate
+              ? new Date(product.discount.endDate).toISOString().split("T")[0]
+              : "",
+            isActive: product.discount.isActive ?? true,
+          });
         }
       } catch (error) {
         console.error("Error loading product:", error);
-        toast.error("Failed to load product");
+        toast.error(
+          error instanceof Error ? error.message : "Failed to load product"
+        );
         router.push("/inventory");
       } finally {
-        setLoading(false);
+        setLoadingProduct(false);
       }
     };
 
-    if (productId) {
-      loadProduct();
-    }
-  }, [productId, setValue, router]);
+    loadProduct();
+  }, [productId, router, setValue]);
 
-  // Load initial categories
+  // Reset discount fields when checkbox is unchecked
+  const handleDiscountToggle = (checked: boolean) => {
+    setShowDiscountFields(checked);
+    if (!checked) {
+      // Reset discount fields when hiding them
+      setValue("discount", {
+        type: "percentage",
+        value: 0,
+        startDate: "",
+        endDate: "",
+        isActive: true,
+      });
+    }
+  };
+
+  // Load initial categories on component mount
   useEffect(() => {
     const loadInitialCategories = async () => {
       try {
+        setLoadingCategories(true);
+
         const response = await categoryApi.getAll({
-          page: 1,
-          limit: 20,
           isActive: true,
+          page: 1,
+          limit: 20, // Load 20 categories initially
         });
-        const categoriesData =
-          response.data?.categories || response.data || response;
+
+        const categoriesData = response.data?.categories;
         if (Array.isArray(categoriesData)) {
-          setCategories((prev) => {
-            // Merge with existing categories (from product data) and remove duplicates
-            const existingIds = new Set(prev.map((cat) => cat._id));
-            const newCategories = categoriesData.filter(
-              (cat) => !existingIds.has(cat._id)
-            );
-            return [...prev, ...newCategories];
-          });
+          setCategories(categoriesData);
         }
+
+        // Set pagination info
         setCategoriesPagination({
           currentPage: 1,
           totalPages: response.data?.totalPages || 1,
@@ -269,6 +300,12 @@ export default function EditProductPage() {
         });
       } catch (error) {
         console.error("Error loading categories:", error);
+        const errorMessage =
+          "Failed to load categories. Please refresh the page.";
+        setSubmitError(errorMessage);
+        toast.error(errorMessage);
+      } finally {
+        setLoadingCategories(false);
       }
     };
 
@@ -281,25 +318,20 @@ export default function EditProductPage() {
     if (selectedCategoryId) {
       const loadSubcategories = async () => {
         try {
+          setLoadingSubcategories(true);
+
           const response = await subcategoryApi.getByCategory(
             selectedCategoryId,
-            {
-              page: 1,
-              limit: 20,
-            }
+            { page: 1, limit: 20 }
           );
+
           const subcategoriesData =
-            response.data?.subcategories || response.data || response;
+            response.data?.subcategories || response.data;
           if (Array.isArray(subcategoriesData)) {
-            setSubcategories((prev) => {
-              // Merge with existing subcategories (from product data) and remove duplicates
-              const existingIds = new Set(prev.map((sub) => sub._id));
-              const newSubcategories = subcategoriesData.filter(
-                (sub) => !existingIds.has(sub._id)
-              );
-              return [...prev, ...newSubcategories];
-            });
+            setSubcategories(subcategoriesData);
           }
+
+          // Set pagination info
           setSubcategoriesPagination({
             currentPage: 1,
             totalPages: response.data?.totalPages || 1,
@@ -307,6 +339,10 @@ export default function EditProductPage() {
           });
         } catch (error) {
           console.error("Error loading subcategories:", error);
+          setSubcategories([]);
+          toast.error("Failed to load subcategories");
+        } finally {
+          setLoadingSubcategories(false);
         }
       };
 
@@ -315,87 +351,6 @@ export default function EditProductPage() {
       setSubcategories([]);
     }
   }, [watch("categoryId")]);
-
-  const loadMoreCategories = async () => {
-    if (!categoriesPagination.hasMore) return;
-
-    try {
-      const nextPage = categoriesPagination.currentPage + 1;
-      const response = await categoryApi.getAll({
-        page: nextPage,
-        limit: 20,
-        isActive: true,
-      });
-
-      const categoriesData =
-        response.data?.categories || response.data || response;
-      if (Array.isArray(categoriesData)) {
-        setCategories((prev) => {
-          // Filter out any categories that already exist to prevent duplicates
-          const existingIds = new Set(prev.map((cat) => cat._id));
-          const newCategories = categoriesData.filter(
-            (cat) => !existingIds.has(cat._id)
-          );
-          return [...prev, ...newCategories];
-        });
-      }
-
-      setCategoriesPagination((prev) => ({
-        currentPage: nextPage,
-        totalPages: response.data?.totalPages || prev.totalPages,
-        hasMore: nextPage < (response.data?.totalPages || prev.totalPages),
-      }));
-    } catch (error) {
-      console.error("Error loading more categories:", error);
-    }
-  };
-
-  const loadMoreSubcategories = async () => {
-    if (!subcategoriesPagination.hasMore) return;
-
-    try {
-      const nextPage = subcategoriesPagination.currentPage + 1;
-      const response = await subcategoryApi.getByCategory(watch("categoryId"), {
-        page: nextPage,
-        limit: 20,
-      });
-
-      const subcategoriesData =
-        response.data?.subcategories || response.data || response;
-      if (Array.isArray(subcategoriesData)) {
-        setSubcategories((prev) => {
-          // Filter out any subcategories that already exist to prevent duplicates
-          const existingIds = new Set(prev.map((sub) => sub._id));
-          const newSubcategories = subcategoriesData.filter(
-            (sub) => !existingIds.has(sub._id)
-          );
-          return [...prev, ...newSubcategories];
-        });
-      }
-
-      setSubcategoriesPagination((prev) => ({
-        currentPage: nextPage,
-        totalPages: response.data?.totalPages || prev.totalPages,
-        hasMore: nextPage < (response.data?.totalPages || prev.totalPages),
-      }));
-    } catch (error) {
-      console.error("Error loading more subcategories:", error);
-    }
-  };
-
-  const categoryOptions = (categories || []).map((category, index) => ({
-    id: category._id || `category-${index}`,
-    value: category._id || `category-${index}`,
-    label: category.name,
-  }));
-
-  const subcategoryOptions = (subcategories || []).map(
-    (subcategory, index) => ({
-      id: subcategory._id || `subcategory-${index}`,
-      value: subcategory._id || `subcategory-${index}`,
-      label: subcategory.name,
-    })
-  );
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
@@ -417,6 +372,7 @@ export default function EditProductPage() {
     e.stopPropagation();
     const files = e.dataTransfer.files;
     if (files && files.length > 0) {
+      // Upload files one by one
       for (let i = 0; i < files.length; i++) {
         await handleFileUpload(files[i]);
       }
@@ -426,9 +382,12 @@ export default function EditProductPage() {
   const handleFileInput = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (files && files.length > 0) {
+      // Upload files one by one
       for (let i = 0; i < files.length; i++) {
         await handleFileUpload(files[i]);
       }
+      // Reset the input value to allow selecting the same file again
+      e.target.value = "";
     }
   };
 
@@ -444,10 +403,12 @@ export default function EditProductPage() {
       setUploadingImages(true);
       setUploadProgress((prev) => ({ ...prev, [fileId]: 0 }));
 
+      // Generate generic folder structure: /products/images
       const fileExtension = file.name.split(".").pop();
       const fileName = `${fileId}.${fileExtension}`;
       const folder = `products/images`;
 
+      // Get presigned URL from backend
       setUploadProgress((prev) => ({ ...prev, [fileId]: 25 }));
       const presignedData = await getPresignedUrl(fileName, file.type, folder);
 
@@ -459,6 +420,7 @@ export default function EditProductPage() {
 
       setUploadProgress((prev) => ({ ...prev, [fileId]: 50 }));
 
+      // Upload file to S3 using presigned URL with progress tracking
       const uploadResponse = await fetch(presignedUrl, {
         method: "PUT",
         body: file,
@@ -473,9 +435,11 @@ export default function EditProductPage() {
 
       setUploadProgress((prev) => ({ ...prev, [fileId]: 100 }));
 
+      // Add the S3 URL to the images array
       const currentImages = watch("images") || [];
       setValue("images", [...currentImages, imageUrl]);
 
+      // Clear progress after successful upload
       setTimeout(() => {
         setUploadProgress((prev) => {
           const newProgress = { ...prev };
@@ -491,6 +455,7 @@ export default function EditProductPage() {
         error instanceof Error ? error.message : "Failed to upload image"
       );
 
+      // Clear progress on error
       setUploadProgress((prev) => {
         const newProgress = { ...prev };
         delete newProgress[fileId];
@@ -501,58 +466,20 @@ export default function EditProductPage() {
     }
   };
 
-  const removeImage = async (index: number) => {
-    const currentImages = watch("images") || [];
-    const imageToRemove = currentImages[index];
-
-    try {
-      const url = new URL(imageToRemove);
-      const pathParts = url.pathname.split("/");
-      const wishbeeIndex = pathParts.findIndex((part) => part === "wishbee");
-      if (wishbeeIndex !== -1) {
-        const s3Key = pathParts.slice(wishbeeIndex).join("/");
-        await deleteImage(s3Key);
-      }
-
-      setValue(
-        "images",
-        currentImages.filter((_: string, i: number) => i !== index)
-      );
-
-      toast.success("Image deleted successfully!");
-    } catch (error) {
-      console.error("Error deleting image:", error);
-      toast.error("Failed to delete image from server");
-
-      setValue(
-        "images",
-        currentImages.filter((_: string, i: number) => i !== index)
-      );
-    }
-  };
-
-  // Highlights functions
   const addHighlight = () => {
     if (highlightKeyInput.trim() && highlightValueInput.trim()) {
-      const currentHighlights = watch("highlights") || [];
       setValue("highlights", [
-        ...currentHighlights,
-        { key: highlightKeyInput.trim(), value: highlightValueInput.trim() },
+        ...highlights,
+        {
+          key: highlightKeyInput.trim(),
+          value: highlightValueInput.trim(),
+        },
       ]);
       setHighlightKeyInput("");
       setHighlightValueInput("");
     }
   };
 
-  const removeHighlight = (index: number) => {
-    const currentHighlights = watch("highlights") || [];
-    setValue(
-      "highlights",
-      currentHighlights.filter((_, i: number) => i !== index)
-    );
-  };
-
-  // Keywords functions
   const addKeyword = () => {
     if (keywordInput.trim()) {
       setValue("metaKeywords", [...metaKeywords, keywordInput.trim()]);
@@ -560,34 +487,30 @@ export default function EditProductPage() {
     }
   };
 
-  const removeKeyword = (index: number) => {
+  const removeHighlight = (index: number) => {
     setValue(
-      "metaKeywords",
-      metaKeywords.filter((_, i: number) => i !== index)
+      "highlights",
+      highlights.filter((_, i) => i !== index)
     );
   };
 
-  // Collections functions
+  const removeKeyword = (index: number) => {
+    setValue(
+      "metaKeywords",
+      metaKeywords.filter((_, i) => i !== index)
+    );
+  };
+
   const addCollection = () => {
     if (newCollection.quantity > 0 && newCollection.price > 0) {
-      const currentCollections = watch("productCollections") || [];
       setValue("productCollections", [
-        ...currentCollections,
+        ...productCollections,
         { ...newCollection },
       ]);
       setNewCollection({ quantity: 0, price: 0, unit: "" });
     }
   };
 
-  const removeCollection = (index: number) => {
-    const currentCollections = watch("productCollections") || [];
-    setValue(
-      "productCollections",
-      currentCollections.filter((_, i: number) => i !== index)
-    );
-  };
-
-  // Pricing range functions
   const addPricingRange = () => {
     if (
       newPricingRange.quantity_start > 0 &&
@@ -607,25 +530,83 @@ export default function EditProductPage() {
     const currentPricingRange = watch("pricing_range") || [];
     setValue(
       "pricing_range",
-      currentPricingRange.filter((_, i: number) => i !== index)
+      currentPricingRange.filter((_, i) => i !== index)
     );
   };
 
-  // Discount toggle
-  const handleDiscountToggle = (checked: boolean) => {
-    setShowDiscountFields(checked);
-    if (!checked) {
-      setValue("discount", {
-        type: "percentage",
-        value: 0,
-        startDate: "",
-        endDate: "",
-        isActive: true,
-      });
+  const removeCollection = (index: number) => {
+    setValue(
+      "productCollections",
+      productCollections.filter((_, i) => i !== index)
+    );
+  };
+
+  const updateCollection = (index: number, field: string, value: any) => {
+    const updatedCollections = [...productCollections];
+    updatedCollections[index] = {
+      ...updatedCollections[index],
+      [field]: value,
+    };
+    setValue("productCollections", updatedCollections);
+  };
+
+  const removeImage = async (index: number) => {
+    const currentImages = watch("images") || [];
+    const imageToRemove = currentImages[index];
+
+    try {
+      // Extract S3 key from the image URL
+      // URL format: https://testing-v23.s3.ap-south-1.amazonaws.com/wishbee/products/images/filename.jpg
+      // We need to extract: wishbee/products/images/filename.jpg
+      const url = new URL(imageToRemove);
+      const pathParts = url.pathname.split("/");
+      // Find the 'wishbee' part and get everything from there
+      const wishbeeIndex = pathParts.findIndex((part) => part === "wishbee");
+      if (wishbeeIndex !== -1) {
+        const s3Key = pathParts.slice(wishbeeIndex).join("/");
+
+        // Delete from S3
+        await deleteImage(s3Key);
+      } else {
+        throw new Error("Invalid image URL format - wishbee folder not found");
+      }
+
+      // Remove from form
+      setValue(
+        "images",
+        currentImages.filter((_, i) => i !== index)
+      );
+
+      // Reset file input to allow selecting new images
+      const fileInput = document.getElementById(
+        "file-upload"
+      ) as HTMLInputElement;
+      if (fileInput) {
+        fileInput.value = "";
+      }
+
+      toast.success("Image deleted successfully!");
+    } catch (error) {
+      console.error("Error deleting image:", error);
+      toast.error("Failed to delete image from server");
+
+      // Still remove from UI even if server deletion fails
+      setValue(
+        "images",
+        currentImages.filter((_, i) => i !== index)
+      );
+
+      // Reset file input to allow selecting new images
+      const fileInput = document.getElementById(
+        "file-upload"
+      ) as HTMLInputElement;
+      if (fileInput) {
+        fileInput.value = "";
+      }
     }
   };
 
-  // Auto generate SEO
+  // Auto generate SEO fields
   const autoGenerateSEO = () => {
     const productName = watch("name");
     if (!productName || productName.trim() === "") {
@@ -635,13 +616,14 @@ export default function EditProductPage() {
 
     // Generate meta title (max 60 characters for SEO best practices)
     const metaTitle =
-      productName.length > 60 ? productName.substring(0, 60) : productName;
+      productName.length > 60
+        ? productName.substring(0, 57) + "..."
+        : productName;
 
-    // Generate slug (lowercase, replace spaces with hyphens, remove special chars)
+    // Generate slug from product name
     const slug = productName
       .toLowerCase()
-      .replace(/[^a-z0-9\s-]/g, "")
-      .replace(/\s+/g, "-")
+      .replace(/[^a-z0-9]+/g, "-")
       .replace(/(^-|-$)/g, "");
 
     // Generate meta description (max 160 characters for SEO best practices)
@@ -649,36 +631,41 @@ export default function EditProductPage() {
     const metaDescription =
       description && description.length > 0
         ? description.length > 160
-          ? description.substring(0, 160)
+          ? description.substring(0, 157) + "..."
           : description
-        : `Buy ${productName} online. High quality product with fast delivery.`;
+        : `Buy ${productName} online. High quality products with fast delivery.`;
 
+    // Generate meta keywords from product name and description
     const generateKeywords = (name: string, desc?: string) => {
       const keywords = new Set<string>();
 
       // Add words from product name
-      name
+      const nameWords = name
         .toLowerCase()
+        .replace(/[^a-z0-9\s]/g, "")
         .split(/\s+/)
-        .forEach((word) => {
-          if (word.length > 2) keywords.add(word);
-        });
+        .filter((word) => word.length > 2);
+
+      nameWords.forEach((word) => keywords.add(word));
 
       // Add words from description if available
-      if (desc) {
-        desc
+      if (desc && desc.trim()) {
+        const descWords = desc
           .toLowerCase()
+          .replace(/[^a-z0-9\s]/g, "")
           .split(/\s+/)
-          .forEach((word) => {
-            if (word.length > 2) keywords.add(word);
-          });
+          .filter((word) => word.length > 3)
+          .slice(0, 10); // Limit to first 10 words from description
+
+        descWords.forEach((word) => keywords.add(word));
       }
 
-      // Add common keywords
+      // Add some common product-related keywords
       const commonKeywords = ["product", "buy", "online", "quality", "premium"];
       commonKeywords.forEach((keyword) => keywords.add(keyword));
 
-      return Array.from(keywords);
+      // Convert to array and limit to 15 keywords max
+      return Array.from(keywords).slice(0, 15);
     };
 
     const metaKeywords = generateKeywords(productName, description);
@@ -692,17 +679,306 @@ export default function EditProductPage() {
     toast.success("SEO fields generated successfully!");
   };
 
+  // Image upload handler for categories/subcategories
+  const handleCategoryImageUpload = async (
+    file: File,
+    type: "category" | "subcategory"
+  ): Promise<string | null> => {
+    if (!file.type.startsWith("image/")) {
+      toast.error("Please select a valid image file");
+      return null;
+    }
+
+    const fileId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
+    try {
+      if (type === "category") {
+        setUploadingCategoryImage(true);
+      } else {
+        setUploadingSubcategoryImage(true);
+      }
+
+      // Generate folder structure: /categories/{type}/images
+      const fileExtension = file.name.split(".").pop();
+      const fileName = `${fileId}.${fileExtension}`;
+      const folder = `categories/${type}/images`;
+
+      // Get presigned URL from backend
+      const presignedData = await getPresignedUrl(fileName, file.type, folder);
+
+      if (!presignedData || !presignedData.presignedUrl) {
+        throw new Error("Failed to get presigned URL from server");
+      }
+
+      const { presignedUrl, imageUrl } = presignedData;
+
+      // Upload file to S3 using presigned URL
+      const uploadResponse = await fetch(presignedUrl, {
+        method: "PUT",
+        body: file,
+        headers: {
+          "Content-Type": file.type,
+        },
+      });
+
+      if (!uploadResponse.ok) {
+        throw new Error("Failed to upload image to S3");
+      }
+
+      toast.success("Image uploaded successfully!");
+      return imageUrl;
+    } catch (error) {
+      console.error("Error uploading image:", error);
+      toast.error(
+        error instanceof Error ? error.message : "Failed to upload image"
+      );
+      return null;
+    } finally {
+      if (type === "category") {
+        setUploadingCategoryImage(false);
+      } else {
+        setUploadingSubcategoryImage(false);
+      }
+    }
+  };
+
+  // Convert categories to dropdown options
+  const categoryOptions: DropdownOption[] = (categories || []).map(
+    (category, index) => ({
+      id: category._id || `category-${index}`,
+      label: category.name,
+      value: category._id,
+      image: category.image,
+    })
+  );
+
+  // Convert subcategories to dropdown options
+  const subcategoryOptions: DropdownOption[] = (subcategories || []).map(
+    (subcategory, index) => ({
+      id: subcategory._id || `subcategory-${index}`,
+      label: subcategory.name,
+      value: subcategory._id,
+      image: subcategory.image,
+    })
+  );
+
+  // Load more categories
+  const loadMoreCategories = async () => {
+    if (!categoriesPagination.hasMore || loadingCategories) return;
+
+    try {
+      setLoadingCategories(true);
+      const nextPage = categoriesPagination.currentPage + 1;
+
+      const response = await categoryApi.getAll({
+        isActive: true,
+        page: nextPage,
+        limit: 20,
+      });
+
+      const categoriesData = response.data?.categories;
+      if (Array.isArray(categoriesData)) {
+        setCategories((prev) => {
+          // Filter out any categories that already exist to prevent duplicates
+          const existingIds = new Set(prev.map((cat) => cat._id));
+          const newCategories = categoriesData.filter(
+            (cat) => !existingIds.has(cat._id)
+          );
+          return [...prev, ...newCategories];
+        });
+      }
+
+      setCategoriesPagination((prev) => ({
+        currentPage: nextPage,
+        totalPages: response.data?.totalPages || prev.totalPages,
+        hasMore: nextPage < (response.data?.totalPages || prev.totalPages),
+      }));
+    } catch (error) {
+      console.error("Error loading more categories:", error);
+      toast.error("Failed to load more categories");
+    } finally {
+      setLoadingCategories(false);
+    }
+  };
+
+  // Load more subcategories
+  const loadMoreSubcategories = async () => {
+    if (!subcategoriesPagination.hasMore || loadingSubcategories) return;
+
+    try {
+      setLoadingSubcategories(true);
+      const nextPage = subcategoriesPagination.currentPage + 1;
+      const selectedCategoryId = watch("categoryId");
+
+      if (!selectedCategoryId) return;
+
+      const response = await subcategoryApi.getByCategory(selectedCategoryId, {
+        page: nextPage,
+        limit: 20,
+      });
+
+      const subcategoriesData = response.data?.subcategories || response.data;
+      if (Array.isArray(subcategoriesData)) {
+        setSubcategories((prev) => {
+          // Filter out any subcategories that already exist to prevent duplicates
+          const existingIds = new Set(prev.map((sub) => sub._id));
+          const newSubcategories = subcategoriesData.filter(
+            (sub) => !existingIds.has(sub._id)
+          );
+          return [...prev, ...newSubcategories];
+        });
+      }
+
+      setSubcategoriesPagination((prev) => ({
+        currentPage: nextPage,
+        totalPages: response.data?.totalPages || prev.totalPages,
+        hasMore: nextPage < (response.data?.totalPages || prev.totalPages),
+      }));
+    } catch (error) {
+      console.error("Error loading more subcategories:", error);
+      toast.error("Failed to load more subcategories");
+    } finally {
+      setLoadingSubcategories(false);
+    }
+  };
+
+  // Handle category selection
+  const handleCategorySelect = (option: DropdownOption) => {
+    setValue("categoryId", option.value);
+    setValue("subCategoryId", ""); // Reset subcategory when category changes
+  };
+
+  // Handle subcategory selection
+  const handleSubcategorySelect = (option: DropdownOption) => {
+    setValue("subCategoryId", option.value);
+  };
+
+  // Handle category delete
+  const handleCategoryDelete = (option: DropdownOption) => {
+    const category = categories.find((cat) => cat._id === option.value);
+    if (category) {
+      setItemToDelete({ type: "category", item: category });
+      setShowDeleteConfirm(true);
+    }
+  };
+
+  // Handle subcategory delete
+  const handleSubcategoryDelete = (option: DropdownOption) => {
+    const subcategory = subcategories.find((sub) => sub._id === option.value);
+    if (subcategory) {
+      setItemToDelete({ type: "subcategory", item: subcategory });
+      setShowDeleteConfirm(true);
+    }
+  };
+
+  // Confirm delete action
+  const confirmDelete = async () => {
+    if (!itemToDelete) return;
+
+    try {
+      if (itemToDelete.type === "category") {
+        await categoryApi.delete(itemToDelete.item._id);
+        setCategories((prev) =>
+          prev.filter((cat) => cat._id !== itemToDelete.item._id)
+        );
+        // Reset form if deleted category was selected
+        if (watch("categoryId") === itemToDelete.item._id) {
+          setValue("categoryId", "");
+          setValue("subCategoryId", "");
+        }
+        toast.success("Category deleted successfully!");
+      } else if (itemToDelete.type === "subcategory") {
+        await subcategoryApi.delete(itemToDelete.item._id);
+        setSubcategories((prev) =>
+          prev.filter((sub) => sub._id !== itemToDelete.item._id)
+        );
+        // Reset form if deleted subcategory was selected
+        if (watch("subCategoryId") === itemToDelete.item._id) {
+          setValue("subCategoryId", "");
+        }
+        toast.success("Sub-category deleted successfully!");
+      }
+    } catch (error) {
+      console.error("Error deleting item:", error);
+      toast.error(
+        error instanceof Error ? error.message : "Failed to delete item"
+      );
+    } finally {
+      setShowDeleteConfirm(false);
+      setItemToDelete(null);
+    }
+  };
+
+  // Category creation
+  const handleCreateCategory = async (data: {
+    name: string;
+    description: string;
+    slug: string;
+    image?: string;
+    showOnHomepage: boolean;
+  }) => {
+    try {
+      const response = await categoryApi.create(data);
+      const newCategory = response.data || response;
+
+      // Update categories state with the new category
+      setCategories((prev) => [...prev, newCategory]);
+      setShowCategoryModal(false);
+      setSubmitError(null);
+      toast.success("Category created successfully!");
+    } catch (error) {
+      console.error("Error creating category:", error);
+      const errorMessage =
+        error instanceof Error ? error.message : "Failed to create category";
+      setSubmitError(errorMessage);
+      toast.error(errorMessage);
+    }
+  };
+
+  // Subcategory creation
+  const handleCreateSubcategory = async (data: {
+    name: string;
+    description: string;
+    parentCategoryId: string;
+    slug: string;
+    image?: string;
+  }) => {
+    try {
+      const response = await subcategoryApi.create(data);
+      const newSubcategory = response.data || response;
+
+      // Update subcategories state with the new subcategory
+      setSubcategories((prev) => [...prev, newSubcategory]);
+      setShowSubcategoryModal(false);
+      setSubmitError(null);
+      toast.success("Sub-category created successfully!");
+    } catch (error) {
+      console.error("Error creating subcategory:", error);
+      const errorMessage =
+        error instanceof Error ? error.message : "Failed to create subcategory";
+      setSubmitError(errorMessage);
+      toast.error(errorMessage);
+    }
+  };
+
   const validateFormData = (data: ProductFormData): string[] => {
     const errors: string[] = [];
 
-    // Name validation
+    // SKU validation (matching API: required, max 50 chars)
+    if (!data.sku?.trim()) {
+      errors.push("SKU is required");
+    } else if (data.sku.length > 50) {
+      errors.push("SKU must be less than 50 characters");
+    }
+
+    // Product name validation (matching API: required, max 200 chars)
     if (!data.name?.trim()) {
       errors.push("Product name is required");
     } else if (data.name.length > 200) {
       errors.push("Product name must be less than 200 characters");
     }
 
-    // Description validation
+    // Description validation (matching API: required, min 10, max 2000 chars)
     if (!data.description?.trim()) {
       errors.push("Description is required");
     } else if (data.description.length < 10) {
@@ -711,38 +987,87 @@ export default function EditProductPage() {
       errors.push("Description must be less than 2000 characters");
     }
 
-    // Images validation
+    // Highlights validation (matching API: required, at least one)
+    if (!data.highlights || data.highlights.length === 0) {
+      errors.push("At least one highlight is required");
+    } else {
+      data.highlights.forEach((highlight, index) => {
+        if (!highlight.key?.trim() || !highlight.value?.trim()) {
+          errors.push(
+            `Highlight ${index + 1}: Both key and value are required`
+          );
+        }
+      });
+    }
+
+    // Category and subcategory validation (matching API: required)
+    if (!data.categoryId?.trim()) {
+      errors.push("Category is required");
+    }
+    if (!data.subCategoryId?.trim()) {
+      errors.push("Sub-category is required");
+    }
+
+    // Images validation (matching API: required, at least one)
     if (!data.images || data.images.length === 0) {
       errors.push("At least one image is required");
     }
 
-    // Category validation
-    if (!data.categoryId) {
-      errors.push("Category is required");
-    }
-
-    // MRP validation
+    // MRP validation (matching API: required, must be positive)
     if (data.mrp === undefined || data.mrp === null) {
       errors.push("MRP is required");
     } else if (data.mrp <= 0) {
       errors.push("MRP must be greater than 0");
     }
 
-    // Stock validation
+    // Pricing range validation (matching API: required, at least one)
+    if (!data.pricing_range || data.pricing_range.length === 0) {
+      errors.push("At least one pricing range is required");
+    } else {
+      data.pricing_range.forEach((range, index) => {
+        if (range.quantity_start <= 0) {
+          errors.push(
+            `Pricing range ${index + 1}: Quantity start must be greater than 0`
+          );
+        }
+        if (range.quantity_end <= 0) {
+          errors.push(
+            `Pricing range ${index + 1}: Quantity end must be greater than 0`
+          );
+        }
+        if (range.quantity_start >= range.quantity_end) {
+          errors.push(
+            `Pricing range ${
+              index + 1
+            }: Quantity start must be less than quantity end`
+          );
+        }
+        if (range.price <= 0) {
+          errors.push(
+            `Pricing range ${index + 1}: Price must be greater than 0`
+          );
+        }
+      });
+    }
+
+    // Stock validation (matching API: required, cannot be negative)
     if (data.stock === undefined || data.stock === null) {
       errors.push("Stock quantity is required");
     } else if (data.stock < 0) {
       errors.push("Stock cannot be negative");
     }
 
-    // Weight validation
-    if (data.weight?.value === undefined || data.weight?.value === null) {
+    // Weight validation (matching API: required, value must be positive)
+    if (data.weight.value === undefined || data.weight.value === null) {
       errors.push("Weight value is required");
-    } else if (data.weight?.value <= 0) {
+    } else if (data.weight.value <= 0) {
       errors.push("Weight value must be greater than 0");
     }
+    if (!data.weight.unit?.trim()) {
+      errors.push("Weight unit is required");
+    }
 
-    // Order quantity validation
+    // Order quantity validation (matching API: both required, min 1)
     if (
       data.minimumOrderQuantity === undefined ||
       data.minimumOrderQuantity === null
@@ -760,15 +1085,6 @@ export default function EditProductPage() {
       errors.push("Maximum order quantity must be at least 1");
     }
 
-    // Highlights validation
-    if (data.highlights && data.highlights.length > 0) {
-      data.highlights.forEach((highlight, index) => {
-        if (!highlight.key?.trim() || !highlight.value?.trim()) {
-          errors.push(`Highlight ${index + 1} must have both key and value`);
-        }
-      });
-    }
-
     // Discount validation (only if discount fields are shown)
     if (showDiscountFields && data.discount) {
       if (data.discount.value < 0) {
@@ -781,6 +1097,35 @@ export default function EditProductPage() {
           errors.push("Discount start date must be before end date");
         }
       }
+    }
+
+    // Product Collections validation (matching API: optional but if provided, must be valid)
+    if (data.productCollections && data.productCollections.length > 0) {
+      data.productCollections.forEach((item, index) => {
+        if (item.quantity <= 0) {
+          errors.push(
+            `Collection item ${index + 1}: Quantity must be greater than 0`
+          );
+        }
+        if (item.price <= 0) {
+          errors.push(
+            `Collection item ${index + 1}: Price must be greater than 0`
+          );
+        }
+      });
+    }
+
+    // Meta fields validation (matching API limits)
+    if (data.metaTitle && data.metaTitle.length > 60) {
+      errors.push("Meta title must be 60 characters or less");
+    }
+    if (data.metaDescription && data.metaDescription.length > 160) {
+      errors.push("Meta description must be 160 characters or less");
+    }
+    if (data.slug && !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(data.slug)) {
+      errors.push(
+        "Slug must contain only lowercase letters, numbers, and hyphens"
+      );
     }
 
     return errors;
@@ -800,17 +1145,24 @@ export default function EditProductPage() {
 
       // Prepare data for backend - matching API documentation exactly
       const productData = {
-        sku: data.sku?.trim() || "",
-        name: data.name?.trim() || "",
-        description: data.description?.trim() || "",
-        highlights: data.highlights || [],
+        sku: data.sku.trim(),
+        hsn: data.hsn?.trim() || undefined,
+        name: data.name.trim(),
+        type: "product" as const,
+        description: data.description.trim(),
+        highlights: data.highlights,
         category: data.categoryId,
         subCategory: data.subCategoryId,
         images: data.images,
         status: data.status,
         isOrganic: data.isOrganic,
         mrp: Number(data.mrp),
-        pricing_range: data.pricing_range || [],
+        gst: data.gst ? Number(data.gst) : undefined,
+        pricing_range: data.pricing_range.map((range) => ({
+          quantity_start: Number(range.quantity_start),
+          quantity_end: Number(range.quantity_end),
+          price: Number(range.price),
+        })),
         discount:
           showDiscountFields && data.discount
             ? {
@@ -825,21 +1177,30 @@ export default function EditProductPage() {
                 isActive: data.discount.isActive,
               }
             : undefined,
-        minimumOrderQuantity: Number(data.minimumOrderQuantity),
-        maximumOrderQuantity: Number(data.maximumOrderQuantity),
+        minimumOrderQuantity: Number(data.minimumOrderQuantity) || 1,
+        maximumOrderQuantity: Number(data.maximumOrderQuantity) || 100,
         stock: Number(data.stock),
         weight: {
-          value: Number(data.weight?.value || 0),
-          unit: String(data.weight?.unit || "kg"),
+          value: Number(data.weight.value),
+          unit: String(data.weight.unit || "kg"),
         },
-        productCollections: data.productCollections || [],
-        alertExpiry: Number(data.alertExpiry),
+        productCollections:
+          data.productCollections && data.productCollections.length > 0
+            ? data.productCollections.map((collection) => ({
+                quantity: Number(collection.quantity),
+                price: Number(collection.price),
+                unit: collection.unit,
+              }))
+            : undefined,
+        alertExpiry: data.alertExpiry ? Number(data.alertExpiry) : undefined,
         expiry: data.expiry ? new Date(data.expiry) : undefined,
-        metaTitle: data.metaTitle?.trim() || "",
-        metaDescription: data.metaDescription?.trim() || "",
-        metaKeywords: data.metaKeywords || [],
-        slug: data.slug?.trim() || "",
-        type: "product" as const,
+        metaTitle: data.metaTitle?.trim() || undefined,
+        metaDescription: data.metaDescription?.trim() || undefined,
+        metaKeywords:
+          data.metaKeywords && data.metaKeywords.length > 0
+            ? data.metaKeywords
+            : undefined,
+        slug: data.slug?.trim() || undefined,
         isB2B: data.isB2B,
         dotd: data.dotd,
         pfy: data.pfy,
@@ -848,18 +1209,23 @@ export default function EditProductPage() {
       };
 
       // Submit to backend
-      const result = await productApi.update(productId, productData as any);
+      if (!productId) {
+        toast.error("Product ID is missing");
+        return;
+      }
+
+      const result = await productApi.update(productId, productData);
       console.log("Product updated successfully:", result);
 
       setSubmitSuccess(true);
       toast.success("Product updated successfully!");
 
-      // Redirect to product detail page after successful submission
+      // Redirect to inventory page after successful submission
       setTimeout(() => {
-        router.push(`/inventory/product/${productId}`);
+        router.push("/inventory");
       }, 2000);
     } catch (error) {
-      console.error("Error updating product:", error);
+      console.error("Error submitting form:", error);
       const errorMessage =
         error instanceof Error ? error.message : "An unexpected error occurred";
       setSubmitError(errorMessage);
@@ -867,38 +1233,35 @@ export default function EditProductPage() {
     }
   };
 
-  if (loading) {
-    return (
-      <DashboardLayout>
-        <div className="flex items-center justify-center h-64">
-          <div className="w-8 h-8 border-2 border-gray-300 border-t-primary rounded-full animate-spin" />
-          <span className="ml-2 text-gray-600">Loading product...</span>
-        </div>
-      </DashboardLayout>
-    );
-  }
-
   return (
     <DashboardLayout>
-      <div className="space-y-6">
+      <div className="space-y-4 md:space-y-6 px-4 md:px-0">
         <div>
-          <div className="flex items-center gap-3 mb-2">
+          <div className="flex items-center gap-2 md:gap-3 mb-2">
             <button
-              onClick={() => router.back()}
+              onClick={() => router.push("/inventory")}
               className="p-1 hover:bg-gray-100 cursor-pointer rounded-md transition-colors"
-              aria-label="Go back"
+              aria-label="Go back to dashboard"
             >
               <ArrowLeft className="w-4 h-4" />
             </button>
-            <h1 className="text-xl font-semibold text-gray-900">
-              Edit Product
-            </h1>
+            <h1 className="text-lg md:text-xl font-semibold text-gray-900">Edit Product</h1>
           </div>
-          <p className="text-gray-500 mt-1 text-sm">
-            Update product information and settings.
+          <p className="text-gray-500 mt-1 text-xs md:text-sm">
+            Edit product details and update inventory information.
           </p>
         </div>
 
+        {loadingProduct ? (
+          <Card>
+            <CardContent>
+              <div className="flex items-center justify-center py-12">
+                <div className="w-8 h-8 border-2 border-gray-300 border-t-primary rounded-full animate-spin" />
+                <span className="ml-3 text-gray-600">Loading product...</span>
+              </div>
+            </CardContent>
+          </Card>
+        ) : (
         <Card>
           <CardContent>
             <div className="grid gap-6 pb-10">
@@ -937,38 +1300,150 @@ export default function EditProductPage() {
                     </p>
                   </div>
                   <p className="text-green-600 text-sm mt-1">
-                    Product updated successfully! Redirecting to product
-                    details...
+                    Product added successfully! Redirecting to inventory page...
                   </p>
                 </div>
               )}
+              <div className="space-y-4">
+                <label className="text-sm font-medium text-gray-700">
+                  Product Images
+                </label>
+
+                {/* Image Upload Area */}
+                <div
+                  className={`flex flex-col md:flex-row items-center justify-center gap-4 md:gap-12 rounded-xl border border-dashed border-gray-400 bg-white p-4 md:p-8 transition-colors ${
+                    uploadingImages
+                      ? "opacity-50 cursor-not-allowed"
+                      : "hover:border-blue-400 hover:bg-blue-50/30 cursor-pointer"
+                  }`}
+                  onDragOver={!uploadingImages ? handleDragOver : undefined}
+                  onDragEnter={!uploadingImages ? handleDragEnter : undefined}
+                  onDragLeave={!uploadingImages ? handleDragLeave : undefined}
+                  onDrop={!uploadingImages ? handleDrop : undefined}
+                  onClick={() =>
+                    !uploadingImages &&
+                    document.getElementById("file-upload")?.click()
+                  }
+                >
+                  <div className="w-24 h-24 md:w-40 md:h-40 rounded-full bg-sky-100 flex items-center justify-center overflow-hidden relative flex-shrink-0">
+                    <ImageIcon
+                      className="w-14 h-14 md:w-24 md:h-24 text-sky-500"
+                      strokeWidth={1.2}
+                    />
+                  </div>
+                  <div className="flex flex-col items-center justify-center">
+                    {uploadingImages ? (
+                      <div className="text-center">
+                        <div className="w-8 h-8 border-2 border-gray-300 border-t-primary rounded-full animate-spin mx-auto mb-3" />
+                        <p className="text-xs md:text-sm text-gray-600 mb-2 font-medium">
+                          Uploading Images...
+                        </p>
+                        {Object.keys(uploadProgress).length > 0 && (
+                          <div className="w-32 md:w-48 bg-gray-200 rounded-full h-1.5 mb-2">
+                            <div
+                              className="bg-primary h-1.5 rounded-full transition-all duration-300"
+                              style={{
+                                width: `${
+                                  Object.values(uploadProgress).reduce(
+                                    (acc, curr) => acc + curr,
+                                    0
+                                  ) / Object.keys(uploadProgress).length
+                                }%`,
+                              }}
+                            />
+                          </div>
+                        )}
+                        <p className="text-xs text-gray-500">
+                          {Object.keys(uploadProgress).length} file(s) uploading
+                        </p>
+                      </div>
+                    ) : (
+                      <>
+                        <p className="text-xs md:text-sm text-gray-400 mb-2 md:mb-3 text-center font-medium">
+                          Drag and Drop
+                        </p>
+                        <p className="text-xs text-gray-400 mb-2 md:mb-3 text-center">
+                          or
+                        </p>
+                        <Button
+                          variant="secondary"
+                          icon={<Upload className="w-4 h-4" />}
+                          className="text-xs md:text-sm"
+                        >
+                          Upload Images
+                        </Button>
+                      </>
+                    )}
+                  </div>
+                  <input
+                    id="file-upload"
+                    type="file"
+                    accept="image/*"
+                    onChange={handleFileInput}
+                    className="hidden"
+                    aria-label="Upload product images"
+                    multiple
+                    disabled={uploadingImages}
+                  />
+                </div>
+
+                {/* Image Preview Grid */}
+                {(watch("images") && watch("images").length > 0) ||
+                Object.keys(uploadProgress).length > 0 ? (
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    {watch("images") &&
+                      watch("images").map((image, index) => (
+                        <div key={index} className="relative group">
+                          <Image
+                            src={image}
+                            alt={`Product image ${index + 1}`}
+                            width={120}
+                            height={120}
+                            loading="lazy"
+                            unoptimized
+                            quality={100}
+                            className="w-full h-24 object-cover rounded-lg border border-gray-200"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => removeImage(index)}
+                            className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </div>
+                      ))}
+
+                    {/* Upload Progress Items */}
+                    {Object.entries(uploadProgress).map(
+                      ([fileId, progress]) => (
+                        <div key={fileId} className="relative group">
+                          <div className="w-full h-24 bg-gray-100 rounded-lg border border-gray-200 flex flex-col items-center justify-center p-2">
+                            <div className="w-6 h-6 border-2 border-gray-300 border-t-primary rounded-full animate-spin mb-2" />
+                            <div className="w-full bg-gray-200 rounded-full h-1.5">
+                              <div
+                                className="bg-primary h-1.5 rounded-full transition-all duration-300"
+                                style={{ width: `${progress}%` }}
+                              />
+                            </div>
+                            <span className="text-xs text-gray-600 mt-1">
+                              {progress}%
+                            </span>
+                          </div>
+                        </div>
+                      )
+                    )}
+                  </div>
+                ) : null}
+              </div>
 
               <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
                 {/* Basic Information */}
                 <div className="space-y-4">
-                  <h3 className="text-lg font-medium text-gray-900">
+                  <h3 className="text-base md:text-lg font-medium text-gray-900">
                     Basic Information
                   </h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium text-gray-700">
-                        SKU *
-                      </label>
-                      <Input
-                        variant="muted"
-                        icon={<FileText className="w-4 h-4" />}
-                        className="text-sm"
-                        placeholder="Enter SKU"
-                        {...register("sku", {
-                          required: "SKU is required",
-                        })}
-                      />
-                      {errors.sku && (
-                        <p className="text-red-500 text-xs mt-1">
-                          {errors.sku.message}
-                        </p>
-                      )}
-                    </div>
                     <div className="space-y-2">
                       <label className="text-sm font-medium text-gray-700">
                         Product Name *
@@ -987,6 +1462,94 @@ export default function EditProductPage() {
                           {errors.name.message}
                         </p>
                       )}
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-gray-700">
+                        SKU *
+                      </label>
+                      <Input
+                        variant="muted"
+                        icon={<ScanBarcode className="w-4 h-4" />}
+                        className="text-sm"
+                        placeholder="Enter product SKU"
+                        {...register("sku", { required: "SKU is required" })}
+                      />
+                      {errors.sku && (
+                        <p className="text-red-500 text-xs mt-1">
+                          {errors.sku.message}
+                        </p>
+                      )}
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-gray-700">
+                        HSN Code
+                      </label>
+                      <Input
+                        variant="muted"
+                        icon={<FileText className="w-4 h-4" />}
+                        className="text-sm"
+                        placeholder="Enter HSN code"
+                        {...register("hsn")}
+                      />
+                      {errors.hsn && (
+                        <p className="text-red-500 text-xs mt-1">
+                          {errors.hsn.message}
+                        </p>
+                      )}
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-gray-700">
+                        Category *
+                      </label>
+                      <ActionDropdown
+                        options={categoryOptions}
+                        selectedValue={watch("categoryId")}
+                        placeholder={
+                          loadingCategories
+                            ? "Loading categories..."
+                            : "Select a category"
+                        }
+                        disabled={loadingCategories}
+                        loading={loadingCategories}
+                        onSelect={handleCategorySelect}
+                        onDelete={handleCategoryDelete}
+                        onAdd={() => setShowCategoryModal(true)}
+                        showActions={true}
+                        showAddButton={true}
+                        addButtonText="New"
+                        error={errors.categoryId?.message}
+                        hasMore={categoriesPagination.hasMore}
+                        onLoadMore={loadMoreCategories}
+                        loadingMore={loadingCategories}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-gray-700">
+                        Sub-category *
+                      </label>
+                      <ActionDropdown
+                        options={subcategoryOptions}
+                        selectedValue={watch("subCategoryId")}
+                        placeholder={
+                          loadingSubcategories
+                            ? "Loading subcategories..."
+                            : !watch("categoryId")
+                            ? "Select a category first"
+                            : "Select a sub-category"
+                        }
+                        disabled={loadingSubcategories || !watch("categoryId")}
+                        loading={loadingSubcategories}
+                        onSelect={handleSubcategorySelect}
+                        onDelete={handleSubcategoryDelete}
+                        onAdd={() => setShowSubcategoryModal(true)}
+                        showActions={true}
+                        showAddButton={true}
+                        addButtonText="New"
+                        error={errors.subCategoryId?.message}
+                        hasMore={subcategoriesPagination.hasMore}
+                        onLoadMore={loadMoreSubcategories}
+                        loadingMore={loadingSubcategories}
+                      />
                     </div>
                     {/* <div className="space-y-2 md:col-span-2">
                       <label className="text-sm font-medium text-gray-700">
@@ -1055,7 +1618,7 @@ export default function EditProductPage() {
                         </span>
                       </label>
                       <div className="space-y-2">
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
                           <Input
                             variant="muted"
                             placeholder="Highlight key (e.g., Material)"
@@ -1063,6 +1626,7 @@ export default function EditProductPage() {
                             onChange={(e) =>
                               setHighlightKeyInput(e.target.value)
                             }
+                            className="text-xs md:text-sm"
                           />
                           <Input
                             variant="muted"
@@ -1075,12 +1639,14 @@ export default function EditProductPage() {
                               e.key === "Enter" &&
                               (e.preventDefault(), addHighlight())
                             }
+                            className="text-xs md:text-sm"
                           />
                           <Button
                             type="button"
                             variant="secondary"
                             onClick={addHighlight}
                             icon={<Plus className="w-4 h-4" />}
+                            className="w-full sm:w-auto text-xs md:text-sm"
                           >
                             Add
                           </Button>
@@ -1114,197 +1680,9 @@ export default function EditProductPage() {
                   </div>
                 </div>
 
-                {/* Category Selection */}
-                <div className="space-y-4">
-                  <h3 className="text-lg font-medium text-gray-900">
-                    Category & Subcategory
-                  </h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium text-gray-700">
-                        Category *
-                      </label>
-                      <Controller
-                        name="categoryId"
-                        control={control}
-                        rules={{ required: "Category is required" }}
-                        render={({ field }) => (
-                          <ActionDropdown
-                            options={categoryOptions}
-                            selectedValue={field.value}
-                            onSelect={(option) => {
-                              field.onChange(option.value);
-                              setValue("subCategoryId", ""); // Reset subcategory when category changes
-                            }}
-                            placeholder="Select category"
-                            hasMore={categoriesPagination.hasMore}
-                            onLoadMore={loadMoreCategories}
-                            loading={false}
-                          />
-                        )}
-                      />
-                      {errors.categoryId && (
-                        <p className="text-red-500 text-xs mt-1">
-                          {errors.categoryId.message}
-                        </p>
-                      )}
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium text-gray-700">
-                        Subcategory
-                      </label>
-                      <Controller
-                        name="subCategoryId"
-                        control={control}
-                        render={({ field }) => (
-                          <ActionDropdown
-                            options={subcategoryOptions}
-                            selectedValue={field.value}
-                            onSelect={(option) => field.onChange(option.value)}
-                            placeholder="Select subcategory"
-                            disabled={!watch("categoryId")}
-                            hasMore={subcategoriesPagination.hasMore}
-                            onLoadMore={loadMoreSubcategories}
-                            loading={false}
-                          />
-                        )}
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                {/* Images */}
-                <div className="space-y-4">
-                  <label className="text-sm font-medium text-gray-700">
-                    Product Images *
-                  </label>
-
-                  {/* Image Upload Area */}
-                  <div
-                    className={`flex items-center justify-center gap-12 rounded-xl border border-dashed border-gray-400 bg-white p-8 transition-colors ${
-                      uploadingImages
-                        ? "opacity-50 cursor-not-allowed"
-                        : "hover:border-blue-400 hover:bg-blue-50/30 cursor-pointer"
-                    }`}
-                    onDragOver={!uploadingImages ? handleDragOver : undefined}
-                    onDragEnter={!uploadingImages ? handleDragEnter : undefined}
-                    onDragLeave={!uploadingImages ? handleDragLeave : undefined}
-                    onDrop={!uploadingImages ? handleDrop : undefined}
-                    onClick={() =>
-                      !uploadingImages &&
-                      document.getElementById("file-upload")?.click()
-                    }
-                  >
-                    <div className="w-40 h-40 rounded-full bg-green-100 flex items-center justify-center overflow-hidden relative flex-shrink-0">
-                      <Layers
-                        className="w-24 h-24 text-green-500"
-                        strokeWidth={1.2}
-                      />
-                    </div>
-                    <div className="flex flex-col items-center justify-center">
-                      {uploadingImages ? (
-                        <div className="text-center">
-                          <div className="w-8 h-8 border-2 border-gray-300 border-t-primary rounded-full animate-spin mx-auto mb-3" />
-                          <p className="text-sm text-gray-600 mb-2 font-medium">
-                            Uploading Images...
-                          </p>
-                          {Object.keys(uploadProgress).length > 0 && (
-                            <div className="w-48 bg-gray-200 rounded-full h-1.5 mb-2">
-                              <div
-                                className="bg-primary h-1.5 rounded-full transition-all duration-300"
-                                style={{
-                                  width: `${
-                                    Object.values(uploadProgress).reduce(
-                                      (acc, curr) => acc + curr,
-                                      0
-                                    ) / Object.keys(uploadProgress).length
-                                  }%`,
-                                }}
-                              />
-                            </div>
-                          )}
-                          <p className="text-xs text-gray-500">
-                            {Object.keys(uploadProgress).length} file(s)
-                            uploading
-                          </p>
-                        </div>
-                      ) : (
-                        <>
-                          <p className="text-sm text-gray-400 mb-3 text-center font-medium">
-                            Drag and Drop
-                          </p>
-                          <p className="text-xs text-gray-400 mb-3 text-center">
-                            or
-                          </p>
-                          <Button
-                            variant="secondary"
-                            icon={<Upload className="w-4 h-4" />}
-                          >
-                            Upload Images
-                          </Button>
-                        </>
-                      )}
-                    </div>
-                    <input
-                      id="file-upload"
-                      type="file"
-                      accept="image/*"
-                      onChange={handleFileInput}
-                      className="hidden"
-                      aria-label="Upload product images"
-                      multiple
-                      disabled={uploadingImages}
-                    />
-                  </div>
-
-                  {/* Image Preview Grid */}
-                  {(watch("images") && watch("images").length > 0) ||
-                  Object.keys(uploadProgress).length > 0 ? (
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                      {watch("images") &&
-                        watch("images").map((image: string, index: number) => (
-                          <div key={index} className="relative group">
-                            <img
-                              src={image}
-                              alt={`Product image ${index + 1}`}
-                              className="w-full h-24 object-cover rounded-lg border border-gray-200"
-                            />
-                            <button
-                              type="button"
-                              onClick={() => removeImage(index)}
-                              className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600"
-                            >
-                              <X className="w-3 h-3" />
-                            </button>
-                          </div>
-                        ))}
-
-                      {/* Upload Progress Items */}
-                      {Object.entries(uploadProgress).map(
-                        ([fileId, progress]) => (
-                          <div key={fileId} className="relative group">
-                            <div className="w-full h-24 bg-gray-100 rounded-lg border border-gray-200 flex flex-col items-center justify-center p-2">
-                              <div className="w-6 h-6 border-2 border-gray-300 border-t-primary rounded-full animate-spin mb-2" />
-                              <div className="w-full bg-gray-200 rounded-full h-1.5">
-                                <div
-                                  className="bg-primary h-1.5 rounded-full transition-all duration-300"
-                                  style={{ width: `${progress}%` }}
-                                />
-                              </div>
-                              <span className="text-xs text-gray-600 mt-1">
-                                {progress}%
-                              </span>
-                            </div>
-                          </div>
-                        )
-                      )}
-                    </div>
-                  ) : null}
-                </div>
-
                 {/* Pricing Information */}
                 <div className="space-y-4">
-                  <h3 className="text-lg font-medium text-gray-900">
+                  <h3 className="text-base md:text-lg font-medium text-gray-900">
                     Pricing Information
                   </h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -1346,6 +1724,308 @@ export default function EditProductPage() {
                         </p>
                       )}
                     </div>
+
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-gray-700">
+                        GST (Goods and Services Tax) %
+                      </label>
+                      <Controller
+                        name="gst"
+                        control={control}
+                        rules={{
+                          min: { value: 0, message: "GST must be positive" },
+                          max: {
+                            value: 100,
+                            message: "GST cannot exceed 100%",
+                          },
+                        }}
+                        render={({ field }) => (
+                          <div className="relative">
+                            <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">
+                              <Percent className="w-4 h-4" />
+                            </div>
+                            <select
+                              className="w-full pl-10 pr-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-gray-400 bg-muted text-sm"
+                              {...field}
+                              onChange={(e) =>
+                                field.onChange(parseFloat(e.target.value) || 0)
+                              }
+                              value={field.value || 0}
+                            >
+                              <option value={0}>0%</option>
+                              <option value={5}>5%</option>
+                              <option value={18}>18%</option>
+                              <option value={40}>40%</option>
+                            </select>
+                          </div>
+                        )}
+                      />
+                      {errors.gst && (
+                        <p className="text-red-500 text-xs mt-1">
+                          {errors.gst.message}
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Discount Toggle */}
+                    <div className="space-y-2 md:col-span-2">
+                      <label className="flex items-center gap-3 p-3 bg-gray-50 border border-gray-200 rounded-lg hover:bg-gray-100 cursor-pointer transition-colors">
+                        <input
+                          type="checkbox"
+                          checked={showDiscountFields}
+                          onChange={(e) =>
+                            handleDiscountToggle(e.target.checked)
+                          }
+                          className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                        />
+                        <div className="flex items-center gap-2">
+                          <Tag className="w-4 h-4 text-gray-600" />
+                          <span className="text-sm font-medium text-gray-700">
+                            Add Discount
+                          </span>
+                        </div>
+                      </label>
+                    </div>
+
+                    {/* Discount Fields - Only show when checkbox is checked */}
+                    {showDiscountFields && (
+                      <div className="md:col-span-2 p-4 bg-blue-50 border border-blue-200 rounded-lg space-y-4">
+                        <h4 className="text-sm font-medium text-blue-900">
+                          Discount Settings
+                        </h4>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          <div className="space-y-2">
+                            <label className="text-sm font-medium text-gray-700">
+                              Discount Type
+                            </label>
+                            <Controller
+                              name="discount.type"
+                              control={control}
+                              render={({ field }) => (
+                                <select
+                                  className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-gray-400 bg-muted text-sm"
+                                  {...field}
+                                >
+                                  <option value="percentage">Percentage</option>
+                                  <option value="fixed">Fixed Amount</option>
+                                </select>
+                              )}
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <label className="text-sm font-medium text-gray-700">
+                              Discount Value
+                            </label>
+                            <Controller
+                              name="discount.value"
+                              control={control}
+                              rules={{
+                                min: {
+                                  value: 0,
+                                  message: "Discount value must be positive",
+                                },
+                              }}
+                              render={({ field }) => (
+                                <Input
+                                  variant="muted"
+                                  icon={<Tag className="w-4 h-4" />}
+                                  className="text-sm"
+                                  placeholder="Enter discount value"
+                                  type="number"
+                                  step="0.01"
+                                  {...field}
+                                  onChange={(e) =>
+                                    field.onChange(
+                                      parseFloat(e.target.value) || 0
+                                    )
+                                  }
+                                />
+                              )}
+                            />
+                            {errors.discount?.value && (
+                              <p className="text-red-500 text-xs mt-1">
+                                {errors.discount.value.message}
+                              </p>
+                            )}
+                          </div>
+                          <div className="space-y-2">
+                            <label className="text-sm font-medium text-gray-700">
+                              Discount Start Date
+                            </label>
+                            <Controller
+                              name="discount.startDate"
+                              control={control}
+                              render={({ field }) => (
+                                <Input
+                                  variant="muted"
+                                  icon={<Calendar className="w-4 h-4" />}
+                                  className="text-sm"
+                                  placeholder="Select start date"
+                                  type="date"
+                                  {...field}
+                                />
+                              )}
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <label className="text-sm font-medium text-gray-700">
+                              Discount End Date
+                            </label>
+                            <Controller
+                              name="discount.endDate"
+                              control={control}
+                              render={({ field }) => (
+                                <Input
+                                  variant="muted"
+                                  icon={<Calendar className="w-4 h-4" />}
+                                  className="text-sm"
+                                  placeholder="Select end date"
+                                  type="date"
+                                  {...field}
+                                />
+                              )}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Pricing Ranges */}
+                  <div className="space-y-4">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+                      <h4 className="text-sm md:text-md font-medium text-gray-900">
+                        Pricing Ranges
+                      </h4>
+                      <p className="text-xs md:text-sm text-gray-500">
+                        Set different prices based on quantity ranges
+                      </p>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+                      <div className="space-y-2">
+                        <label className="text-xs md:text-sm font-medium text-gray-700">
+                          Quantity Start
+                        </label>
+                        <Input
+                          variant="muted"
+                          icon={<Package className="w-4 h-4" />}
+                          className="text-xs md:text-sm"
+                          placeholder="Start quantity"
+                          type="number"
+                          value={newPricingRange.quantity_start}
+                          onChange={(e) =>
+                            setNewPricingRange({
+                              ...newPricingRange,
+                              quantity_start: parseInt(e.target.value) || 0,
+                            })
+                          }
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-xs md:text-sm font-medium text-gray-700">
+                          Quantity End
+                        </label>
+                        <Input
+                          variant="muted"
+                          icon={<Package className="w-4 h-4" />}
+                          className="text-xs md:text-sm"
+                          placeholder="End quantity"
+                          type="number"
+                          value={newPricingRange.quantity_end}
+                          onChange={(e) =>
+                            setNewPricingRange({
+                              ...newPricingRange,
+                              quantity_end: parseInt(e.target.value) || 0,
+                            })
+                          }
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-xs md:text-sm font-medium text-gray-700">
+                          Price
+                        </label>
+                        <Input
+                          variant="muted"
+                          icon={<IndianRupee className="w-4 h-4" />}
+                          className="text-xs md:text-sm"
+                          placeholder="Price for this range"
+                          type="number"
+                          step="0.01"
+                          value={newPricingRange.price}
+                          onChange={(e) =>
+                            setNewPricingRange({
+                              ...newPricingRange,
+                              price: parseFloat(e.target.value) || 0,
+                            })
+                          }
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-xs md:text-sm font-medium text-gray-700">
+                          Action
+                        </label>
+                        <Button
+                          type="button"
+                          variant="secondary"
+                          onClick={addPricingRange}
+                          icon={<Plus className="w-4 h-4" />}
+                          className="w-full text-xs md:text-sm"
+                        >
+                          Add Range
+                        </Button>
+                      </div>
+                    </div>
+
+                    {/* Pricing Ranges List */}
+                    {watch("pricing_range") &&
+                      watch("pricing_range").length > 0 && (
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium text-gray-700">
+                            Added Pricing Ranges
+                          </label>
+                          <div className="space-y-2">
+                            {watch("pricing_range").map((range, index) => (
+                              <div
+                                key={index}
+                                className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4 p-3 bg-gray-50 rounded-lg border border-gray-200"
+                              >
+                                <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 sm:gap-4">
+                                  <div>
+                                    <label className="text-xs text-gray-500">
+                                      Quantity: {range.quantity_start} -{" "}
+                                      {range.quantity_end}
+                                    </label>
+                                  </div>
+                                  <div>
+                                    <label className="text-xs text-gray-500">
+                                      Price: ₹{range.price}
+                                    </label>
+                                  </div>
+                                </div>
+                                <Button
+                                  type="button"
+                                  variant="secondary"
+                                  onClick={() => removePricingRange(index)}
+                                  icon={<X className="w-4 h-4" />}
+                                  className="px-2 py-1 w-full sm:w-auto text-xs"
+                                >
+                                  Remove
+                                </Button>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                  </div>
+                </div>
+
+                {/* Inventory Information */}
+                <div className="space-y-4">
+                  <h3 className="text-base md:text-lg font-medium text-gray-900">
+                    Inventory Information
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-2">
                       <label className="text-sm font-medium text-gray-700">
                         Stock Quantity *
@@ -1370,79 +2050,22 @@ export default function EditProductPage() {
                         </p>
                       )}
                     </div>
-                  </div>
-                </div>
-
-                {/* Weight Information */}
-                <div className="space-y-4">
-                  <h3 className="text-lg font-medium text-gray-900">
-                    Weight Information
-                  </h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-2">
                       <label className="text-sm font-medium text-gray-700">
-                        Weight Value *
-                      </label>
-                      <Input
-                        variant="muted"
-                        icon={<Package className="w-4 h-4" />}
-                        className="text-sm"
-                        placeholder="Enter weight value"
-                        type="number"
-                        step="0.01"
-                        {...register("weight.value", {
-                          required: "Weight value is required",
-                          min: {
-                            value: 0.01,
-                            message: "Weight must be greater than 0",
-                          },
-                        })}
-                      />
-                      {errors.weight?.value && (
-                        <p className="text-red-500 text-xs mt-1">
-                          {errors.weight.value.message}
-                        </p>
-                      )}
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium text-gray-700">
-                        Weight Unit *
+                        Status
                       </label>
                       <select
                         className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-gray-400 bg-muted text-sm"
-                        {...register("weight.unit", {
-                          required: "Weight unit is required",
-                        })}
+                        {...register("status")}
                       >
-                        <option value="kg">Kilograms (kg)</option>
-                        <option value="g">Grams (g)</option>
-                        <option value="lb">Pounds (lb)</option>
-                        <option value="oz">Ounces (oz)</option>
-                        <option value="piece">Piece</option>
-                        <option value="pack">Pack</option>
-                        <option value="box">Box</option>
-                        <option value="bottle">Bottle</option>
-                        <option value="can">Can</option>
-                        <option value="bag">Bag</option>
+                        <option value="ACTIVE">Active</option>
+                        <option value="OUT_OF_STOCK">Out of Stock</option>
+                        <option value="DISCONTINUED">Discontinued</option>
                       </select>
-                      {errors.weight?.unit && (
-                        <p className="text-red-500 text-xs mt-1">
-                          {errors.weight.unit.message}
-                        </p>
-                      )}
                     </div>
-                  </div>
-                </div>
-
-                {/* Order Quantities */}
-                <div className="space-y-4">
-                  <h3 className="text-lg font-medium text-gray-900">
-                    Order Quantities
-                  </h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-2">
                       <label className="text-sm font-medium text-gray-700">
-                        Min Order Quantity *
+                        Min Order Quantity
                       </label>
                       <Input
                         variant="muted"
@@ -1451,7 +2074,6 @@ export default function EditProductPage() {
                         placeholder="Enter minimum order quantity"
                         type="number"
                         {...register("minimumOrderQuantity", {
-                          required: "Minimum order quantity is required",
                           min: {
                             value: 1,
                             message:
@@ -1467,7 +2089,7 @@ export default function EditProductPage() {
                     </div>
                     <div className="space-y-2">
                       <label className="text-sm font-medium text-gray-700">
-                        Max Order Quantity *
+                        Max Order Quantity
                       </label>
                       <Input
                         variant="muted"
@@ -1476,7 +2098,6 @@ export default function EditProductPage() {
                         placeholder="Enter maximum order quantity"
                         type="number"
                         {...register("maximumOrderQuantity", {
-                          required: "Maximum order quantity is required",
                           min: {
                             value: 1,
                             message:
@@ -1490,352 +2111,235 @@ export default function EditProductPage() {
                         </p>
                       )}
                     </div>
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-gray-700">
+                        Expiry Date
+                      </label>
+                      <Input
+                        variant="muted"
+                        icon={<Calendar className="w-4 h-4" />}
+                        className="text-sm"
+                        placeholder="Select expiry date"
+                        type="date"
+                        {...register("expiry")}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-gray-700">
+                        Alert Before Expiry (Days)
+                      </label>
+                      <Input
+                        variant="muted"
+                        icon={<Calendar className="w-4 h-4" />}
+                        className="text-sm"
+                        placeholder="Enter days before expiry"
+                        type="number"
+                        {...register("alertExpiry", {
+                          min: { value: 1, message: "Must be at least 1 day" },
+                        })}
+                      />
+                    </div>
+                    <div className="space-y-2 md:col-span-2">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <label className="flex items-center gap-2">
+                          <input
+                            type="checkbox"
+                            {...register("isOrganic")}
+                            className="rounded border-gray-300"
+                          />
+                          <span className="text-sm font-medium text-gray-700">
+                            Organic Product
+                          </span>
+                        </label>
+                        <label className="flex items-center gap-2">
+                          <input
+                            type="checkbox"
+                            {...register("isB2B")}
+                            className="rounded border-gray-300"
+                          />
+                          <span className="text-sm font-medium text-gray-700">
+                            B2B Product
+                          </span>
+                        </label>
+                        <label className="flex items-center gap-2">
+                          <input
+                            type="checkbox"
+                            {...register("dotd")}
+                            className="rounded border-gray-300"
+                          />
+                          <span className="text-sm font-medium text-gray-700">
+                            Deal of the Day
+                          </span>
+                        </label>
+                        <label className="flex items-center gap-2">
+                          <input
+                            type="checkbox"
+                            {...register("pfy")}
+                            className="rounded border-gray-300"
+                          />
+                          <span className="text-sm font-medium text-gray-700">
+                            Pick for You
+                          </span>
+                        </label>
+                      </div>
+                    </div>
                   </div>
                 </div>
 
-                {/* Product Flags */}
+                {/* Weight Information */}
                 <div className="space-y-4">
                   <h3 className="text-lg font-medium text-gray-900">
-                    Product Flags
-                  </h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-2">
-                        <input
-                          type="checkbox"
-                          {...register("isOrganic")}
-                          className="rounded border-gray-300"
-                        />
-                        <span className="text-sm font-medium text-gray-700">
-                          Organic Product
-                        </span>
-                      </div>
-                    </div>
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-2">
-                        <input
-                          type="checkbox"
-                          {...register("isB2B")}
-                          className="rounded border-gray-300"
-                        />
-                        <span className="text-sm font-medium text-gray-700">
-                          B2B Product
-                        </span>
-                      </div>
-                    </div>
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-2">
-                        <input
-                          type="checkbox"
-                          {...register("dotd")}
-                          className="rounded border-gray-300"
-                        />
-                        <span className="text-sm font-medium text-gray-700">
-                          Deal of the Day
-                        </span>
-                      </div>
-                    </div>
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-2">
-                        <input
-                          type="checkbox"
-                          {...register("pfy")}
-                          className="rounded border-gray-300"
-                        />
-                        <span className="text-sm font-medium text-gray-700">
-                          Pick for You
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Status */}
-                <div className="space-y-4">
-                  <h3 className="text-lg font-medium text-gray-900">
-                    Product Status
+                    Weight Information
                   </h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-2">
                       <label className="text-sm font-medium text-gray-700">
-                        Status
+                        Weight Value *
                       </label>
-                      <select
-                        className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-gray-400 bg-muted text-sm"
-                        {...register("status")}
-                      >
-                        <option value="ACTIVE">Active</option>
-                        <option value="OUT_OF_STOCK">Out of Stock</option>
-                        <option value="DISCONTINUED">Discontinued</option>
-                      </select>
-                    </div>
-                  </div>
-                </div>
-
-
-                {/* Discount Section */}
-                <div className="space-y-4">
-                  <div className="space-y-2 md:col-span-2">
-                    <label className="flex items-center gap-3 p-3 bg-gray-50 border border-gray-200 rounded-lg hover:bg-gray-100 cursor-pointer transition-colors">
-                      <input
-                        type="checkbox"
-                        checked={showDiscountFields}
-                        onChange={(e) => handleDiscountToggle(e.target.checked)}
-                        className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                      />
-                      <div className="flex items-center gap-2">
-                        <Tag className="w-4 h-4 text-gray-600" />
-                        <span className="text-sm font-medium text-gray-700">
-                          Add Discount
-                        </span>
-                      </div>
-                    </label>
-                  </div>
-
-                  {showDiscountFields && (
-                    <div className="md:col-span-2 p-4 bg-blue-50 border border-blue-200 rounded-lg space-y-4">
-                      <h4 className="text-sm font-medium text-blue-900">
-                        Discount Settings
-                      </h4>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div className="space-y-2">
-                          <label className="text-sm font-medium text-gray-700">
-                            Discount Type
-                          </label>
-                          <Controller
-                            name="discount.type"
-                            control={control}
-                            render={({ field }) => (
-                              <select
-                                className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-gray-400 bg-muted text-sm"
-                                {...field}
-                              >
-                                <option value="percentage">Percentage</option>
-                                <option value="fixed">Fixed Amount</option>
-                              </select>
-                            )}
+                      <Controller
+                        name="weight.value"
+                        control={control}
+                        rules={{
+                          required: "Weight value is required",
+                          min: {
+                            value: 0,
+                            message: "Weight must be positive",
+                          },
+                        }}
+                        render={({ field }) => (
+                          <Input
+                            variant="muted"
+                            icon={<Weight className="w-4 h-4" />}
+                            className="text-sm"
+                            placeholder="Enter weight value"
+                            type="number"
+                            step="0.01"
+                            {...field}
+                            onChange={(e) =>
+                              field.onChange(parseFloat(e.target.value) || 0)
+                            }
                           />
-                        </div>
-                        <div className="space-y-2">
-                          <label className="text-sm font-medium text-gray-700">
-                            Discount Value
-                          </label>
-                          <Controller
-                            name="discount.value"
-                            control={control}
-                            rules={{
-                              min: {
-                                value: 0,
-                                message: "Discount value must be positive",
-                              },
-                            }}
-                            render={({ field }) => (
-                              <Input
-                                variant="muted"
-                                icon={<IndianRupee className="w-4 h-4" />}
-                                className="text-sm"
-                                placeholder="Enter discount value"
-                                type="number"
-                                step="0.01"
-                                {...field}
-                                onChange={(e) =>
-                                  field.onChange(
-                                    parseFloat(e.target.value) || 0
-                                  )
-                                }
-                              />
-                            )}
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <label className="text-sm font-medium text-gray-700">
-                            Discount Start Date
-                          </label>
-                          <Controller
-                            name="discount.startDate"
-                            control={control}
-                            render={({ field }) => (
-                              <Input
-                                variant="muted"
-                                icon={<Calendar className="w-4 h-4" />}
-                                className="text-sm"
-                                type="date"
-                                {...field}
-                              />
-                            )}
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <label className="text-sm font-medium text-gray-700">
-                            Discount End Date
-                          </label>
-                          <Controller
-                            name="discount.endDate"
-                            control={control}
-                            render={({ field }) => (
-                              <Input
-                                variant="muted"
-                                icon={<Calendar className="w-4 h-4" />}
-                                className="text-sm"
-                                type="date"
-                                {...field}
-                              />
-                            )}
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                {/* Pricing Ranges Section */}
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-lg font-medium text-gray-900">
-                      Pricing Ranges
-                    </h3>
-                    <p className="text-sm text-gray-500">
-                      Add bulk pricing tiers
-                    </p>
-                  </div>
-
-                  <div className="space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                      <Input
-                        variant="muted"
-                        placeholder="Min Quantity"
-                        type="number"
-                        value={newPricingRange.quantity_start}
-                        onChange={(e) =>
-                          setNewPricingRange((prev) => ({
-                            ...prev,
-                            quantity_start: parseInt(e.target.value) || 0,
-                          }))
-                        }
+                        )}
                       />
-                      <Input
-                        variant="muted"
-                        placeholder="Max Quantity"
-                        type="number"
-                        value={newPricingRange.quantity_end}
-                        onChange={(e) =>
-                          setNewPricingRange((prev) => ({
-                            ...prev,
-                            quantity_end: parseInt(e.target.value) || 0,
-                          }))
-                        }
-                      />
-                      <Input
-                        variant="muted"
-                        placeholder="Price"
-                        type="number"
-                        value={newPricingRange.price}
-                        onChange={(e) =>
-                          setNewPricingRange((prev) => ({
-                            ...prev,
-                            price: parseFloat(e.target.value) || 0,
-                          }))
-                        }
-                      />
-                      <Button
-                        type="button"
-                        variant="secondary"
-                        onClick={addPricingRange}
-                        icon={<Plus className="w-4 h-4" />}
-                      >
-                        Add Range
-                      </Button>
-                    </div>
-
-                    {watch("pricing_range") &&
-                      watch("pricing_range").length > 0 && (
-                        <div className="space-y-2">
-                          <label className="text-sm font-medium text-gray-700">
-                            Added Pricing Ranges
-                          </label>
-                          <div className="space-y-2">
-                            {watch("pricing_range").map((range, index) => (
-                              <div
-                                key={index}
-                                className="flex items-center gap-2 p-2 bg-gray-50 rounded-lg"
-                              >
-                                <span className="text-sm text-gray-900">
-                                  {range.quantity_start}-{range.quantity_end}{" "}
-                                  units: ₹{range.price}
-                                </span>
-                                <button
-                                  type="button"
-                                  onClick={() => removePricingRange(index)}
-                                  className="ml-auto p-1 hover:bg-red-100 rounded-full transition-colors"
-                                >
-                                  <X className="w-4 h-4 text-red-500" />
-                                </button>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
+                      {errors.weight?.value && (
+                        <p className="text-red-500 text-xs mt-1">
+                          {errors.weight.value.message}
+                        </p>
                       )}
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-gray-700">
+                        Weight Unit *
+                      </label>
+                      <Controller
+                        name="weight.unit"
+                        control={control}
+                        rules={{
+                          required: "Weight unit is required",
+                        }}
+                        render={({ field }) => (
+                          <Input
+                            variant="muted"
+                            className="text-sm"
+                            placeholder="e.g., kg, g, lb, oz, packets"
+                            {...field}
+                          />
+                        )}
+                      />
+                      {errors.weight?.unit && (
+                        <p className="text-red-500 text-xs mt-1">
+                          {errors.weight.unit.message}
+                        </p>
+                      )}
+                    </div>
                   </div>
                 </div>
 
-                {/* Product Collections Section */}
+                {/* Collection Information */}
                 <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-lg font-medium text-gray-900">
-                      Product Collections
-                    </h3>
-                    <p className="text-sm text-gray-500">
-                      Add collection pricing
-                    </p>
-                  </div>
-
+                  <h3 className="text-base md:text-lg font-medium text-gray-900">
+                    Collection Information
+                  </h3>
+                  <p className="text-xs md:text-sm text-gray-500">
+                    Add different collection options for this product (e.g.,
+                    5kg, 2 packets, etc.)
+                  </p>
                   <div className="space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                      <Input
-                        variant="muted"
-                        placeholder="Quantity"
-                        type="number"
-                        value={newCollection.quantity}
-                        onChange={(e) =>
-                          setNewCollection((prev) => ({
-                            ...prev,
-                            quantity: parseInt(e.target.value) || 0,
-                          }))
-                        }
-                      />
-                      <Input
-                        variant="muted"
-                        placeholder="Price"
-                        type="number"
-                        value={newCollection.price}
-                        onChange={(e) =>
-                          setNewCollection((prev) => ({
-                            ...prev,
-                            price: parseFloat(e.target.value) || 0,
-                          }))
-                        }
-                      />
-                      <Input
-                        variant="muted"
-                        placeholder="Unit (e.g., kg, piece)"
-                        value={newCollection.unit}
-                        onChange={(e) =>
-                          setNewCollection((prev) => ({
-                            ...prev,
-                            unit: e.target.value,
-                          }))
-                        }
-                      />
-                      <Button
-                        type="button"
-                        variant="secondary"
-                        onClick={addCollection}
-                        icon={<Plus className="w-4 h-4" />}
-                      >
-                        Add Collection
-                      </Button>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+                      <div className="space-y-2">
+                        <label className="text-xs md:text-sm font-medium text-gray-700">
+                          Quantity
+                        </label>
+                        <Input
+                          variant="muted"
+                          icon={<Package className="w-4 h-4" />}
+                          className="text-xs md:text-sm"
+                          placeholder="Enter quantity"
+                          type="number"
+                          value={newCollection.quantity}
+                          onChange={(e) =>
+                            setNewCollection({
+                              ...newCollection,
+                              quantity: parseInt(e.target.value) || 0,
+                            })
+                          }
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-xs md:text-sm font-medium text-gray-700">
+                          Price
+                        </label>
+                        <Input
+                          variant="muted"
+                          icon={<IndianRupee className="w-4 h-4" />}
+                          className="text-xs md:text-sm"
+                          placeholder="Enter price"
+                          type="number"
+                          step="0.01"
+                          value={newCollection.price}
+                          onChange={(e) =>
+                            setNewCollection({
+                              ...newCollection,
+                              price: parseFloat(e.target.value) || 0,
+                            })
+                          }
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-xs md:text-sm font-medium text-gray-700">
+                          Unit
+                        </label>
+                        <Input
+                          variant="muted"
+                          icon={<Weight className="w-4 h-4" />}
+                          className="text-xs md:text-sm"
+                          placeholder="e.g., kg, packets"
+                          value={newCollection.unit}
+                          onChange={(e) =>
+                            setNewCollection({
+                              ...newCollection,
+                              unit: e.target.value,
+                            })
+                          }
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-xs md:text-sm font-medium text-gray-700">
+                          Action
+                        </label>
+                        <Button
+                          type="button"
+                          variant="secondary"
+                          onClick={addCollection}
+                          icon={<Plus className="w-4 h-4" />}
+                          className="w-full text-xs md:text-sm"
+                        >
+                          Add Collection
+                        </Button>
+                      </div>
                     </div>
 
+                    {/* Collection List */}
                     {productCollections.length > 0 && (
                       <div className="space-y-2">
                         <label className="text-sm font-medium text-gray-700">
@@ -1845,19 +2349,73 @@ export default function EditProductPage() {
                           {productCollections.map((collection, index) => (
                             <div
                               key={index}
-                              className="flex items-center gap-2 p-2 bg-gray-50 rounded-lg"
+                              className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4 p-3 bg-gray-50 rounded-lg border border-gray-200"
                             >
-                              <span className="text-sm text-gray-900">
-                                {collection.quantity} {collection.unit} - ₹
-                                {collection.price}
-                              </span>
-                              <button
+                              <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
+                                <div>
+                                  <label className="text-xs text-gray-500">
+                                    Quantity
+                                  </label>
+                                  <Input
+                                    variant="muted"
+                                    className="text-sm"
+                                    type="number"
+                                    value={collection.quantity}
+                                    onChange={(e) =>
+                                      updateCollection(
+                                        index,
+                                        "quantity",
+                                        parseInt(e.target.value) || 0
+                                      )
+                                    }
+                                  />
+                                </div>
+                                <div>
+                                  <label className="text-xs text-gray-500">
+                                    Price
+                                  </label>
+                                  <Input
+                                    variant="muted"
+                                    className="text-sm"
+                                    type="number"
+                                    step="0.01"
+                                    value={collection.price}
+                                    onChange={(e) =>
+                                      updateCollection(
+                                        index,
+                                        "price",
+                                        parseFloat(e.target.value) || 0
+                                      )
+                                    }
+                                  />
+                                </div>
+                                <div>
+                                  <label className="text-xs text-gray-500">
+                                    Unit
+                                  </label>
+                                  <Input
+                                    variant="muted"
+                                    className="text-sm"
+                                    value={collection.unit || ""}
+                                    onChange={(e) =>
+                                      updateCollection(
+                                        index,
+                                        "unit",
+                                        e.target.value
+                                      )
+                                    }
+                                  />
+                                </div>
+                              </div>
+                              <Button
                                 type="button"
+                                variant="secondary"
                                 onClick={() => removeCollection(index)}
-                                className="ml-auto p-1 hover:bg-red-100 rounded-full transition-colors"
+                                icon={<X className="w-4 h-4" />}
+                                className="px-2 py-1"
                               >
-                                <X className="w-4 h-4 text-red-500" />
-                              </button>
+                                Remove
+                              </Button>
                             </div>
                           ))}
                         </div>
@@ -1868,12 +2426,12 @@ export default function EditProductPage() {
 
                 {/* SEO Information */}
                 <div className="space-y-4">
-                  <div className="flex items-center justify-between">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                     <div>
-                      <h3 className="text-lg font-medium text-gray-900">
+                      <h3 className="text-base md:text-lg font-medium text-gray-900">
                         SEO Information
                       </h3>
-                      <p className="text-sm text-gray-500 mt-1">
+                      <p className="text-xs md:text-sm text-gray-500 mt-1">
                         Generate SEO fields automatically from product name
                       </p>
                     </div>
@@ -1883,11 +2441,11 @@ export default function EditProductPage() {
                       size="sm"
                       onClick={autoGenerateSEO}
                       icon={<Search className="w-4 h-4" />}
+                      className="w-full sm:w-auto"
                     >
                       Auto Generate
                     </Button>
                   </div>
-
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-2">
                       <label className="text-sm font-medium text-gray-700">
@@ -1895,7 +2453,7 @@ export default function EditProductPage() {
                       </label>
                       <Input
                         variant="muted"
-                        icon={<FileText className="w-4 h-4" />}
+                        icon={<Search className="w-4 h-4" />}
                         className="text-sm"
                         placeholder="Enter meta title"
                         {...register("metaTitle")}
@@ -1907,9 +2465,9 @@ export default function EditProductPage() {
                       </label>
                       <Input
                         variant="muted"
-                        icon={<FileText className="w-4 h-4" />}
+                        icon={<Search className="w-4 h-4" />}
                         className="text-sm"
-                        placeholder="Enter slug"
+                        placeholder="Enter URL slug"
                         {...register("slug")}
                       />
                     </div>
@@ -1921,7 +2479,7 @@ export default function EditProductPage() {
                         className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-gray-400 bg-muted text-sm"
                         placeholder="Enter meta description"
                         {...register("metaDescription")}
-                        rows={3}
+                        rows={2}
                       />
                     </div>
                     <div className="space-y-2 md:col-span-2">
@@ -1932,14 +2490,13 @@ export default function EditProductPage() {
                         <div className="flex gap-2">
                           <Input
                             variant="muted"
-                            placeholder="Enter keyword"
+                            placeholder="Add a keyword"
                             value={keywordInput}
                             onChange={(e) => setKeywordInput(e.target.value)}
                             onKeyPress={(e) =>
                               e.key === "Enter" &&
                               (e.preventDefault(), addKeyword())
                             }
-                            className="flex-1"
                           />
                           <Button
                             type="button"
@@ -1955,13 +2512,12 @@ export default function EditProductPage() {
                             {metaKeywords.map((keyword, index) => (
                               <span
                                 key={index}
-                                className="inline-flex items-center gap-1 px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full"
+                                className="inline-flex items-center gap-1 px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full"
                               >
                                 {keyword}
                                 <button
                                   type="button"
                                   onClick={() => removeKeyword(index)}
-                                  className="ml-1 hover:bg-blue-200 rounded-full p-0.5"
                                 >
                                   <X className="w-3 h-3" />
                                 </button>
@@ -1974,11 +2530,12 @@ export default function EditProductPage() {
                   </div>
                 </div>
 
-                <div className="flex justify-end gap-4 pt-6 border-t border-gray-200">
+                <div className="flex flex-col sm:flex-row justify-end gap-3 sm:gap-4 pt-6 border-t border-gray-200">
                   <Button
                     type="button"
                     variant="secondary"
-                    onClick={() => router.back()}
+                    onClick={() => router.push("/inventory")}
+                    className="w-full sm:w-auto"
                   >
                     Cancel
                   </Button>
@@ -1986,7 +2543,7 @@ export default function EditProductPage() {
                     type="submit"
                     variant="primary"
                     disabled={isSubmitting}
-                    icon={<Save className="w-4 h-4" />}
+                    className="w-full sm:w-auto"
                   >
                     {isSubmitting ? "Updating Product..." : "Update Product"}
                   </Button>
@@ -1995,7 +2552,645 @@ export default function EditProductPage() {
             </div>
           </CardContent>
         </Card>
+        )}
+
+        {/* Category Creation Modal */}
+        {showCategoryModal && (
+          <CreateCategoryModal
+            onClose={() => setShowCategoryModal(false)}
+            onSubmit={handleCreateCategory}
+            onImageUpload={handleCategoryImageUpload}
+            isUploading={uploadingCategoryImage}
+          />
+        )}
+
+        {/* Subcategory Creation Modal */}
+        {showSubcategoryModal && (
+          <CreateSubcategoryModal
+            categories={categories}
+            selectedCategoryId={watch("categoryId")}
+            onClose={() => setShowSubcategoryModal(false)}
+            onSubmit={handleCreateSubcategory}
+            onImageUpload={handleCategoryImageUpload}
+            isUploading={uploadingSubcategoryImage}
+          />
+        )}
+
+        {/* Delete Confirmation Modal */}
+        {showDeleteConfirm && itemToDelete && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4 overflow-y-auto max-h-[90vh]">
+              <h2 className="text-lg font-semibold mb-4 text-red-600">
+                Confirm Delete
+              </h2>
+              <p className="text-gray-700 mb-6">
+                Are you sure you want to delete this {itemToDelete.type}? This
+                action cannot be undone.
+              </p>
+              <div className="bg-gray-50 p-3 rounded-lg mb-6">
+                <p className="text-sm font-medium text-gray-900">
+                  {itemToDelete.item.name}
+                </p>
+                {itemToDelete.item.description && (
+                  <p className="text-sm text-gray-600 mt-1">
+                    {itemToDelete.item.description}
+                  </p>
+                )}
+              </div>
+              <div className="flex justify-end gap-3">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={() => {
+                    setShowDeleteConfirm(false);
+                    setItemToDelete(null);
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="button"
+                  variant="primary"
+                  onClick={confirmDelete}
+                  className="bg-red-600 hover:bg-red-700"
+                >
+                  Delete{" "}
+                  {itemToDelete.type === "category"
+                    ? "Category"
+                    : "Sub-category"}
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </DashboardLayout>
+  );
+}
+
+// Category Creation Modal Component
+function CreateCategoryModal({
+  onClose,
+  onSubmit,
+  onImageUpload,
+  isUploading,
+}: {
+  onClose: () => void;
+  onSubmit: (data: {
+    name: string;
+    description: string;
+    slug: string;
+    image?: string;
+    showOnHomepage: boolean;
+  }) => void;
+  onImageUpload: (
+    file: File,
+    type: "category" | "subcategory"
+  ) => Promise<string | null>;
+  isUploading: boolean;
+}) {
+  const [formData, setFormData] = useState({
+    name: "",
+    description: "",
+    slug: "",
+    image: "",
+    showOnHomepage: false,
+  });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formData.name || !formData.description || !formData.slug) return;
+
+    // Validate description length
+    if (formData.description.length < 10) {
+      toast.error("Description must be at least 10 characters long");
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+      await onSubmit(formData);
+    } catch (error) {
+      console.error("Error creating category:", error);
+      toast.error(
+        error instanceof Error ? error.message : "Failed to create category"
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const generateSlug = (name: string) => {
+    return name
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/(^-|-$)/g, "");
+  };
+
+  const handleNameChange = (name: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      name,
+      slug: generateSlug(name),
+    }));
+  };
+
+  const handleFileInput = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const imageUrl = await onImageUpload(file, "category");
+      if (imageUrl) {
+        setFormData((prev) => ({ ...prev, image: imageUrl }));
+        setPreviewImage(imageUrl);
+      }
+    }
+  };
+
+  const removeImage = () => {
+    setFormData((prev) => ({ ...prev, image: "" }));
+    setPreviewImage(null);
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4 overflow-y-auto max-h-[90vh]">
+        <h2 className="text-lg font-semibold mb-4">Create Category</h2>
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Name *
+            </label>
+            <Input
+              variant="muted"
+              value={formData.name}
+              onChange={(e) => handleNameChange(e.target.value)}
+              placeholder="Enter category name"
+              required
+            />
+          </div>
+
+          {/* <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Description *{" "}
+              <span className="text-gray-500 text-xs">(min 10 characters)</span>
+            </label>
+            <textarea
+              className={`w-full px-3 py-2 border rounded-lg focus:outline-none bg-muted text-sm ${
+                formData.description.length > 0 &&
+                formData.description.length < 10
+                  ? "border-red-300 focus:border-red-500"
+                  : "border-gray-200 focus:border-gray-400"
+              }`}
+              value={formData.description}
+              onChange={(e) =>
+                setFormData((prev) => ({
+                  ...prev,
+                  description: e.target.value,
+                }))
+              }
+              placeholder="Enter category description (minimum 10 characters)"
+              rows={3}
+              required
+            />
+            <div className="flex justify-between items-center mt-1">
+              <span
+                className={`text-xs ${
+                  formData.description.length > 0 &&
+                  formData.description.length < 10
+                    ? "text-red-500"
+                    : "text-gray-500"
+                }`}
+              >
+                {formData.description.length > 0 &&
+                formData.description.length < 10
+                  ? "Description must be at least 10 characters long"
+                  : `${formData.description.length} characters`}
+              </span>
+            </div>
+          </div> */}
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Slug *
+            </label>
+            <Input
+              variant="muted"
+              value={formData.slug}
+              onChange={(e) =>
+                setFormData((prev) => ({ ...prev, slug: e.target.value }))
+              }
+              placeholder="Enter URL slug"
+              required
+            />
+          </div>
+
+          <div>
+            <label className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                checked={formData.showOnHomepage}
+                onChange={(e) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    showOnHomepage: e.target.checked,
+                  }))
+                }
+                className="rounded border-gray-300"
+              />
+              <span className="text-sm font-medium text-gray-700">
+                Show on Homepage
+              </span>
+            </label>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Category Image
+            </label>
+
+            {/* Image Upload Area */}
+            <div
+              className={`flex items-center justify-center gap-4 rounded-xl border border-dashed border-gray-400 bg-white p-6 transition-colors ${
+                isUploading
+                  ? "opacity-50 cursor-not-allowed"
+                  : "hover:border-blue-400 hover:bg-blue-50/30 cursor-pointer"
+              }`}
+              onClick={() =>
+                !isUploading &&
+                document.getElementById("category-file-upload")?.click()
+              }
+            >
+              {previewImage ? (
+                <div className="relative group">
+                  <Image
+                    src={previewImage}
+                    alt="Category preview"
+                    width={80}
+                    height={80}
+                    className="w-20 h-20 object-cover rounded-lg border border-gray-200"
+                    loading="lazy"
+                    unoptimized
+                    quality={100}
+                  />
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      removeImage();
+                    }}
+                    className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center">
+                  {isUploading ? (
+                    <div className="text-center">
+                      <div className="w-8 h-8 border-2 border-gray-300 border-t-primary rounded-full animate-spin mx-auto mb-2" />
+                      <p className="text-sm text-gray-600 font-medium">
+                        Uploading...
+                      </p>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="w-16 h-16 rounded-full bg-sky-100 flex items-center justify-center mb-2">
+                        <ImageIcon
+                          className="w-8 h-8 text-sky-500"
+                          strokeWidth={1.2}
+                        />
+                      </div>
+                      <p className="text-sm text-gray-400 mb-1 font-medium">
+                        Upload Image
+                      </p>
+                      <p className="text-xs text-gray-400 text-center">
+                        Click to select or drag & drop
+                      </p>
+                    </>
+                  )}
+                </div>
+              )}
+              <input
+                id="category-file-upload"
+                type="file"
+                accept="image/*"
+                onChange={handleFileInput}
+                className="hidden"
+                aria-label="Upload category image"
+                disabled={isUploading}
+              />
+            </div>
+          </div>
+
+          <div className="flex justify-end gap-3 pt-4">
+            <Button type="button" variant="secondary" onClick={onClose}>
+              Cancel
+            </Button>
+            <Button type="submit" variant="primary" disabled={isSubmitting}>
+              {isSubmitting ? "Creating..." : "Create Category"}
+            </Button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+// Subcategory Creation Modal Component
+function CreateSubcategoryModal({
+  categories,
+  selectedCategoryId,
+  onClose,
+  onSubmit,
+  onImageUpload,
+  isUploading,
+}: {
+  categories: any[];
+  selectedCategoryId: string;
+  onClose: () => void;
+  onSubmit: (data: {
+    name: string;
+    description: string;
+    parentCategoryId: string;
+    slug: string;
+    image?: string;
+  }) => void;
+  onImageUpload: (
+    file: File,
+    type: "category" | "subcategory"
+  ) => Promise<string | null>;
+  isUploading: boolean;
+}) {
+  const [formData, setFormData] = useState({
+    name: "",
+    description: "",
+    parentCategoryId: selectedCategoryId || "",
+    slug: "",
+    image: "",
+  });
+
+  // Update parentCategoryId when selectedCategoryId changes
+  useEffect(() => {
+    if (selectedCategoryId) {
+      setFormData((prev) => ({
+        ...prev,
+        parentCategoryId: selectedCategoryId,
+      }));
+    }
+  }, [selectedCategoryId]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (
+      !formData.name ||
+      !formData.description ||
+      !formData.parentCategoryId ||
+      !formData.slug
+    )
+      return;
+
+    // Validate description length
+    if (formData.description.length < 10) {
+      toast.error("Description must be at least 10 characters long");
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+      await onSubmit(formData);
+    } catch (error) {
+      console.error("Error creating subcategory:", error);
+      toast.error(
+        error instanceof Error ? error.message : "Failed to create subcategory"
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const generateSlug = (name: string) => {
+    return name
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/(^-|-$)/g, "");
+  };
+
+  const handleNameChange = (name: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      name,
+      slug: generateSlug(name),
+    }));
+  };
+
+  const handleFileInput = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const imageUrl = await onImageUpload(file, "subcategory");
+      if (imageUrl) {
+        setFormData((prev) => ({ ...prev, image: imageUrl }));
+        setPreviewImage(imageUrl);
+      }
+    }
+  };
+
+  const removeImage = () => {
+    setFormData((prev) => ({ ...prev, image: "" }));
+    setPreviewImage(null);
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4 overflow-y-auto max-h-[90vh]">
+        <h2 className="text-lg font-semibold mb-4">Create Sub-category</h2>
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Parent Category *
+            </label>
+            <select
+              className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-gray-400 bg-muted text-sm"
+              value={formData.parentCategoryId}
+              onChange={(e) =>
+                setFormData((prev) => ({
+                  ...prev,
+                  parentCategoryId: e.target.value,
+                }))
+              }
+              required
+            >
+              <option value="">Select a category</option>
+              {categories.map((category) => (
+                <option key={category._id} value={category._id}>
+                  {category.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Name *
+            </label>
+            <Input
+              variant="muted"
+              value={formData.name}
+              onChange={(e) => handleNameChange(e.target.value)}
+              placeholder="Enter sub-category name"
+              required
+            />
+          </div>
+
+          {/* <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Description *{" "}
+              <span className="text-gray-500 text-xs">(min 10 characters)</span>
+            </label>
+            <textarea
+              className={`w-full px-3 py-2 border rounded-lg focus:outline-none bg-muted text-sm ${
+                formData.description.length > 0 &&
+                formData.description.length < 10
+                  ? "border-red-300 focus:border-red-500"
+                  : "border-gray-200 focus:border-gray-400"
+              }`}
+              value={formData.description}
+              onChange={(e) =>
+                setFormData((prev) => ({
+                  ...prev,
+                  description: e.target.value,
+                }))
+              }
+              placeholder="Enter sub-category description (minimum 10 characters)"
+              rows={3}
+              required
+            />
+            <div className="flex justify-between items-center mt-1">
+              <span
+                className={`text-xs ${
+                  formData.description.length > 0 &&
+                  formData.description.length < 10
+                    ? "text-red-500"
+                    : "text-gray-500"
+                }`}
+              >
+                {formData.description.length > 0 &&
+                formData.description.length < 10
+                  ? "Description must be at least 10 characters long"
+                  : `${formData.description.length} characters`}
+              </span>
+            </div>
+          </div> */}
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Slug *
+            </label>
+            <Input
+              variant="muted"
+              value={formData.slug}
+              onChange={(e) =>
+                setFormData((prev) => ({ ...prev, slug: e.target.value }))
+              }
+              placeholder="Enter URL slug"
+              required
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Sub-category Image
+            </label>
+
+            {/* Image Upload Area */}
+            <div
+              className={`flex items-center justify-center gap-4 rounded-xl border border-dashed border-gray-400 bg-white p-6 transition-colors ${
+                isUploading
+                  ? "opacity-50 cursor-not-allowed"
+                  : "hover:border-blue-400 hover:bg-blue-50/30 cursor-pointer"
+              }`}
+              onClick={() =>
+                !isUploading &&
+                document.getElementById("subcategory-file-upload")?.click()
+              }
+            >
+              {previewImage ? (
+                <div className="relative group">
+                  <Image
+                    src={previewImage}
+                    alt="Sub-category preview"
+                    width={80}
+                    height={80}
+                    loading="lazy"
+                    unoptimized
+                    quality={100}
+                    className="w-20 h-20 object-cover rounded-lg border border-gray-200"
+                  />
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      removeImage();
+                    }}
+                    className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center">
+                  {isUploading ? (
+                    <div className="text-center">
+                      <div className="w-8 h-8 border-2 border-gray-300 border-t-primary rounded-full animate-spin mx-auto mb-2" />
+                      <p className="text-sm text-gray-600 font-medium">
+                        Uploading...
+                      </p>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="w-16 h-16 rounded-full bg-sky-100 flex items-center justify-center mb-2">
+                        <ImageIcon
+                          className="w-8 h-8 text-sky-500"
+                          strokeWidth={1.2}
+                        />
+                      </div>
+                      <p className="text-sm text-gray-400 mb-1 font-medium">
+                        Upload Image
+                      </p>
+                      <p className="text-xs text-gray-400 text-center">
+                        Click to select or drag & drop
+                      </p>
+                    </>
+                  )}
+                </div>
+              )}
+              <input
+                id="subcategory-file-upload"
+                type="file"
+                accept="image/*"
+                onChange={handleFileInput}
+                className="hidden"
+                aria-label="Upload sub-category image"
+                disabled={isUploading}
+              />
+            </div>
+          </div>
+
+          <div className="flex justify-end gap-3 pt-4">
+            <Button type="button" variant="secondary" onClick={onClose}>
+              Cancel
+            </Button>
+            <Button type="submit" variant="primary" disabled={isSubmitting}>
+              {isSubmitting ? "Creating..." : "Create Sub-category"}
+            </Button>
+          </div>
+        </form>
+      </div>
+    </div>
   );
 }

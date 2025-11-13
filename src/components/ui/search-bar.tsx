@@ -124,35 +124,6 @@ export function SearchBar({
           </button>
         )}
       </div>
-
-      {/* Action Buttons Section */}
-      <div className="flex items-center space-x-2 md:space-x-3 flex-shrink-0">
-        {allActions.map((action) => {
-          const buttonContent = (
-            <Button
-              key={action.key}
-              variant={action.variant || 'primary'}
-              icon={action.icon}
-              onClick={action.onClick}
-              className={`${action.className || ''} text-xs md:text-sm whitespace-nowrap`}
-              size="sm"
-            >
-              <span className="hidden sm:inline">{action.label}</span>
-              <span className="sm:hidden">{action.label.split(' ')[0]}</span>
-            </Button>
-          );
-
-          if (action.href) {
-            return (
-              <a key={action.key} href={action.href}>
-                {buttonContent}
-              </a>
-            );
-          }
-
-          return buttonContent;
-        })}
-      </div>
     </div>
   );
 }

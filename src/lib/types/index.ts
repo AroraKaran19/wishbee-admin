@@ -51,6 +51,14 @@ export interface LowQuantityItem {
   unit: string;
 }
 
+export interface LowStockItem {
+  productId: string;
+  name: string;
+  currentStock: number;
+  type: "product" | "combo";
+  status: "ACTIVE" | "OUT_OF_STOCK" | "DISCONTINUED";
+}
+
 export interface ExpiredItem {
   id: string;
   productName: string;
@@ -138,6 +146,14 @@ export interface Customer {
   };
 }
 
+export interface OrderUpdateHistory {
+  status: string;
+  updatedAt: string;
+  updatedBy: string;
+  reason?: string;
+  notes?: string;
+}
+
 export interface Order {
   id: string;
   orderId: string;
@@ -151,14 +167,43 @@ export interface Order {
     productName: string;
     quantity: number;
     price: number;
+    productId?: string;
+    productType?: "product" | "combo";
+    discountApplied?: number;
   }[];
   address: {
     street: string;
     city: string;
     state: string;
     pincode: string;
+    landmark?: string;
+    country?: string;
+    type?: string;
+  };
+  billingAddress?: {
+    street: string;
+    city: string;
+    state: string;
+    pincode: string;
+    landmark?: string;
+    country?: string;
+    type?: string;
   };
   trackingNumber?: string;
+  orderNotes?: string;
+  updateHistory?: OrderUpdateHistory[];
+  paymentDetails?: {
+    method: string;
+    transactionId?: string;
+    status?: string;
+    amount?: number;
+  };
+  deliverySlot?: {
+    date: string;
+    timeWindow?: string;
+  };
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface OrderSummary {

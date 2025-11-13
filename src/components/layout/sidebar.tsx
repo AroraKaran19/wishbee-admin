@@ -101,7 +101,7 @@ export function Sidebar({ onClose }: SidebarProps) {
             const isActive =
               pathname === item.href ||
               (item.href === "/inventory" && pathname.startsWith("/inventory")) ||
-              (item.href === "/auto-reorders" && pathname.startsWith("/auto-reorders")) ||
+              // (item.href === "/auto-reorders" && pathname.startsWith("/auto-reorders")) ||
               (item.href === "/offers-banners" && pathname.startsWith("/offers-banners")) ||
               (item.href === "/analytics" && pathname.startsWith("/analytics")) ||
               (item.href === "/most-selling" && pathname.startsWith("/most-selling"));

@@ -2,12 +2,13 @@
 
 import React from 'react';
 import { DataTable } from '@/components/ui/data-table';
-import { LongUnsoldItem, TableConfig } from '@/lib/types';
-import { Sparkles, Plus } from 'lucide-react';
+import { Product, TableConfig } from '@/lib/types';
+import { Sparkles } from 'lucide-react';
 import Link from 'next/link';
+import { formatCurrency } from '@/lib/utils';
 
 interface LongUnsoldTableProps {
-  items: LongUnsoldItem[];
+  items: Product[];
   currentPage: number;
   totalPages: number;
   onPageChange: (page: number) => void;
@@ -20,23 +21,31 @@ export function LongUnsoldTable({
   onPageChange 
 }: LongUnsoldTableProps) {
 
-  const handleApplyDiscount = (item: LongUnsoldItem) => {
-    console.log('Apply discount to:', item);
+  const handleEditProduct = (item: Product) => {
+    // Navigate to product edit page
+    window.location.href = `/inventory/product/${item._id}/edit`;
   };
 
-  const handleAddToCombo = (item: LongUnsoldItem) => {
-    console.log('Add to combo offer:', item);
+  const calculateDaysSinceLastSale = (lastSoldAt: Date | string | null | undefined): number | string => {
+    if (!lastSoldAt) return 'Never sold';
+    
+    const lastSold = typeof lastSoldAt === 'string' ? new Date(lastSoldAt) : lastSoldAt;
+    const today = new Date();
+    const diffTime = today.getTime() - lastSold.getTime();
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+    
+    return diffDays;
   };
 
-  const tableConfig: TableConfig<LongUnsoldItem> = {
+  const tableConfig: TableConfig<Product> = {
     columns: [
       {
-        key: 'productName',
+        key: 'name',
         title: 'Product Name',
         align: 'center',
         render: (value, record) => (
           <Link 
-            href={`/inventory/product/${record.id}`}
+            href={`/inventory/product/${record._id}`}
             className="text-sm text-gray-900 hover:text-gray-700 font-medium transition-colors"
           >
             {value}
@@ -44,56 +53,63 @@ export function LongUnsoldTable({
         )
       },
       {
-        key: 'daysSinceLastSale',
-        title: 'Days Since Last Sale',
+        key: 'category',
+        title: 'Category',
         align: 'center',
         render: (value) => (
           <div className="text-sm text-gray-900">
-            {typeof value === 'number' ? `${value} Days` : value}
+            {value && typeof value === 'object' && 'name' in value ? (value as any).name : 'N/A'}
           </div>
         )
       },
       {
-        key: 'stockQty',
+        key: 'lastSoldAt',
+        title: 'Days Since Last Sale',
+        align: 'center',
+        render: (value, record) => {
+          const days = calculateDaysSinceLastSale(record.lastSoldAt);
+          const isNeverSold = days === 'Never sold';
+          return (
+            <div className="text-sm">
+              {isNeverSold ? (
+                <span className="text-red-600 font-medium">{days}</span>
+              ) : (
+                <span className="text-gray-900 font-medium">{days} days</span>
+              )}
+            </div>
+          );
+        }
+      },
+      {
+        key: 'stock',
         title: 'Stock Qty',
         align: 'center',
         render: (value, record) => (
           <div className="text-sm text-gray-900">
-            {value} {record.unit}
+            {value} {record.weight?.unit || 'units'}
           </div>
         )
       },
       {
-        key: 'price',
-        title: 'Price (₹)',
+        key: 'mrp',
+        title: 'Price',
         align: 'center',
         render: (value) => (
           <div className="text-sm text-gray-900 font-medium">
-            ₹{value}
+            {formatCurrency(value)}
           </div>
         )
       }
     ],
     actions: [
       {
-        key: 'apply-discount',
-        label: 'Apply Discount',
+        key: 'edit-product',
+        label: 'Edit Product',
         icon: <Sparkles className="h-4 w-4" />,
-        onClick: (record) => handleApplyDiscount(record),
+        onClick: (record) => handleEditProduct(record),
         variant: 'primary',
         size: 'sm',
-        className: 'text-white',
-        disabled: (record) => record.suggestedAction !== 'discount'
-      },
-      {
-        key: 'add-combo',
-        label: 'Add to Combo Offer',
-        icon: <Plus className="h-4 w-4" />,
-        onClick: (record) => handleAddToCombo(record),
-        variant: 'danger',
-        size: 'sm',
-        className: 'text-white',
-        disabled: (record) => record.suggestedAction !== 'combo'
+        className: 'text-white'
       }
     ],
     pagination: {
@@ -102,7 +118,7 @@ export function LongUnsoldTable({
       onPageChange,
       showPageInfo: true
     },
-    rowKey: 'id',
+    rowKey: '_id',
     className: 'rounded-xl shadow-sm',
     rowClassName: () => 'hover:bg-gray-50'
   };

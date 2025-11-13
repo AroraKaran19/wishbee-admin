@@ -6,7 +6,7 @@ import { SearchBar } from "@/components/ui/search-bar";
 import { InventoryTable } from "./inventory-table";
 import { formatCurrency } from "@/lib/utils";
 import { exportProductsToCSV } from "@/lib/utils/csv-export";
-import { productApi } from "@/lib/api/products";
+import { dashboardApi } from "@/lib/api/dashboard";
 import { Product } from "@/lib/types";
 import { Plus, Upload, RefreshCw } from "lucide-react";
 import toast from "react-hot-toast";
@@ -24,41 +24,45 @@ export function InventorySummary() {
     hasNext: false,
     hasPrev: false,
   });
+  const [totalInventoryValue, setTotalInventoryValue] = useState(0);
+  const [totalProducts, setTotalProducts] = useState(0);
+  const [totalCombos, setTotalCombos] = useState(0);
   const itemsPerPage = 10;
 
-  // Load products from API
+  // Load inventory from API
   useEffect(() => {
-    const loadProducts = async () => {
+    const loadInventory = async () => {
       try {
         setLoading(true);
         setError(null);
-        const response = await productApi.getAll({
+        const response = await dashboardApi.getInventory({
           page: currentPage,
           limit: itemsPerPage,
-          search: searchQuery || undefined,
         });
 
-        // Handle different response structures
-        const productsData =
-          response.data?.products || response.data || response;
+        // Handle API response structure
+        if (response.success && response.data) {
+          const inventoryData = response.data.data || {};
+          const productsData = inventoryData.products || [];
 
-        setProducts(Array.isArray(productsData) ? productsData : []);
+          setProducts(Array.isArray(productsData) ? productsData : []);
+          setTotalInventoryValue(response.data.totalInventoryValue || 0);
+          setTotalProducts(response.data.totalProducts || 0);
+          setTotalCombos(response.data.totalCombos || 0);
 
-        // Set pagination data - API returns pagination at root level of data
-        if (response.data) {
+          // Set pagination data
           setPagination({
-            currentPage: response.data.page || currentPage,
-            totalPages: response.data.totalPages || 1,
-            totalItems: response.data.total || 0,
-            hasNext:
-              (response.data.page || 1) < (response.data.totalPages || 1),
-            hasPrev: (response.data.page || 1) > 1,
+            currentPage: inventoryData.page || currentPage,
+            totalPages: inventoryData.totalPages || 1,
+            totalItems: response.data.totalProducts || 0,
+            hasNext: (inventoryData.page || 1) < (inventoryData.totalPages || 1),
+            hasPrev: (inventoryData.page || 1) > 1,
           });
         }
       } catch (err) {
-        console.error("Error loading products:", err);
+        console.error("Error loading inventory:", err);
         const errorMessage =
-          err instanceof Error ? err.message : "Failed to load products";
+          err instanceof Error ? err.message : "Failed to load inventory";
         setError(errorMessage);
         toast.error(errorMessage);
       } finally {
@@ -66,11 +70,24 @@ export function InventorySummary() {
       }
     };
 
-    loadProducts();
-  }, [currentPage, searchQuery, itemsPerPage]);
+    loadInventory();
+  }, [currentPage, itemsPerPage]);
 
-  // No local filtering needed - server handles search and pagination
-  const filteredProducts = products || [];
+  // Filter products locally if search query is provided
+  // Note: The API doesn't support search for inventory endpoint
+  const filteredProducts = searchQuery
+    ? products.filter(
+        (p) =>
+          p.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          p.sku?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          (p.category &&
+            typeof p.category === "object" &&
+            "name" in p.category &&
+            (p.category as any).name
+              ?.toLowerCase()
+              .includes(searchQuery.toLowerCase()))
+      )
+    : products;
 
   const handlePageChange = (page: number) => {
     if (page >= 1 && page <= pagination.totalPages) {
@@ -80,7 +97,7 @@ export function InventorySummary() {
 
   const handleSearch = (query: string) => {
     setSearchQuery(query);
-    setCurrentPage(1); // Reset to first page when searching
+    // Note: Search is client-side since API doesn't support it
   };
 
   const handleExportCSV = () => {
@@ -92,24 +109,7 @@ export function InventorySummary() {
     setCurrentPage(1);
   };
 
-  // No need for local slicing - server handles pagination
   const currentProducts = filteredProducts;
-
-  // Calculate dynamic metrics from current page products
-  // Note: These are estimates based on current page data
-  const totalCategories = new Set(
-    (products || [])
-      .map((p) => p.category)
-      .filter((cat) => cat && typeof cat === "object" && "_id" in cat)
-      .map((cat) => (cat as any)._id)
-  ).size;
-
-  const inventoryValue = (products || []).reduce(
-    (sum, product) => sum + (product.mrp || 0) * (product.stock || 0),
-    0
-  );
-
-  const revenueGenerated = inventoryValue * 0.3; // Assuming 30% margin
 
   return (
     <div className="space-y-6 h-full flex flex-col">
@@ -132,20 +132,20 @@ export function InventorySummary() {
       <div className="flex-shrink-0 flex flex-wrap gap-6 justify-start">
         <MetricCard
           title="Total Products"
-          value={pagination.totalItems}
-          trend="Server-side count"
+          value={totalProducts}
+          trend="All products"
           variant="blue"
         />
         <MetricCard
-          title="Current Page"
-          value={`${pagination.currentPage} of ${pagination.totalPages}`}
-          trend="Pagination info"
+          title="Total Combos"
+          value={totalCombos}
+          trend="All combos"
           variant="green"
         />
         <MetricCard
-          title="Page Inventory Value"
-          value={formatCurrency(inventoryValue)}
-          trend="Current page only"
+          title="Total Inventory Value"
+          value={formatCurrency(totalInventoryValue)}
+          trend="Total value"
           variant="light-blue"
         />
       </div>

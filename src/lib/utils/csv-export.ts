@@ -130,14 +130,30 @@ export function exportTopSellingToCSV(
   items: any[],
   filename = "top-selling-items"
 ) {
-  const columns = [
+  // Transform Product objects to CSV-friendly format
+  const transformedItems = items.map((item) => ({
+    productName: item.name || "",
+    sku: item.sku || "",
+    soldQuantity: item.soldQuantity || 0,
+    unit: item.weight?.unit || "units",
+    revenue: item.revenue || 0,
+    remainingQuantity: item.stock || 0,
+    category: item.category?.name || "",
+    mrp: item.mrp || 0,
+  }));
+
+  type TransformedItem = (typeof transformedItems)[0];
+
+  const columns: { key: keyof TransformedItem; label: string }[] = [
     { key: "productName", label: "Product Name" },
+    { key: "sku", label: "SKU" },
     { key: "soldQuantity", label: "Sold Quantity (Last 30 Days)" },
     { key: "unit", label: "Unit" },
     { key: "revenue", label: "Revenue (₹)" },
-    { key: "remainingQuantity", label: "Remaining Quantity" },
-    { key: "suggestedAction", label: "Suggested Action" },
+    { key: "remainingQuantity", label: "Remaining Stock" },
+    { key: "category", label: "Category" },
+    { key: "mrp", label: "MRP (₹)" },
   ];
 
-  exportToCSV(items, filename, columns);
+  exportToCSV(transformedItems, filename, columns);
 }

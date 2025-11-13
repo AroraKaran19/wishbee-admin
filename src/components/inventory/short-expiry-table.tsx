@@ -2,12 +2,12 @@
 
 import React from 'react';
 import { DataTable } from '@/components/ui/data-table';
-import { ShortExpiryItem, TableConfig } from '@/lib/types';
+import { Product, TableConfig } from '@/lib/types';
 import { Plus } from 'lucide-react';
 import Link from 'next/link';
 
 interface ShortExpiryTableProps {
-  items: ShortExpiryItem[];
+  items: Product[];
   currentPage: number;
   totalPages: number;
   onPageChange: (page: number) => void;
@@ -20,19 +20,35 @@ export function ShortExpiryTable({
   onPageChange 
 }: ShortExpiryTableProps) {
 
-  const handleAddToFlashSale = (item: ShortExpiryItem) => {
-    console.log('Add to flash sale:', item);
+  const handleAddToFlashSale = (item: Product) => {
+    // Navigate to product edit page
+    window.location.href = `/inventory/product/${item._id}/edit`;
   };
 
-  const tableConfig: TableConfig<ShortExpiryItem> = {
+  const formatDate = (date: Date | string | undefined) => {
+    if (!date) return 'N/A';
+    const d = typeof date === 'string' ? new Date(date) : date;
+    return d.toLocaleDateString();
+  };
+
+  const calculateRemainingDays = (expiryDate: Date | string | undefined) => {
+    if (!expiryDate) return 'N/A';
+    const expiry = typeof expiryDate === 'string' ? new Date(expiryDate) : expiryDate;
+    const today = new Date();
+    const diffTime = expiry.getTime() - today.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return diffDays > 0 ? diffDays : 0;
+  };
+
+  const tableConfig: TableConfig<Product> = {
     columns: [
       {
-        key: 'productName',
+        key: 'name',
         title: 'Product Name',
         align: 'center',
         render: (value, record) => (
           <Link 
-            href={`/inventory/product/${record.id}`}
+            href={`/inventory/product/${record._id}`}
             className="text-sm text-gray-900 hover:text-gray-700 font-medium transition-colors"
           >
             {value}
@@ -40,32 +56,36 @@ export function ShortExpiryTable({
         )
       },
       {
-        key: 'expiryDate',
+        key: 'expiry',
         title: 'Expiry Date',
         align: 'center',
         render: (value) => (
           <div className="text-sm text-gray-900">
-            {value}
+            {formatDate(value)}
           </div>
         )
       },
       {
-        key: 'remainingDays',
+        key: 'expiry',
         title: 'Remaining Days',
         align: 'center',
-        render: (value) => (
-          <div className={`text-sm text-gray-900`}>
-            {value} Days
-          </div>
-        )
+        render: (value) => {
+          const days = calculateRemainingDays(value);
+          const isUrgent = typeof days === 'number' && days <= 7;
+          return (
+            <div className={`text-sm font-medium ${isUrgent ? 'text-red-600' : 'text-gray-900'}`}>
+              {typeof days === 'number' ? `${days} Days` : days}
+            </div>
+          );
+        }
       },
       {
-        key: 'quantity',
+        key: 'stock',
         title: 'Quantity',
         align: 'center',
         render: (value, record) => (
           <div className="text-sm text-gray-900">
-            {value} {record.unit}
+            {value} {record.weight?.unit || 'units'}
           </div>
         )
       }
@@ -87,7 +107,7 @@ export function ShortExpiryTable({
       onPageChange,
       showPageInfo: true
     },
-    rowKey: 'id',
+    rowKey: '_id',
     className: 'rounded-xl shadow-sm',
     rowClassName: () => 'hover:bg-gray-50'
   };

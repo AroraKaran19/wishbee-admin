@@ -1,29 +1,69 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { WarningBanner } from "@/components/ui/banner";
 import { SearchBar } from "@/components/ui/search-bar";
 import { OutOfStockTable } from "./out-of-stock-table";
-import { outOfStockItems } from "@/lib/data/mockData_new";
-import { exportOutOfStockToCSV } from "@/lib/utils/csv-export";
+import { productApi } from "@/lib/api/products";
+import { Product } from "@/lib/types";
+import { exportProductsToCSV } from "@/lib/utils/csv-export";
 import { Upload } from "lucide-react";
+import toast from "react-hot-toast";
 
 export function OutOfStockPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState("");
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [pagination, setPagination] = useState({
+    currentPage: 1,
+    totalPages: 1,
+    totalItems: 0,
+  });
   const itemsPerPage = 10;
 
-  const filteredItems = outOfStockItems.filter(
-    (item) =>
-      item.productName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.category.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.supplierName.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  useEffect(() => {
+    const loadOutOfStock = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const response = await productApi.getOutOfStock({
+          page: currentPage,
+          limit: itemsPerPage,
+          search: searchQuery || undefined,
+        });
 
-  const totalPages = Math.ceil(filteredItems.length / itemsPerPage);
+        if (response.success && response.data) {
+          const productsData = response.data.products || [];
+          setProducts(Array.isArray(productsData) ? productsData : []);
+
+          if (response.data.pagination) {
+            setPagination({
+              currentPage: response.data.pagination.currentPage || currentPage,
+              totalPages: response.data.pagination.totalPages || 1,
+              totalItems: response.data.pagination.totalItems || 0,
+            });
+          }
+        }
+      } catch (err) {
+        console.error("Error loading out of stock products:", err);
+        const errorMessage =
+          err instanceof Error ? err.message : "Failed to load out of stock products";
+        setError(errorMessage);
+        toast.error(errorMessage);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadOutOfStock();
+  }, [currentPage, searchQuery]);
 
   const handlePageChange = (page: number) => {
-    setCurrentPage(page);
+    if (page >= 1 && page <= pagination.totalPages) {
+      setCurrentPage(page);
+    }
   };
 
   const handleSearch = (query: string) => {
@@ -32,12 +72,8 @@ export function OutOfStockPage() {
   };
 
   const handleExportCSV = () => {
-    exportOutOfStockToCSV(filteredItems, "out-of-stock-items");
+    exportProductsToCSV(products, "out-of-stock-items");
   };
-
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const endIndex = startIndex + itemsPerPage;
-  const currentItems = filteredItems.slice(startIndex, endIndex);
 
   return (
     <div className="space-y-6 h-full flex flex-col">
@@ -47,10 +83,16 @@ export function OutOfStockPage() {
 
       <WarningBanner message="These items are out of stock and need immediate restocking to avoid customer dissatisfaction." />
 
+      {error && (
+        <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+          <p className="text-red-600 text-sm">{error}</p>
+        </div>
+      )}
+
       <div className="flex-1 min-h-0 flex flex-col">
         <div className="flex-shrink-0 mb-4">
           <SearchBar
-            placeholder="Search by: Product Name, Category, Supplier"
+            placeholder="Search by: Product Name, Category, SKU"
             onSearch={handleSearch}
             onSearchChange={setSearchQuery}
             actions={[
@@ -66,12 +108,32 @@ export function OutOfStockPage() {
         </div>
 
         <div className="flex-1 min-h-0">
-          <OutOfStockTable
-            items={currentItems}
-            currentPage={currentPage}
-            totalPages={totalPages}
-            onPageChange={handlePageChange}
-          />
+          {loading ? (
+            <div className="flex items-center justify-center h-64">
+              <div className="text-center">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                <p className="text-gray-500">Loading out of stock products...</p>
+              </div>
+            </div>
+          ) : products.length === 0 ? (
+            <div className="flex items-center justify-center h-64">
+              <div className="text-center">
+                <p className="text-gray-500 text-lg mb-2">No out of stock products found</p>
+                <p className="text-gray-400 text-sm">
+                  {searchQuery
+                    ? "Try adjusting your search terms"
+                    : "All products are in stock"}
+                </p>
+              </div>
+            </div>
+          ) : (
+            <OutOfStockTable
+              items={products}
+              currentPage={pagination.currentPage}
+              totalPages={pagination.totalPages}
+              onPageChange={handlePageChange}
+            />
+          )}
         </div>
       </div>
     </div>

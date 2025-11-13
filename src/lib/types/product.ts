@@ -69,4 +69,7 @@ export interface Product {
 
   createdAt?: Date;
   updatedAt?: Date;
+  lastSoldAt?: Date | string | null; // Date when product was last sold (null if never sold)
+  soldQuantity?: number; // For top selling products - Total quantity sold in the last 30 days
+  revenue?: number; // For top selling products - Total revenue generated in the last 30 days
 }

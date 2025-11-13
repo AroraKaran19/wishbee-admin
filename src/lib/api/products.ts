@@ -287,4 +287,130 @@ export const productApi = {
 
     return response.json();
   },
+
+  // Get Out of Stock Products
+  getOutOfStock: async (params?: {
+    page?: number;
+    limit?: number;
+    search?: string;
+  }) => {
+    const searchParams = new URLSearchParams();
+    if (params?.page) searchParams.append("page", params.page.toString());
+    if (params?.limit) searchParams.append("limit", params.limit.toString());
+    if (params?.search) searchParams.append("search", params.search);
+
+    const response = await fetch(
+      `${API_BASE_URL}/products/inventory/out-of-stock?${searchParams}`,
+      {
+        headers: {
+          // TODO: Add Authorization header when auth is implemented
+          // 'Authorization': `Bearer ${token}`,
+        },
+      }
+    );
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(
+        errorData.message || `HTTP error! status: ${response.status}`
+      );
+    }
+
+    return response.json();
+  },
+
+  // Get Expired Products
+  getExpired: async (params?: {
+    page?: number;
+    limit?: number;
+    search?: string;
+  }) => {
+    const searchParams = new URLSearchParams();
+    if (params?.page) searchParams.append("page", params.page.toString());
+    if (params?.limit) searchParams.append("limit", params.limit.toString());
+    if (params?.search) searchParams.append("search", params.search);
+
+    const response = await fetch(
+      `${API_BASE_URL}/products/inventory/expired?${searchParams}`,
+      {
+        headers: {
+          // TODO: Add Authorization header when auth is implemented
+          // 'Authorization': `Bearer ${token}`,
+        },
+      }
+    );
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(
+        errorData.message || `HTTP error! status: ${response.status}`
+      );
+    }
+
+    return response.json();
+  },
+
+  // Get Products Close to Expiry
+  getCloseToExpiry: async (params?: {
+    page?: number;
+    limit?: number;
+    search?: string;
+  }) => {
+    const searchParams = new URLSearchParams();
+    if (params?.page) searchParams.append("page", params.page.toString());
+    if (params?.limit) searchParams.append("limit", params.limit.toString());
+    if (params?.search) searchParams.append("search", params.search);
+
+    const response = await fetch(
+      `${API_BASE_URL}/products/inventory/close-to-expiry?${searchParams}`,
+      {
+        headers: {
+          // TODO: Add Authorization header when auth is implemented
+          // 'Authorization': `Bearer ${token}`,
+        },
+      }
+    );
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(
+        errorData.message || `HTTP error! status: ${response.status}`
+      );
+    }
+
+    return response.json();
+  },
+
+  // Get Long Unsold Products
+  getLongUnsold: async (params?: {
+    page?: number;
+    limit?: number;
+    daysThreshold?: number;
+    search?: string;
+  }) => {
+    const searchParams = new URLSearchParams();
+    if (params?.page) searchParams.append("page", params.page.toString());
+    if (params?.limit) searchParams.append("limit", params.limit.toString());
+    if (params?.daysThreshold) searchParams.append("daysThreshold", params.daysThreshold.toString());
+    if (params?.search) searchParams.append("search", params.search);
+
+    const response = await fetch(
+      `${API_BASE_URL}/products/inventory/long-unsold?${searchParams}`,
+      {
+        headers: {
+          // TODO: Add Authorization header when auth is implemented
+          // 'Authorization': `Bearer ${token}`,
+        },
+      }
+    );
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(
+        errorData.message || `HTTP error! status: ${response.status}`
+      );
+    }
+
+    return response.json();
+  },
 };

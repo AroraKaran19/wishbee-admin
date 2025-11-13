@@ -4,43 +4,68 @@ import React, { useState, useEffect } from 'react';
 import { SearchBar } from '@/components/ui/search-bar';
 import { OrderTable } from './order-table';
 import { OrderSummaryCards } from './order-summary-cards';
-import { orderApi, convertApiOrderToUIOrder, convertAnalyticsToOrderSummary } from '@/lib/api/orders';
+import { orderApi, convertApiOrderToUIOrder, convertStatsToOrderSummary } from '@/lib/api/orders';
 import { Order, OrderSummary } from '@/lib/types';
 import { Upload } from 'lucide-react';
 
 export function OrderPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
   const [orders, setOrders] = useState<Order[]>([]);
   const [orderSummary, setOrderSummary] = useState<OrderSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [totalPages, setTotalPages] = useState(1);
   const itemsPerPage = 10;
-  
-  // Fetch orders and analytics on component mount
+
+  // Debounce search query - update debouncedSearchQuery after 500ms of no typing
   useEffect(() => {
-    const fetchData = async () => {
+    const timeoutId = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery);
+      setCurrentPage(1); // Reset to first page when search changes
+    }, 500);
+
+    // Cleanup function
+    return () => {
+      clearTimeout(timeoutId);
+    };
+  }, [searchQuery]);
+
+  // Fetch order stats (summary cards) - only once on mount
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const stats = await orderApi.getStats();
+        const summary = convertStatsToOrderSummary(stats);
+        setOrderSummary(summary);
+      } catch (err) {
+        console.error('Error fetching order stats:', err);
+        // Don't show error for stats, just log it
+      }
+    };
+
+    fetchStats();
+  }, []);
+
+  // Fetch orders with pagination and search
+  useEffect(() => {
+    const fetchOrders = async () => {
       try {
         setLoading(true);
         setError(null);
         
-        // Fetch orders with pagination
+        // Fetch orders with pagination and debounced search
         const orderResponse = await orderApi.getAll({
           page: currentPage,
           limit: itemsPerPage,
-          search: searchQuery || undefined,
+          search: debouncedSearchQuery || undefined,
         });
         
         // Convert API orders to UI format
         const uiOrders = orderResponse.orders.map(convertApiOrderToUIOrder);
         setOrders(uiOrders);
         setTotalPages(orderResponse.pagination.pages);
-        
-        // Fetch order analytics for summary cards
-        const analytics = await orderApi.getAnalytics();
-        const summary = convertAnalyticsToOrderSummary(analytics);
-        setOrderSummary(summary);
         
       } catch (err) {
         console.error('Error fetching orders:', err);
@@ -50,29 +75,22 @@ export function OrderPage() {
       }
     };
 
-    fetchData();
-  }, [currentPage, searchQuery]);
-  
-  // Filter orders based on search query (client-side filtering for better UX)
-  const filteredOrders = orders.filter(order => 
-    order.orderId.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    order.customer.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    order.items.some(item => 
-      item.productName.toLowerCase().includes(searchQuery.toLowerCase())
-    )
-  );
+    fetchOrders();
+  }, [currentPage, debouncedSearchQuery]);
 
   const handlePageChange = (page: number) => {
-    setCurrentPage(page);
+    if (page >= 1 && page <= totalPages) {
+      setCurrentPage(page);
+    }
   };
 
   const handleSearch = (query: string) => {
     setSearchQuery(query);
-    setCurrentPage(1);
+    // Don't reset currentPage here - let the debounced effect handle it
   };
 
   const handleOrderUpdate = async (orderId: string, newStatus: string) => {
-    // Refetch orders and analytics after status update
+    // Refetch orders and stats after status update
     try {
       setLoading(true);
       setError(null);
@@ -81,7 +99,7 @@ export function OrderPage() {
       const orderResponse = await orderApi.getAll({
         page: currentPage,
         limit: itemsPerPage,
-        search: searchQuery || undefined,
+        search: debouncedSearchQuery || undefined,
       });
       
       // Convert API orders to UI format
@@ -89,9 +107,9 @@ export function OrderPage() {
       setOrders(uiOrders);
       setTotalPages(orderResponse.pagination.pages);
       
-      // Fetch updated analytics
-      const analytics = await orderApi.getAnalytics();
-      const summary = convertAnalyticsToOrderSummary(analytics);
+      // Fetch updated stats
+      const stats = await orderApi.getStats();
+      const summary = convertStatsToOrderSummary(stats);
       setOrderSummary(summary);
       
     } catch (err) {
@@ -107,7 +125,7 @@ export function OrderPage() {
     const headers = ['Order ID', 'Amount', 'Customer', 'Status', 'Payment', 'Delivery Date'];
     const csvContent = [
       headers.join(','),
-      ...filteredOrders.map(order => [
+      ...orders.map(order => [
         order.orderId,
         order.amount,
         order.customer,
@@ -125,53 +143,6 @@ export function OrderPage() {
     a.click();
     window.URL.revokeObjectURL(url);
   };
-
-  // Show loading state
-  if (loading) {
-    return (
-      <div className="space-y-6 h-full flex flex-col">
-        <div className="flex-shrink-0">
-          <h1 className="text-xl font-bold text-gray-900">Overall Orders</h1>
-          <p className="text-gray-500 mt-1 text-sm">
-            View, filter, and manage all customer orders from one place.
-          </p>
-        </div>
-        <div className="flex-1 flex items-center justify-center">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-            <p className="mt-4 text-gray-600">Loading orders...</p>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // Show error state
-  if (error) {
-    return (
-      <div className="space-y-6 h-full flex flex-col">
-        <div className="flex-shrink-0">
-          <h1 className="text-xl font-bold text-gray-900">Overall Orders</h1>
-          <p className="text-gray-500 mt-1 text-sm">
-            View, filter, and manage all customer orders from one place.
-          </p>
-        </div>
-        <div className="flex-1 flex items-center justify-center">
-          <div className="text-center">
-            <div className="text-red-600 text-6xl mb-4">⚠️</div>
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">Error Loading Orders</h3>
-            <p className="text-gray-600 mb-4">{error}</p>
-            <button 
-              onClick={() => window.location.reload()} 
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-            >
-              Try Again
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="space-y-6 h-full flex flex-col">
@@ -192,6 +163,7 @@ export function OrderPage() {
             placeholder="Search by: Order ID, Customer Name, Product"
             onSearch={handleSearch}
             onSearchChange={setSearchQuery}
+            searchValue={searchQuery}
             actions={[
               {
                 key: 'export',
@@ -205,13 +177,39 @@ export function OrderPage() {
         </div>
         
         <div className="flex-1 min-h-0">
-          <OrderTable
-            orders={filteredOrders}
-            currentPage={currentPage}
-            totalPages={totalPages}
-            onPageChange={handlePageChange}
-            onOrderUpdate={handleOrderUpdate}
-          />
+          {error && (
+            <div className="p-4 bg-red-50 border border-red-200 rounded-lg mb-4">
+              <p className="text-red-600 text-sm">{error}</p>
+            </div>
+          )}
+          
+          {loading ? (
+            <div className="flex items-center justify-center h-64">
+              <div className="text-center">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                <p className="text-gray-500">Loading orders...</p>
+              </div>
+            </div>
+          ) : orders.length === 0 ? (
+            <div className="flex items-center justify-center h-64">
+              <div className="text-center">
+                <p className="text-gray-500 text-lg mb-2">No orders found</p>
+                <p className="text-gray-400 text-sm">
+                  {debouncedSearchQuery
+                    ? 'Try adjusting your search terms'
+                    : 'No orders available'}
+                </p>
+              </div>
+            </div>
+          ) : (
+            <OrderTable
+              orders={orders}
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={handlePageChange}
+              onOrderUpdate={handleOrderUpdate}
+            />
+          )}
         </div>
       </div>
     </div>
