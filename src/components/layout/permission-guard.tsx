@@ -73,7 +73,7 @@ export function PermissionGuard({
               Access Denied
             </h2>
             <p className="text-gray-600 mb-4">
-              You don't have permission to access this page.
+              You don&apos;t have permission to access this page.
             </p>
             <button
               onClick={() => router.push("/dashboard")}
