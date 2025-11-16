@@ -3,6 +3,8 @@
 import React from "react";
 import { useRouter } from "next/navigation";
 import { DashboardLayout } from "@/components/layout/dashboard-layout";
+import { PermissionGuard } from "@/components/layout/permission-guard";
+import { ADMIN_PERMISSIONS } from "@/lib/constants/permissions";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Package, Layers, Plus } from "lucide-react";
@@ -12,7 +14,8 @@ export default function InventoryAddPage() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6">
+      <PermissionGuard requiredPermission={ADMIN_PERMISSIONS.INVENTORY}>
+        <div className="space-y-6">
         <div className="flex items-center gap-3 mb-2">
           <button
             onClick={() => router.push("/inventory")}
@@ -56,7 +59,7 @@ export default function InventoryAddPage() {
           </CardContent>
         </Card>
 
-        <Card className="hover:shadow-lg transition-shadow cursor-pointer group">
+        {/* <Card className="hover:shadow-lg transition-shadow cursor-pointer group">
           <CardContent className="p-6">
             <div className="flex flex-col items-center text-center space-y-4">
               <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center group-hover:bg-green-200 transition-colors">
@@ -81,8 +84,9 @@ export default function InventoryAddPage() {
               </Button>
             </div>
           </CardContent>
-        </Card>
+        </Card> */}
       </div>
+      </PermissionGuard>
     </DashboardLayout>
   );
 }

@@ -1,10 +1,14 @@
-import { PlaceholderPage } from '@/components/dashboard/placeholder-page';
+import { DashboardLayout } from '@/components/layout/dashboard-layout';
+import { PermissionGuard } from '@/components/layout/permission-guard';
+import { AdminsPage as AdminsPageComponent } from "@/components/admins/admins-page";
+import { ADMIN_PERMISSIONS } from '@/lib/constants/permissions';
 
 export default function AdminsPage() {
   return (
-    <PlaceholderPage 
-      title="Admins" 
-      description="Manage admin users and their permissions."
-    />
+    <DashboardLayout>
+      <PermissionGuard requiredPermission={ADMIN_PERMISSIONS.ADMINS}>
+        <AdminsPageComponent />
+      </PermissionGuard>
+    </DashboardLayout>
   );
 }

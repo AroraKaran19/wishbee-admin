@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import { Sidebar } from "./sidebar";
+import { ProtectedRoute } from "./protected-route";
 import { Menu, X } from "lucide-react";
 import Image from "next/image";
 
@@ -21,6 +22,7 @@ export function DashboardLayout({
   };
 
   return (
+    <ProtectedRoute>
     <div className="h-screen bg-gray-50 overflow-hidden">
       {/* Mobile Navbar */}
       <div className={`lg:hidden fixed top-0 left-0 right-0 bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between transition-all ${
@@ -76,5 +78,6 @@ export function DashboardLayout({
         </main>
       </div>
     </div>
+    </ProtectedRoute>
   );
 }

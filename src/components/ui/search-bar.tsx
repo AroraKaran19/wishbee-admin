@@ -35,7 +35,7 @@ export function SearchBar({
   onVoiceSearch,
   actions = [],
   showVoiceSearch = true,
-  showFilter = true,
+  showFilter = false,
   className = "",
   searchValue = "",
   onSearchChange
@@ -62,24 +62,8 @@ export function SearchBar({
     onFilter?.();
   };
 
-  const defaultActions: SearchBarAction[] = [
-    {
-      key: 'add',
-      label: 'Add Products',
-      icon: <Plus className="w-4 h-4" />,
-      variant: 'primary',
-      onClick: () => console.log('Add products clicked')
-    },
-    {
-      key: 'export',
-      label: 'Export CSV',
-      icon: <Upload className="w-4 h-4" />,
-      variant: 'danger',
-      onClick: () => console.log('Export CSV clicked')
-    }
-  ];
-
-  const allActions = actions.length > 0 ? actions : defaultActions;
+  // No default actions - actions must be explicitly passed
+  const allActions = actions;
 
   const handleActionClick = (action: SearchBarAction) => {
     if (action.href) {
@@ -134,8 +118,8 @@ export function SearchBar({
         )}
       </div>
 
-      {/* Action Buttons */}
-      {allActions.length > 0 && (
+      {/* Action Buttons - Only show if actions are explicitly provided */}
+      {allActions && allActions.length > 0 && (
         <div className="flex items-center gap-2 flex-shrink-0">
           {allActions.map((action) => (
             <Button

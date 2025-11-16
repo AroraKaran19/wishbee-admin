@@ -5,6 +5,8 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { navigationItems } from "@/lib/data/mockData_new";
+import { useSessionStore } from "@/stores/sessionStore";
+import { canAccessNavItem } from "@/lib/utils/permissions";
 import {
   LayoutDashboard,
   ShoppingCart,
@@ -44,6 +46,8 @@ interface SidebarProps {
 export function Sidebar({ onClose }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
+  const logout = useSessionStore((state) => state.logout);
+  const admin = useSessionStore((state) => state.admin);
   const [expandedItems, setExpandedItems] = useState<string[]>([]);
 
   const toggleExpanded = (itemId: string) => {
@@ -96,15 +100,21 @@ export function Sidebar({ onClose }: SidebarProps) {
 
       <nav className="flex-1 p-4 overflow-y-auto scrollbar-hide">
         <ul className="space-y-1">
-          {navigationItems.map((item) => {
+          {navigationItems
+            .filter((item) => canAccessNavItem(admin, item.id))
+            .map((item) => {
             const IconComponent = iconMap[item.icon as keyof typeof iconMap];
             const isActive =
               pathname === item.href ||
-              (item.href === "/inventory" && pathname.startsWith("/inventory")) ||
+              (item.href === "/inventory" &&
+                pathname.startsWith("/inventory")) ||
               // (item.href === "/auto-reorders" && pathname.startsWith("/auto-reorders")) ||
-              (item.href === "/offers-banners" && pathname.startsWith("/offers-banners")) ||
-              (item.href === "/analytics" && pathname.startsWith("/analytics")) ||
-              (item.href === "/most-selling" && pathname.startsWith("/most-selling"));
+              (item.href === "/offers-banners" &&
+                pathname.startsWith("/offers-banners")) ||
+              (item.href === "/analytics" &&
+                pathname.startsWith("/analytics")) ||
+              (item.href === "/most-selling" &&
+                pathname.startsWith("/most-selling"));
             const isExpanded = isItemExpanded(item.id);
 
             return (
@@ -214,9 +224,15 @@ export function Sidebar({ onClose }: SidebarProps) {
 
       <div className="p-4 border-t border-gray-200">
         <button
-          onClick={() => {
-            // Handle logout
-            console.log('Logout clicked');
+          onClick={async () => {
+            try {
+              await logout();
+              router.push("/login");
+            } catch (error) {
+              console.error("Logout error:", error);
+              // Still redirect to login even if logout fails
+              router.push("/login");
+            }
           }}
           className="w-full flex items-center gap-3 px-3 py-3 rounded-lg text-sm font-medium text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
         >

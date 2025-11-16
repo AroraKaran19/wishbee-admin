@@ -31,7 +31,8 @@ export const customerApi = {
     if (filters.limit) params.append("limit", filters.limit.toString());
     if (filters.search) params.append("search", filters.search);
     if (filters.role) params.append("role", filters.role);
-    if (filters.isActive !== undefined) params.append("isActive", filters.isActive.toString());
+    if (filters.isActive !== undefined)
+      params.append("isActive", filters.isActive.toString());
     if (filters.sortBy) params.append("sortBy", filters.sortBy);
     if (filters.sortOrder) params.append("sortOrder", filters.sortOrder);
 
@@ -87,19 +88,22 @@ export const customerApi = {
   },
 
   // Update customer (Admin)
-  update: async (userId: string, data: {
-    firstName?: string;
-    lastName?: string;
-    photo?: string;
-    email?: string;
-    gender?: "MALE" | "FEMALE" | "OTHER";
-    isActive?: boolean;
-    gstNumber?: string;
-    storeName?: string;
-    loyaltyTier?: "BRONZE" | "SILVER" | "GOLD" | "PLATINUM" | "DIAMOND";
-    loyaltyPoints?: number;
-    password?: string;
-  }): Promise<Customer> => {
+  update: async (
+    userId: string,
+    data: {
+      firstName?: string;
+      lastName?: string;
+      photo?: string;
+      email?: string;
+      gender?: "MALE" | "FEMALE" | "OTHER";
+      isActive?: boolean;
+      gstNumber?: string;
+      storeName?: string;
+      loyaltyTier?: "BRONZE" | "SILVER" | "GOLD" | "PLATINUM" | "DIAMOND";
+      loyaltyPoints?: number;
+      password?: string;
+    }
+  ): Promise<Customer> => {
     const response = await fetch(`${API_BASE_URL}/users/${userId}`, {
       method: "PATCH",
       headers: {
@@ -139,21 +143,88 @@ export const customerApi = {
       );
     }
   },
+
+  // Update admin permissions (Admin with ADMINS permission)
+  updatePermissions: async (
+    token: string,
+    adminId: string,
+    permissions: string[]
+  ): Promise<any> => {
+    const response = await fetch(
+      `${API_BASE_URL}/users/${adminId}/permissions`,
+      {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ permissions }),
+      }
+    );
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(
+        errorData.message ||
+          `Failed to update permissions: ${response.statusText}`
+      );
+    }
+
+    const result = await response.json();
+    return result.data;
+  },
+
+  // Create Admin (SUPER_ADMIN only)
+  createAdmin: async (
+    token: string,
+    data: {
+      email: string;
+      password: string;
+      firstName?: string;
+      lastName?: string;
+      photo?: string;
+      gender?: "MALE" | "FEMALE" | "OTHER";
+      permissions?: string[];
+      isActive?: boolean;
+    }
+  ): Promise<any> => {
+    const response = await fetch(`${API_BASE_URL}/users/admins`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(data),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(
+        errorData.message || `Failed to create admin: ${response.statusText}`
+      );
+    }
+
+    const result = await response.json();
+    return result.data;
+  },
 };
 
 // Helper function to convert API customer to UI customer format
 export const convertApiCustomerToUICustomer = (apiUser: any): Customer => {
   // Calculate total spend from orders (if available)
   const totalSpend = apiUser.totalSpend || apiUser.totalRevenue || 0;
-  
+
   // Calculate total orders from orders array length
-  const totalOrders = apiUser.orders?.length || apiUser.totalOrders || apiUser.ordersCount || 0;
-  
+  const totalOrders =
+    apiUser.orders?.length || apiUser.totalOrders || apiUser.ordersCount || 0;
+
   // Calculate average order value
   const averageOrderValue = totalOrders > 0 ? totalSpend / totalOrders : 0;
-  
+
   // Map loyalty tier from API (BRONZE, SILVER, GOLD, PLATINUM) to UI format
-  const mapLoyaltyTier = (tier?: string): "Bronze" | "Silver" | "Gold" | "Platinum" => {
+  const mapLoyaltyTier = (
+    tier?: string
+  ): "Bronze" | "Silver" | "Gold" | "Platinum" => {
     if (!tier) {
       // Fallback: Determine loyalty tier based on total spend if not provided
       if (totalSpend >= 50000) return "Platinum";
@@ -163,10 +234,10 @@ export const convertApiCustomerToUICustomer = (apiUser: any): Customer => {
     }
     // Map API tier to UI format
     const tierMap: Record<string, "Bronze" | "Silver" | "Gold" | "Platinum"> = {
-      "BRONZE": "Bronze",
-      "SILVER": "Silver",
-      "GOLD": "Gold",
-      "PLATINUM": "Platinum",
+      BRONZE: "Bronze",
+      SILVER: "Silver",
+      GOLD: "Gold",
+      PLATINUM: "Platinum",
     };
     return tierMap[tier.toUpperCase()] || "Bronze";
   };
@@ -175,10 +246,10 @@ export const convertApiCustomerToUICustomer = (apiUser: any): Customer => {
   const formatDate = (dateString?: string) => {
     if (!dateString) return "N/A";
     try {
-      return new Date(dateString).toLocaleDateString('en-IN', {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric',
+      return new Date(dateString).toLocaleDateString("en-IN", {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
       });
     } catch {
       return dateString;
@@ -186,7 +257,9 @@ export const convertApiCustomerToUICustomer = (apiUser: any): Customer => {
   };
 
   // Get status
-  const getStatus = (isActive?: boolean): "Active" | "Inactive" | "Suspended" => {
+  const getStatus = (
+    isActive?: boolean
+  ): "Active" | "Inactive" | "Suspended" => {
     if (isActive === false) return "Inactive";
     // You might want to add a suspended field check here
     return "Active";
@@ -209,7 +282,9 @@ export const convertApiCustomerToUICustomer = (apiUser: any): Customer => {
 
   // Get customer ID (use _id or phoneNumber)
   const getCustomerId = (user: any): string => {
-    return user.customerId || user.refId || user._id || user.phoneNumber || "N/A";
+    return (
+      user.customerId || user.refId || user._id || user.phoneNumber || "N/A"
+    );
   };
 
   // Get last order date from orders array (would need to fetch order details)
@@ -232,12 +307,14 @@ export const convertApiCustomerToUICustomer = (apiUser: any): Customer => {
     totalOrders: totalOrders,
     averageOrderValue: averageOrderValue,
     preferredCategories: apiUser.preferredCategories || [],
-    address: apiUser.addresses && apiUser.addresses.length > 0 ? {
-      street: apiUser.addresses[0].addressLine || "",
-      city: apiUser.addresses[0].city || "",
-      state: apiUser.addresses[0].state || "",
-      pincode: apiUser.addresses[0].postalCode || "",
-    } : undefined,
+    address:
+      apiUser.addresses && apiUser.addresses.length > 0
+        ? {
+            street: apiUser.addresses[0].addressLine || "",
+            city: apiUser.addresses[0].city || "",
+            state: apiUser.addresses[0].state || "",
+            pincode: apiUser.addresses[0].postalCode || "",
+          }
+        : undefined,
   };
 };
-

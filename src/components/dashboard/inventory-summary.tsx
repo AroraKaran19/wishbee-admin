@@ -155,6 +155,7 @@ export function InventorySummary() {
           placeholder="Search by: Product Name, Category, Brand"
           onSearch={handleSearch}
           onSearchChange={setSearchQuery}
+          showFilter={true}
           actions={[
             {
               key: "add",

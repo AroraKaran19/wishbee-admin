@@ -1,7 +1,9 @@
 import { notFound } from 'next/navigation';
 import { DashboardLayout } from '@/components/layout/dashboard-layout';
+import { PermissionGuard } from '@/components/layout/permission-guard';
 import { ProductDetailPage } from '@/components/product/product-detail-page';
 import { productApi } from '@/lib/api/products';
+import { ADMIN_PERMISSIONS } from '@/lib/constants/permissions';
 
 interface ProductIndividualPageProps {
   params: Promise<{
@@ -22,7 +24,9 @@ export default async function ProductDetailPageRoute({ params }: ProductIndividu
 
     return (
       <DashboardLayout>
-        <ProductDetailPage product={product} />
+        <PermissionGuard requiredPermission={ADMIN_PERMISSIONS.INVENTORY}>
+          <ProductDetailPage product={product} />
+        </PermissionGuard>
       </DashboardLayout>
     );
   } catch (error) {

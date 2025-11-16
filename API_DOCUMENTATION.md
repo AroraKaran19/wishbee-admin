@@ -106,12 +106,19 @@
       "email": "string",
       "role": "ADMIN",
       "isActive": true,
+      "permissions": ["DASHBOARD", "ORDERS", "CUSTOMERS", "INVENTORY"],
       "createdAt": "2024-01-01T00:00:00.000Z",
       "updatedAt": "2024-01-01T00:00:00.000Z"
     },
     "message": "Admin logged in successfully"
   }
   ```
+- **Note**:
+  - Refresh token is automatically set in HTTP-only cookie
+  - Returns `permissions` array containing the admin's assigned permissions
+  - `SUPER_ADMIN` users will have all permissions (handled on frontend)
+  - If admin has no permissions assigned, returns empty array `[]`
+  - Returns 401 error if account is not active
 
 ### Generate Access Token
 
@@ -170,7 +177,7 @@
 - **API**: `GET /api/user/profile`
 - **Access**: User
 - **Request**: None (requires Bearer token in Authorization header)
-- **Response**:
+- **Response** (Customer):
   ```json
   {
     "success": true,
@@ -182,22 +189,46 @@
       "firstName": "string",
       "lastName": "string",
       "photo": "string",
-      "addresses": [
-        {
-          "street": "string",
-          "city": "string",
-          "state": "string",
-          "postalCode": "string",
-          "country": "string",
-          "isDefault": true
-        }
-      ],
-      "createdAt": "2024-01-01T00:00:00.000Z",
-      "updatedAt": "2024-01-01T00:00:00.000Z"
+      "gstNumber": "string",
+      "storeName": "string",
+      "loyaltyTier": "BRONZE",
+      "loyaltyPoints": 100,
+      "defaultAddress": {
+        "type": "HOME",
+        "addressLine": "string",
+        "city": "string",
+        "state": "string",
+        "postalCode": "string",
+        "country": "string",
+        "isDefault": true
+      },
+      "joinedAt": "2024-01-01T00:00:00.000Z"
     },
     "message": "Profile fetched successfully"
   }
   ```
+- **Response** (Admin):
+  ```json
+  {
+    "success": true,
+    "data": {
+      "_id": "string",
+      "email": "string",
+      "role": "ADMIN",
+      "isActive": true,
+      "firstName": "string",
+      "lastName": "string",
+      "photo": "string",
+      "permissions": ["DASHBOARD", "ORDERS", "CUSTOMERS", "INVENTORY"],
+      "joinedAt": "2024-01-01T00:00:00.000Z"
+    },
+    "message": "Profile fetched successfully"
+  }
+  ```
+- **Note**:
+  - For admin users, the response includes `permissions` array
+  - For customer users, the response includes customer-specific fields like `gstNumber`, `storeName`, `loyaltyTier`, `loyaltyPoints`, and `defaultAddress`
+  - `SUPER_ADMIN` users will have permissions array (handled on frontend as all permissions)
 
 ### Update Profile
 
@@ -493,6 +524,128 @@
     "message": "User updated successfully"
   }
   ```
+
+### Create Admin (SUPER_ADMIN only)
+
+- **API**: `POST /api/users/admins`
+- **Access**: Private (SUPER_ADMIN only)
+- **Request**:
+  ```json
+  {
+    "email": "admin@example.com",
+    "password": "password123",
+    "firstName": "John",
+    "lastName": "Doe",
+    "photo": "string",
+    "gender": "MALE",
+    "permissions": ["DASHBOARD", "ORDERS", "CUSTOMERS", "INVENTORY"],
+    "isActive": true
+  }
+  ```
+- **Note**:
+  - Only `SUPER_ADMIN` users can create new admin accounts
+  - `email` and `password` are required fields
+  - `password` must be at least 6 characters long
+  - `email` must be a valid email format
+  - `firstName`, `lastName`, `photo`, `gender`, `permissions`, and `isActive` are optional
+  - `gender` must be one of: "MALE", "FEMALE", "OTHER"
+  - `permissions` must be an array of valid permission constants (see below)
+  - `isActive` defaults to `true` if not provided
+  - Password is automatically hashed using bcrypt before storing
+  - Email must be unique (cannot create admin with existing email)
+  - Valid permission constants are:
+    - `DASHBOARD` - Dashboard access
+    - `INVENTORY` - Inventory management
+    - `ORDERS` - Orders management
+    - `CUSTOMERS` - Customers management
+    - `OFFERS_BANNERS` - Offers & Banners management
+    - `ANALYTICS` - Analytics access
+    - `MOST_SELLING` - Most Selling products
+    - `SETTINGS` - Settings access
+    - `ADMINS` - Admin management
+    - `SUPPORT` - Support/Enquiries access
+  - Invalid permissions will be filtered out automatically
+  - Empty permissions array is allowed (creates admin with no permissions)
+- **Response**:
+  ```json
+  {
+    "success": true,
+    "data": {
+      "_id": "string",
+      "email": "admin@example.com",
+      "photo": "string",
+      "gender": "MALE",
+      "firstName": "John",
+      "lastName": "Doe",
+      "role": "ADMIN",
+      "isActive": true,
+      "permissions": ["DASHBOARD", "ORDERS", "CUSTOMERS", "INVENTORY"],
+      "createdAt": "2024-01-01T00:00:00.000Z",
+      "updatedAt": "2024-01-01T00:00:00.000Z"
+    },
+    "message": "Admin created successfully"
+  }
+  ```
+- **Error Responses**:
+  - `400` - Bad Request: Missing required fields, invalid email format, password too short, invalid permissions, or email already exists
+  - `401` - Unauthorized: User not authenticated
+  - `403` - Forbidden: User is not a SUPER_ADMIN
+
+### Update Admin Permissions (Admin with ADMINS permission)
+
+- **API**: `PATCH /api/users/:adminId/permissions`
+- **Access**: Private (Admin with ADMINS permission)
+- **Parameters**:
+  - `adminId` (string) - Admin user ID to update permissions for
+- **Request**:
+  ```json
+  {
+    "permissions": ["DASHBOARD", "ORDERS", "CUSTOMERS", "INVENTORY"]
+  }
+  ```
+- **Note**:
+  - Only admins with the `ADMINS` permission can use this endpoint
+  - `SUPER_ADMIN` users automatically have access to all permissions
+  - `permissions` must be an array of valid permission constants
+  - Valid permission constants are:
+    - `DASHBOARD` - Dashboard access
+    - `INVENTORY` - Inventory management
+    - `ORDERS` - Orders management
+    - `CUSTOMERS` - Customers management
+    - `OFFERS_BANNERS` - Offers & Banners management
+    - `ANALYTICS` - Analytics access
+    - `MOST_SELLING` - Most Selling products
+    - `SETTINGS` - Settings access
+    - `ADMINS` - Admin management
+    - `SUPPORT` - Support/Enquiries access
+  - Invalid permissions will be filtered out automatically
+  - Empty array is allowed (removes all permissions from the admin)
+  - The target user must be an admin (not a customer)
+- **Response**:
+  ```json
+  {
+    "success": true,
+    "data": {
+      "_id": "string",
+      "email": "string",
+      "photo": "string",
+      "gender": "MALE",
+      "firstName": "string",
+      "lastName": "string",
+      "role": "ADMIN",
+      "isActive": true,
+      "permissions": ["DASHBOARD", "ORDERS", "CUSTOMERS", "INVENTORY"],
+      "createdAt": "2024-01-01T00:00:00.000Z",
+      "updatedAt": "2024-01-01T00:00:00.000Z"
+    },
+    "message": "Admin permissions updated successfully"
+  }
+  ```
+- **Error Responses**:
+  - `400` - Bad Request: Missing adminId, missing permissions array, or invalid permissions
+  - `401` - Unauthorized: User not authenticated or not an admin
+  - `403` - Forbidden: User does not have ADMINS permission
+  - `404` - Not Found: Admin user not found
 
 ---
 
@@ -2839,19 +2992,19 @@
     "message": "Most selling page data retrieved successfully"
   }
   ```
-- **Note**: 
-  - **Sale Performance**: 
+- **Note**:
+  - **Sale Performance**:
     - Sales amount and growth percentage compared to previous period
     - Chart data grouped by selected period type (daily, weekly, monthly, etc.)
     - Period label is human-readable (e.g., "This Month", "This Year")
-  - **Top Selling Products**: 
+  - **Top Selling Products**:
     - Top 20 products by sold quantity (last 30 days)
     - Includes sold quantity, revenue, and remaining stock
-  - **Least Selling Products**: 
+  - **Least Selling Products**:
     - Products with low or zero sales (sold quantity < 5)
     - Includes days since last order (null if never sold)
     - Sorted by days since last order (most recent first)
-  - **Short to Expiry Products**: 
+  - **Short to Expiry Products**:
     - Products expiring in the next 30 days
     - Includes expiry date, days left, and current stock
     - Sorted by expiry date (earliest first)
