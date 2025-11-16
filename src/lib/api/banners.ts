@@ -1,3 +1,5 @@
+import { getAuthHeaders } from '@/lib/utils/auth';
+
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_BACKEND_URL || 'https://wishbee-web.vercel.app/api';
 
@@ -45,11 +47,7 @@ export const bannerApi = {
     const url = `${API_BASE_URL}/banners${searchParams.toString() ? `?${searchParams.toString()}` : ''}`;
     const response = await fetch(url, {
       method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        // TODO: Add Authorization header when auth is implemented
-        // 'Authorization': `Bearer ${token}`,
-      },
+      headers: getAuthHeaders(),
     });
 
     if (!response.ok) {
@@ -91,11 +89,7 @@ export const bannerApi = {
   getById: async (bannerId: string): Promise<Banner> => {
     const response = await fetch(`${API_BASE_URL}/banners/${bannerId}`, {
       method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        // TODO: Add Authorization header when auth is implemented
-        // 'Authorization': `Bearer ${token}`,
-      },
+      headers: getAuthHeaders(),
     });
 
     if (!response.ok) {
@@ -113,11 +107,7 @@ export const bannerApi = {
   create: async (data: CreateBannerData): Promise<Banner> => {
     const response = await fetch(`${API_BASE_URL}/banners`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        // TODO: Add Authorization header when auth is implemented
-        // 'Authorization': `Bearer ${token}`,
-      },
+      headers: getAuthHeaders(),
       body: JSON.stringify(data),
     });
 
@@ -136,11 +126,7 @@ export const bannerApi = {
   update: async (bannerId: string, data: UpdateBannerData): Promise<Banner> => {
     const response = await fetch(`${API_BASE_URL}/banners/${bannerId}`, {
       method: 'PATCH',
-      headers: {
-        'Content-Type': 'application/json',
-        // TODO: Add Authorization header when auth is implemented
-        // 'Authorization': `Bearer ${token}`,
-      },
+      headers: getAuthHeaders(),
       body: JSON.stringify(data),
     });
 
@@ -159,11 +145,7 @@ export const bannerApi = {
   delete: async (bannerId: string): Promise<void> => {
     const response = await fetch(`${API_BASE_URL}/banners/${bannerId}`, {
       method: 'DELETE',
-      headers: {
-        'Content-Type': 'application/json',
-        // TODO: Add Authorization header when auth is implemented
-        // 'Authorization': `Bearer ${token}`,
-      },
+      headers: getAuthHeaders(),
     });
 
     if (!response.ok) {
@@ -178,11 +160,7 @@ export const bannerApi = {
   reorder: async (bannerOrders: ReorderBannerData[]): Promise<Banner[]> => {
     const response = await fetch(`${API_BASE_URL}/banners/reorder`, {
       method: 'PATCH',
-      headers: {
-        'Content-Type': 'application/json',
-        // TODO: Add Authorization header when auth is implemented
-        // 'Authorization': `Bearer ${token}`,
-      },
+      headers: getAuthHeaders(),
       body: JSON.stringify({ bannerOrders }),
     });
 

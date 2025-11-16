@@ -1,4 +1,5 @@
 import { Order, OrderSummary } from "@/lib/types";
+import { getAuthHeaders } from '@/lib/utils/auth';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL;
 
@@ -66,11 +67,7 @@ export const orderApi = {
       `${API_BASE_URL}/orders/all?${params.toString()}`,
       {
         method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-          // Add authorization header if needed
-          // 'Authorization': `Bearer ${token}`,
-        },
+        headers: getAuthHeaders(),
       }
     );
 
@@ -96,11 +93,7 @@ export const orderApi = {
       `${API_BASE_URL}/orders/analytics?${params.toString()}`,
       {
         method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-          // Add authorization header if needed
-          // 'Authorization': `Bearer ${token}`,
-        },
+        headers: getAuthHeaders(),
       }
     );
 
@@ -124,11 +117,7 @@ export const orderApi = {
   }> => {
     const response = await fetch(`${API_BASE_URL}/orders/stats`, {
       method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-        // TODO: Add Authorization header when auth is implemented
-        // 'Authorization': `Bearer ${token}`,
-      },
+      headers: getAuthHeaders(),
     });
 
     if (!response.ok) {
@@ -146,11 +135,7 @@ export const orderApi = {
   getById: async (orderId: string): Promise<Order> => {
     const response = await fetch(`${API_BASE_URL}/orders/${orderId}`, {
       method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-        // Add authorization header if needed
-        // 'Authorization': `Bearer ${token}`,
-      },
+      headers: getAuthHeaders(),
     });
 
     if (!response.ok) {
@@ -169,11 +154,7 @@ export const orderApi = {
   ): Promise<Order> => {
     const response = await fetch(`${API_BASE_URL}/orders/${orderId}/status`, {
       method: "PATCH",
-      headers: {
-        "Content-Type": "application/json",
-        // Add authorization header if needed
-        // 'Authorization': `Bearer ${token}`,
-      },
+      headers: getAuthHeaders(),
       body: JSON.stringify({ status, notes }),
     });
 
@@ -189,11 +170,7 @@ export const orderApi = {
   cancel: async (orderId: string, reason: string): Promise<Order> => {
     const response = await fetch(`${API_BASE_URL}/orders/${orderId}/cancel`, {
       method: "PATCH",
-      headers: {
-        "Content-Type": "application/json",
-        // Add authorization header if needed
-        // 'Authorization': `Bearer ${token}`,
-      },
+      headers: getAuthHeaders(),
       body: JSON.stringify({ reason }),
     });
 

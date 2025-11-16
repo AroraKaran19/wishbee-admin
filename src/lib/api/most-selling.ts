@@ -1,3 +1,5 @@
+import { getAuthHeaders } from '@/lib/utils/auth';
+
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_BACKEND_URL || 'https://wishbee-web.vercel.app/api';
 
@@ -54,11 +56,7 @@ export const mostSellingApi = {
 
     const response = await fetch(`${API_BASE_URL}/most-selling?${params.toString()}`, {
       method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        // TODO: Add Authorization header when auth is implemented
-        // 'Authorization': `Bearer ${token}`,
-      },
+      headers: getAuthHeaders(),
     });
 
     if (!response.ok) {

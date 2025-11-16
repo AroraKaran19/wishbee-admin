@@ -1,3 +1,5 @@
+import { getAuthHeaders } from '@/lib/utils/auth';
+
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_BACKEND_URL || 'https://wishbee-web.vercel.app/api';
 
@@ -302,10 +304,7 @@ export const productApi = {
     const response = await fetch(
       `${API_BASE_URL}/products/inventory/out-of-stock?${searchParams}`,
       {
-        headers: {
-          // TODO: Add Authorization header when auth is implemented
-          // 'Authorization': `Bearer ${token}`,
-        },
+        headers: getAuthHeaders(),
       }
     );
 
@@ -333,10 +332,7 @@ export const productApi = {
     const response = await fetch(
       `${API_BASE_URL}/products/inventory/expired?${searchParams}`,
       {
-        headers: {
-          // TODO: Add Authorization header when auth is implemented
-          // 'Authorization': `Bearer ${token}`,
-        },
+        headers: getAuthHeaders(),
       }
     );
 
@@ -364,10 +360,7 @@ export const productApi = {
     const response = await fetch(
       `${API_BASE_URL}/products/inventory/close-to-expiry?${searchParams}`,
       {
-        headers: {
-          // TODO: Add Authorization header when auth is implemented
-          // 'Authorization': `Bearer ${token}`,
-        },
+        headers: getAuthHeaders(),
       }
     );
 
@@ -397,10 +390,7 @@ export const productApi = {
     const response = await fetch(
       `${API_BASE_URL}/products/inventory/long-unsold?${searchParams}`,
       {
-        headers: {
-          // TODO: Add Authorization header when auth is implemented
-          // 'Authorization': `Bearer ${token}`,
-        },
+        headers: getAuthHeaders(),
       }
     );
 

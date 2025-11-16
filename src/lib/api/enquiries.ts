@@ -1,3 +1,5 @@
+import { getAuthHeaders } from '@/lib/utils/auth';
+
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_BACKEND_URL || 'https://wishbee-web.vercel.app/api';
 
@@ -49,11 +51,7 @@ export const enquiryApi = {
 
     const response = await fetch(`${API_BASE_URL}/enquiry/all?${params.toString()}`, {
       method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        // TODO: Add Authorization header when auth is implemented
-        // 'Authorization': `Bearer ${token}`,
-      },
+      headers: getAuthHeaders(),
     });
 
     if (!response.ok) {
@@ -71,11 +69,7 @@ export const enquiryApi = {
   getById: async (enquiryId: string): Promise<Enquiry> => {
     const response = await fetch(`${API_BASE_URL}/enquiry/${enquiryId}`, {
       method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        // TODO: Add Authorization header when auth is implemented
-        // 'Authorization': `Bearer ${token}`,
-      },
+      headers: getAuthHeaders(),
     });
 
     if (!response.ok) {
@@ -96,11 +90,7 @@ export const enquiryApi = {
   ): Promise<Enquiry> => {
     const response = await fetch(`${API_BASE_URL}/enquiry/${enquiryId}`, {
       method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        // TODO: Add Authorization header when auth is implemented
-        // 'Authorization': `Bearer ${token}`,
-      },
+      headers: getAuthHeaders(),
       body: JSON.stringify({ status }),
     });
 
@@ -119,11 +109,7 @@ export const enquiryApi = {
   delete: async (enquiryId: string): Promise<void> => {
     const response = await fetch(`${API_BASE_URL}/enquiry/${enquiryId}`, {
       method: 'DELETE',
-      headers: {
-        'Content-Type': 'application/json',
-        // TODO: Add Authorization header when auth is implemented
-        // 'Authorization': `Bearer ${token}`,
-      },
+      headers: getAuthHeaders(),
     });
 
     if (!response.ok) {

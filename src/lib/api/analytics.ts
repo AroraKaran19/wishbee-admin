@@ -1,3 +1,5 @@
+import { getAuthHeaders } from '@/lib/utils/auth';
+
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_BACKEND_URL || 'https://wishbee-web.vercel.app/api';
 
@@ -99,11 +101,7 @@ export const analyticsApi = {
 
     const response = await fetch(`${API_BASE_URL}/analytics/page?${params.toString()}`, {
       method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        // TODO: Add Authorization header when auth is implemented
-        // 'Authorization': `Bearer ${token}`,
-      },
+      headers: getAuthHeaders(),
     });
 
     if (!response.ok) {
@@ -130,11 +128,7 @@ export const analyticsApi = {
 
     const response = await fetch(`${API_BASE_URL}/analytics/new-customers?${params.toString()}`, {
       method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        // TODO: Add Authorization header when auth is implemented
-        // 'Authorization': `Bearer ${token}`,
-      },
+      headers: getAuthHeaders(),
     });
 
     if (!response.ok) {
@@ -155,11 +149,7 @@ export const analyticsApi = {
 
     const response = await fetch(`${API_BASE_URL}/analytics/total-revenue?${params.toString()}`, {
       method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        // TODO: Add Authorization header when auth is implemented
-        // 'Authorization': `Bearer ${token}`,
-      },
+      headers: getAuthHeaders(),
     });
 
     if (!response.ok) {
@@ -180,11 +170,7 @@ export const analyticsApi = {
 
     const response = await fetch(`${API_BASE_URL}/analytics/total-orders?${params.toString()}`, {
       method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        // TODO: Add Authorization header when auth is implemented
-        // 'Authorization': `Bearer ${token}`,
-      },
+      headers: getAuthHeaders(),
     });
 
     if (!response.ok) {
@@ -211,11 +197,7 @@ export const analyticsApi = {
       `${API_BASE_URL}/analytics/sales-by-category?${params.toString()}`,
       {
         method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          // TODO: Add Authorization header when auth is implemented
-          // 'Authorization': `Bearer ${token}`,
-        },
+        headers: getAuthHeaders(),
       }
     );
 
@@ -237,11 +219,7 @@ export const analyticsApi = {
 
     const response = await fetch(`${API_BASE_URL}/analytics/dashboard?${params.toString()}`, {
       method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        // TODO: Add Authorization header when auth is implemented
-        // 'Authorization': `Bearer ${token}`,
-      },
+      headers: getAuthHeaders(),
     });
 
     if (!response.ok) {

@@ -1,4 +1,5 @@
 import { Customer } from "@/lib/types";
+import { getAuthHeaders } from '@/lib/utils/auth';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL;
 
@@ -40,11 +41,7 @@ export const customerApi = {
       `${API_BASE_URL}/users/all?${params.toString()}`,
       {
         method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-          // TODO: Add Authorization header when auth is implemented
-          // 'Authorization': `Bearer ${token}`,
-        },
+        headers: getAuthHeaders(),
       }
     );
 
@@ -63,11 +60,7 @@ export const customerApi = {
   getById: async (userId: string): Promise<any> => {
     const response = await fetch(`${API_BASE_URL}/users/${userId}`, {
       method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-        // TODO: Add Authorization header when auth is implemented
-        // 'Authorization': `Bearer ${token}`,
-      },
+      headers: getAuthHeaders(),
     });
 
     if (!response.ok) {
@@ -106,11 +99,7 @@ export const customerApi = {
   ): Promise<Customer> => {
     const response = await fetch(`${API_BASE_URL}/users/${userId}`, {
       method: "PATCH",
-      headers: {
-        "Content-Type": "application/json",
-        // TODO: Add Authorization header when auth is implemented
-        // 'Authorization': `Bearer ${token}`,
-      },
+      headers: getAuthHeaders(),
       body: JSON.stringify(data),
     });
 
@@ -129,11 +118,7 @@ export const customerApi = {
   delete: async (customerId: string): Promise<void> => {
     const response = await fetch(`${API_BASE_URL}/user/${customerId}`, {
       method: "DELETE",
-      headers: {
-        "Content-Type": "application/json",
-        // TODO: Add Authorization header when auth is implemented
-        // 'Authorization': `Bearer ${token}`,
-      },
+      headers: getAuthHeaders(),
     });
 
     if (!response.ok) {
