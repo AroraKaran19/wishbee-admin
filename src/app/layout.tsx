@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { Poppins } from "next/font/google";
 import { Toaster } from "react-hot-toast";
+import LayoutWrapper from "./LayoutWrapper";
 
 const poppins = Poppins({
   subsets: ["latin"],
@@ -14,17 +15,17 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Wishbee - Admin Dashboard",
     description: "Wishbee - Admin Dashboard",
-    url: "https://wishbee-admin.vercel.app",
+    url: "https://admin.wishbee.in",
     type: "website",
-    images: [{ url: "https://wishbee-admin.vercel.app/logo.png" }],
+    images: [{ url: "https://admin.wishbee.in/logo.png" }],
   },
   twitter: {
     card: "summary_large_image",
     title: "Wishbee - Admin Dashboard",
     description: "Wishbee - Admin Dashboard",
-    images: [{ url: "https://wishbee-admin.vercel.app/logo.png" }],
+    images: [{ url: "https://admin.wishbee.in/logo.png" }],
   },
-  metadataBase: new URL("https://wishbee-admin.vercel.app"),
+  metadataBase: new URL("https://admin.wishbee.in"),
 };
 
 export default function RootLayout({
@@ -36,8 +37,9 @@ export default function RootLayout({
     <html lang="en">
       <body
         className={`antialiased ${poppins.className} relative overflow-x-hidden custom-scrollbar`}
+        suppressHydrationWarning
       >
-        {children}
+        <LayoutWrapper>{children}</LayoutWrapper>
         <Toaster
           position="top-right"
           toastOptions={{

@@ -7,9 +7,7 @@ const API_BASE_URL =
 export const getPresignedUrl = async (fileName: string, fileType: string, folder: string = "products") => {
   const response = await fetch(`${API_BASE_URL}/upload/presigned-url`, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
+    headers: getAuthHeaders(),
     body: JSON.stringify({
       fileName,
       folder,
@@ -60,6 +58,7 @@ export const getPresignedUrl = async (fileName: string, fileType: string, folder
 export const deleteImage = async (imageKey: string) => {
   const response = await fetch(`${API_BASE_URL}/upload/delete?key=${encodeURIComponent(imageKey)}`, {
     method: "DELETE",
+    headers: getAuthHeaders(),
   });
 
   const result = await response.json();
@@ -127,9 +126,7 @@ export const productApi = {
   }) => {
     const response = await fetch(`${API_BASE_URL}/products`, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers: getAuthHeaders(),
       body: JSON.stringify(data),
     });
 
@@ -256,9 +253,7 @@ export const productApi = {
   ) => {
     const response = await fetch(`${API_BASE_URL}/products/${productId}`, {
       method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers: getAuthHeaders(),
       body: JSON.stringify(data),
     });
 
@@ -276,8 +271,7 @@ export const productApi = {
   delete: async (productId: string) => {
     const response = await fetch(`${API_BASE_URL}/products/${productId}`, {
       method: "DELETE",
-      headers: {
-      },
+      headers: getAuthHeaders(),
     });
 
     if (!response.ok) {

@@ -1,3 +1,4 @@
+import { getAuthHeaders } from '@/lib/utils/auth';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL;
 
@@ -13,9 +14,7 @@ export const categoryApi = {
   }) => {
     const response = await fetch(`${API_BASE_URL}/categories`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: getAuthHeaders(),
       body: JSON.stringify({
         ...data,
         isActive: data.isActive ?? true,
@@ -75,9 +74,7 @@ export const categoryApi = {
   }>) => {
     const response = await fetch(`${API_BASE_URL}/categories/${categoryId}`, {
       method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: getAuthHeaders(),
       body: JSON.stringify(data),
     });
 
@@ -93,6 +90,7 @@ export const categoryApi = {
   delete: async (categoryId: string) => {
     const response = await fetch(`${API_BASE_URL}/categories/${categoryId}`, {
       method: 'DELETE',
+      headers: getAuthHeaders(),
     });
 
     if (!response.ok) {
@@ -117,9 +115,7 @@ export const subcategoryApi = {
   }) => {
     const response = await fetch(`${API_BASE_URL}/categories/subcategories`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: getAuthHeaders(),
       body: JSON.stringify({
         ...data,
         isActive: data.isActive ?? true,
@@ -176,9 +172,7 @@ export const subcategoryApi = {
   }>) => {
     const response = await fetch(`${API_BASE_URL}/categories/subcategories/${subcategoryId}`, {
       method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: getAuthHeaders(),
       body: JSON.stringify(data),
     });
 
@@ -194,6 +188,7 @@ export const subcategoryApi = {
   delete: async (subcategoryId: string) => {
     const response = await fetch(`${API_BASE_URL}/categories/subcategories/${subcategoryId}`, {
       method: 'DELETE',
+      headers: getAuthHeaders(),
     });
 
     if (!response.ok) {

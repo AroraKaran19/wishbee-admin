@@ -131,7 +131,6 @@ export const customerApi = {
 
   // Update admin permissions (Admin with ADMINS permission)
   updatePermissions: async (
-    token: string,
     adminId: string,
     permissions: string[]
   ): Promise<any> => {
@@ -139,10 +138,7 @@ export const customerApi = {
       `${API_BASE_URL}/users/${adminId}/permissions`,
       {
         method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
+        headers: getAuthHeaders(),
         body: JSON.stringify({ permissions }),
       }
     );
@@ -161,7 +157,6 @@ export const customerApi = {
 
   // Create Admin (SUPER_ADMIN only)
   createAdmin: async (
-    token: string,
     data: {
       email: string;
       password: string;
@@ -175,10 +170,7 @@ export const customerApi = {
   ): Promise<any> => {
     const response = await fetch(`${API_BASE_URL}/users/admins`, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
+      headers: getAuthHeaders(),
       body: JSON.stringify(data),
     });
 
@@ -186,6 +178,37 @@ export const customerApi = {
       const errorData = await response.json().catch(() => ({}));
       throw new Error(
         errorData.message || `Failed to create admin: ${response.statusText}`
+      );
+    }
+
+    const result = await response.json();
+    return result.data;
+  },
+
+  // Update Admin (Admin)
+  // Uses the same endpoint as update() but returns raw API response for admins
+  updateAdmin: async (
+    adminId: string,
+    data: {
+      firstName?: string;
+      lastName?: string;
+      photo?: string;
+      email?: string;
+      gender?: "MALE" | "FEMALE" | "OTHER";
+      isActive?: boolean;
+      password?: string;
+    }
+  ): Promise<any> => {
+    const response = await fetch(`${API_BASE_URL}/users/${adminId}`, {
+      method: "PATCH",
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(
+        errorData.message || `Failed to update admin: ${response.statusText}`
       );
     }
 

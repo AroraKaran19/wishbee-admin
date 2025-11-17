@@ -2,8 +2,9 @@
 
 import React, { useState } from "react";
 import { DataTable } from "@/components/ui/data-table";
-import { Shield } from "lucide-react";
+import { Shield, Edit } from "lucide-react";
 import { AdminPermissionsModal } from "./admin-permissions-modal";
+import { UpdateAdminModal } from "./update-admin-modal";
 import { Badge } from "@/components/ui/badge";
 
 interface Admin {
@@ -47,14 +48,25 @@ export function AdminTable({
 }: AdminTableProps) {
   const [selectedAdmin, setSelectedAdmin] = useState<Admin | null>(null);
   const [isPermissionsModalOpen, setIsPermissionsModalOpen] = useState(false);
+  const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false);
 
   const handleEditPermissions = (admin: Admin) => {
     setSelectedAdmin(admin);
     setIsPermissionsModalOpen(true);
   };
 
-  const handleCloseModal = () => {
+  const handleEditAdmin = (admin: Admin) => {
+    setSelectedAdmin(admin);
+    setIsUpdateModalOpen(true);
+  };
+
+  const handleClosePermissionsModal = () => {
     setIsPermissionsModalOpen(false);
+    setSelectedAdmin(null);
+  };
+
+  const handleCloseUpdateModal = () => {
+    setIsUpdateModalOpen(false);
     setSelectedAdmin(null);
   };
 
@@ -109,9 +121,7 @@ export function AdminTable({
         key: "role",
         title: "Role",
         render: (value: any, admin: Admin) => (
-          <Badge
-            variant={admin.role === "SUPER_ADMIN" ? "success" : "primary"}
-          >
+          <Badge variant={admin.role === "SUPER_ADMIN" ? "success" : "primary"}>
             {admin.role === "SUPER_ADMIN" ? "Super Admin" : "Admin"}
           </Badge>
         ),
@@ -148,12 +158,22 @@ export function AdminTable({
       {
         key: "edit",
         label: "",
+        icon: <Edit className="h-4 w-4" />,
+        onClick: (admin: Admin) => handleEditAdmin(admin),
+        variant: "secondary" as const,
+        size: "sm" as const,
+        className:
+          "text-blue-600 hover:text-blue-700 bg-transparent hover:bg-blue-50 border-0 shadow-none rounded-full pr-1.5 flex items-center justify-center",
+      },
+      {
+        key: "permissions",
+        label: "",
         icon: <Shield className="h-4 w-4" />,
         onClick: (admin: Admin) => handleEditPermissions(admin),
         variant: "secondary" as const,
         size: "sm" as const,
         className:
-          "text-blue-600 hover:text-blue-700 bg-transparent hover:bg-blue-50 border-0 shadow-none rounded-full pr-1.5 flex items-center justify-center",
+          "text-green-600 hover:text-green-700 bg-transparent hover:bg-green-50 border-0 shadow-none rounded-full pr-1.5 flex items-center justify-center",
         // Disable for SUPER_ADMIN users (they have all permissions)
         disabled: (admin: Admin) => admin.role === "SUPER_ADMIN",
       },
@@ -174,11 +194,23 @@ export function AdminTable({
       <DataTable data={admins} config={tableConfig} />
       <div className="h-4"></div>
 
+      {/* Update Admin Modal */}
+      <UpdateAdminModal
+        admin={selectedAdmin}
+        isOpen={isUpdateModalOpen}
+        onClose={handleCloseUpdateModal}
+        onSuccess={async () => {
+          if (onAdminUpdate) {
+            await onAdminUpdate();
+          }
+        }}
+      />
+
       {/* Permissions Modal */}
       <AdminPermissionsModal
         admin={selectedAdmin}
         isOpen={isPermissionsModalOpen}
-        onClose={handleCloseModal}
+        onClose={handleClosePermissionsModal}
         onPermissionsUpdate={onAdminUpdate}
       />
     </div>

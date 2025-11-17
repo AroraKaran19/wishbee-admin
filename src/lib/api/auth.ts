@@ -23,7 +23,8 @@ export const authApi = {
   loginAdmin: async (
     credentials: LoginCredentials
   ): Promise<AdminLoginResponse> => {
-    const response = await fetch(`${API_BASE_URL}/auth/login-admin`, {
+    // Use Next.js API route to proxy the request and handle cookies
+    const response = await fetch("/api/auth/login-admin", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -45,16 +46,14 @@ export const authApi = {
 
   // Generate Access Token
   generateAccessToken: async (): Promise<string> => {
-    const response = await fetch(
-      `${API_BASE_URL}/auth/generate-access-token`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        credentials: "include", // Important: Include cookies for refresh token
-      }
-    );
+    // Use Next.js API route to proxy the request and handle cookies
+    const response = await fetch("/api/auth/generate-access-token", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      credentials: "include", // Important: Include cookies for refresh token
+    });
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
@@ -70,7 +69,8 @@ export const authApi = {
 
   // Refresh Token
   refreshToken: async (): Promise<void> => {
-    const response = await fetch(`${API_BASE_URL}/auth/refresh-token`, {
+    // Use Next.js API route to proxy the request and handle cookies
+    const response = await fetch("/api/auth/refresh-token", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -95,7 +95,8 @@ export const authApi = {
         token = await authApi.generateAccessToken();
       }
 
-      const response = await fetch(`${API_BASE_URL}/auth/logout`, {
+      // Use Next.js API route to proxy the request and handle cookies
+      const response = await fetch("/api/auth/logout", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -124,18 +125,15 @@ export const authApi = {
   ): Promise<void> => {
     const accessToken = await authApi.generateAccessToken();
 
-    const response = await fetch(
-      `${API_BASE_URL}/auth/change-admin-password`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${accessToken}`,
-        },
-        credentials: "include",
-        body: JSON.stringify({ password, confirmPassword }),
-      }
-    );
+    const response = await fetch(`${API_BASE_URL}/auth/change-admin-password`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${accessToken}`,
+      },
+      credentials: "include",
+      body: JSON.stringify({ password, confirmPassword }),
+    });
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));

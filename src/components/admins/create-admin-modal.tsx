@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ALL_PERMISSIONS } from "@/lib/constants/permissions";
 import { customerApi } from "@/lib/api/customers";
-import { useSessionStore } from "@/stores/sessionStore";
 import { Eye, EyeOff, Loader2, Check, X, Image as ImageIcon, Upload } from "lucide-react";
 import toast from "react-hot-toast";
 import Image from "next/image";
@@ -23,7 +22,6 @@ export function CreateAdminModal({
   onClose,
   onSuccess,
 }: CreateAdminModalProps) {
-  const { generateAccessToken } = useSessionStore();
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     email: "",
@@ -67,9 +65,8 @@ export function CreateAdminModal({
 
     try {
       setLoading(true);
-      const token = await generateAccessToken();
       const { confirmPassword, ...submitData } = formData;
-      await customerApi.createAdmin(token, submitData);
+      await customerApi.createAdmin(submitData);
       toast.success("Admin created successfully");
       onSuccess();
       handleClose();

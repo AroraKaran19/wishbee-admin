@@ -4,7 +4,6 @@ import React, { useState, useEffect } from "react";
 import { X, Loader2 } from "lucide-react";
 import { customerApi } from "@/lib/api/customers";
 import { ALL_PERMISSIONS } from "@/lib/constants/permissions";
-import { useSessionStore } from "@/stores/sessionStore";
 import toast from "react-hot-toast";
 
 interface AdminPermissionsModalProps {
@@ -33,7 +32,6 @@ export function AdminPermissionsModal({
   onClose,
   onPermissionsUpdate,
 }: AdminPermissionsModalProps) {
-  const { generateAccessToken } = useSessionStore();
   const [selectedPermissions, setSelectedPermissions] = useState<string[]>([]);
   const [isUpdating, setIsUpdating] = useState(false);
 
@@ -67,8 +65,7 @@ export function AdminPermissionsModal({
 
     try {
       setIsUpdating(true);
-      const token = await generateAccessToken();
-      await customerApi.updatePermissions(token, admin._id, selectedPermissions);
+      await customerApi.updatePermissions(admin._id, selectedPermissions);
       toast.success("Permissions updated successfully");
       onPermissionsUpdate?.();
       onClose();
@@ -90,7 +87,7 @@ export function AdminPermissionsModal({
       : admin.firstName || admin.email || "Admin";
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
       <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b sticky top-0 bg-white z-10">
