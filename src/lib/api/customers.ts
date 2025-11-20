@@ -123,9 +123,9 @@ export const customerApi = {
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      throw new Error(
-        errorData.message || `Failed to delete customer: ${response.statusText}`
-      );
+      // Handle nested error structure: error.error.message or error.message
+      const errorMessage = errorData.error?.message || errorData.message || `Failed to delete customer: ${response.statusText}`;
+      throw new Error(errorMessage);
     }
   },
 

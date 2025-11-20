@@ -13,6 +13,7 @@ interface OrderTableProps {
   totalPages: number;
   onPageChange: (page: number) => void;
   onOrderUpdate?: (orderId: string, newStatus: string) => Promise<void>;
+  onOrderDelete?: (orderId: string) => Promise<void>;
 }
 
 export function OrderTable({ 
@@ -20,7 +21,8 @@ export function OrderTable({
   currentPage, 
   totalPages, 
   onPageChange,
-  onOrderUpdate 
+  onOrderUpdate,
+  onOrderDelete
 }: OrderTableProps) {
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);
@@ -46,8 +48,18 @@ export function OrderTable({
     setSelectedOrder(null);
   };
 
-  const handleDelete = (order: Order) => {
-    console.log('Delete order:', order);
+  const handleDelete = async (order: Order) => {
+    if (
+      !confirm(
+        `Are you sure you want to delete order "${order.orderId}"? This action cannot be undone.`
+      )
+    ) {
+      return;
+    }
+
+    if (onOrderDelete) {
+      await onOrderDelete(order.id);
+    }
   };
 
   const handleOrderIdClick = (order: Order) => {
@@ -67,6 +79,22 @@ export function OrderTable({
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
     }).format(amount);
+  };
+
+  const formatDate = (dateString: string | undefined) => {
+    if (!dateString) return 'N/A';
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleDateString('en-IN', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+      });
+    } catch (error) {
+      return dateString;
+    }
   };
 
   const tableConfig: TableConfig<Order> = {
@@ -137,7 +165,7 @@ export function OrderTable({
         align: 'center',
         render: (value) => (
           <div className="text-sm text-gray-900">
-            {value}
+            {formatDate(value)}
           </div>
         )
       }

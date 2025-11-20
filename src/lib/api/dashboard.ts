@@ -8,10 +8,12 @@ export const dashboardApi = {
   getInventory: async (params?: {
     page?: number;
     limit?: number;
+    search?: string;
   }) => {
     const searchParams = new URLSearchParams();
     if (params?.page) searchParams.append("page", params.page.toString());
     if (params?.limit) searchParams.append("limit", params.limit.toString());
+    if (params?.search) searchParams.append("search", params.search);
 
     const response = await fetch(
       `${API_BASE_URL}/dashboard/inventory?${searchParams}`,

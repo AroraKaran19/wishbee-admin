@@ -5,6 +5,8 @@ import { DataTable } from '@/components/ui/data-table';
 import { Customer, TableConfig } from '@/lib/types';
 import { Edit, Trash2 } from 'lucide-react';
 import { CustomerEditModal } from './customer-edit-modal';
+import { customerApi } from '@/lib/api/customers';
+import toast from 'react-hot-toast';
 
 interface CustomerTableProps {
   customers: Customer[];
@@ -23,6 +25,7 @@ export function CustomerTable({
 }: CustomerTableProps) {
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const handleEdit = (customer: Customer) => {
     setSelectedCustomer(customer);
@@ -34,8 +37,33 @@ export function CustomerTable({
     setSelectedCustomer(null);
   };
 
-  const handleDelete = (customer: Customer) => {
-    console.log('Delete customer:', customer);
+  const handleDelete = async (customer: Customer) => {
+    if (
+      !confirm(
+        `Are you sure you want to delete "${customer.name}"? This action cannot be undone.`
+      )
+    ) {
+      return;
+    }
+
+    try {
+      setDeletingId(customer.id);
+      await customerApi.delete(customer.id);
+      toast.success('Customer deleted successfully');
+      // Refresh the customer list
+      if (onCustomerUpdate) {
+        await onCustomerUpdate();
+      } else {
+        window.location.reload();
+      }
+    } catch (error) {
+      console.error('Error deleting customer:', error);
+      toast.error(
+        error instanceof Error ? error.message : 'Failed to delete customer'
+      );
+    } finally {
+      setDeletingId(null);
+    }
   };
 
 
@@ -128,7 +156,8 @@ export function CustomerTable({
         onClick: (record) => handleDelete(record),
         variant: 'secondary',
         size: 'sm',
-        className: 'text-red-600 hover:text-red-700 bg-transparent hover:bg-red-50 border-0 shadow-none rounded-full pr-1.5 flex items-center justify-center'
+        className: 'text-red-600 hover:text-red-700 bg-transparent hover:bg-red-50 border-0 shadow-none rounded-full pr-1.5 flex items-center justify-center',
+        disabled: (record) => deletingId === record.id
       }
     ],
     pagination: {

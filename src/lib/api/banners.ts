@@ -3,10 +3,12 @@ import { getAuthHeaders } from '@/lib/utils/auth';
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_BACKEND_URL || 'https://wishbee-web.vercel.app/api';
 
+export type BannerType = "hero" | "offers" | "hero-mob" | "offers-mob";
+
 export interface Banner {
   _id: string;
   imageUrl: string;
-  type: "hero" | "offers";
+  type: BannerType;
   order: number;
   isActive: boolean;
   link?: string;
@@ -17,7 +19,7 @@ export interface Banner {
 
 export interface CreateBannerData {
   imageUrl: string;
-  type: "hero" | "offers";
+  type: BannerType;
   order?: number;
   isActive?: boolean;
   link?: string;
@@ -26,7 +28,7 @@ export interface CreateBannerData {
 
 export interface UpdateBannerData {
   imageUrl?: string;
-  type?: "hero" | "offers";
+  type?: BannerType;
   order?: number;
   isActive?: boolean;
   link?: string;
@@ -40,7 +42,7 @@ export interface ReorderBannerData {
 
 export const bannerApi = {
   // Get all banners (Admin)
-  getAll: async (type?: "hero" | "offers"): Promise<Banner[]> => {
+  getAll: async (type?: BannerType): Promise<Banner[]> => {
     const searchParams = new URLSearchParams();
     if (type) searchParams.append("type", type);
     
@@ -62,7 +64,7 @@ export const bannerApi = {
   },
 
   // Get active banners (Public)
-  getActive: async (type?: "hero" | "offers"): Promise<Banner[]> => {
+  getActive: async (type?: BannerType): Promise<Banner[]> => {
     const searchParams = new URLSearchParams();
     if (type) searchParams.append("type", type);
     

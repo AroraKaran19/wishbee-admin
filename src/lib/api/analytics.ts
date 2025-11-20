@@ -95,9 +95,21 @@ export interface AnalyticsDashboardData {
 
 export const analyticsApi = {
   // Get analytics page data (comprehensive)
-  getPage: async (period: AnalyticsPeriod = '30days'): Promise<AnalyticsPageData> => {
+  getPage: async (
+    period?: AnalyticsPeriod,
+    startDate?: string,
+    endDate?: string
+  ): Promise<AnalyticsPageData> => {
     const params = new URLSearchParams();
-    params.append('period', period);
+    
+    // If custom dates are provided, use them instead of period
+    if (startDate && endDate) {
+      params.append('startDate', startDate);
+      params.append('endDate', endDate);
+    } else {
+      // Otherwise, use the period (default to '30days' if not provided)
+      params.append('period', period || '30days');
+    }
 
     const response = await fetch(`${API_BASE_URL}/analytics/page?${params.toString()}`, {
       method: 'GET',

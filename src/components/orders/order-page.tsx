@@ -7,6 +7,7 @@ import { OrderSummaryCards } from './order-summary-cards';
 import { orderApi, convertApiOrderToUIOrder, convertStatsToOrderSummary } from '@/lib/api/orders';
 import { Order, OrderSummary } from '@/lib/types';
 import { Upload } from 'lucide-react';
+import toast from 'react-hot-toast';
 
 export function OrderPage() {
   const [currentPage, setCurrentPage] = useState(1);
@@ -120,6 +121,41 @@ export function OrderPage() {
     }
   };
 
+  const handleOrderDelete = async (orderId: string) => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      await orderApi.delete(orderId);
+      toast.success('Order deleted successfully');
+      
+      // Refetch orders and stats after deletion
+      const orderResponse = await orderApi.getAll({
+        page: currentPage,
+        limit: itemsPerPage,
+        search: debouncedSearchQuery || undefined,
+      });
+      
+      // Convert API orders to UI format
+      const uiOrders = orderResponse.orders.map(convertApiOrderToUIOrder);
+      setOrders(uiOrders);
+      setTotalPages(orderResponse.pagination.pages);
+      
+      // Fetch updated stats
+      const stats = await orderApi.getStats();
+      const summary = convertStatsToOrderSummary(stats);
+      setOrderSummary(summary);
+      
+    } catch (err) {
+      console.error('Error deleting order:', err);
+      const errorMessage = err instanceof Error ? err.message : 'Failed to delete order';
+      setError(errorMessage);
+      toast.error(errorMessage);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleExportPDF = () => {
     // Create CSV content (for now, as PDF export would require additional libraries)
     const headers = ['Order ID', 'Amount', 'Customer', 'Status', 'Payment', 'Delivery Date'];
@@ -208,6 +244,7 @@ export function OrderPage() {
               totalPages={totalPages}
               onPageChange={handlePageChange}
               onOrderUpdate={handleOrderUpdate}
+              onOrderDelete={handleOrderDelete}
             />
           )}
         </div>

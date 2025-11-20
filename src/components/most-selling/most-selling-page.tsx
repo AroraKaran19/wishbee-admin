@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Upload, Loader2 } from "lucide-react";
+import { Upload, Loader2, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DataTable } from "@/components/ui/data-table";
 import { TableConfig } from "@/lib/types/table";
@@ -14,17 +14,29 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
-import { mostSellingApi, PeriodType } from "@/lib/api/most-selling";
+import { mostSellingApi, MostSellingPeriod } from "@/lib/api/most-selling";
 import toast from "react-hot-toast";
+import { DateRangePicker } from "@/components/ui/date-range-picker";
 
-// Map UI period labels to API period types
-const periodMap: Record<string, PeriodType> = {
-  Daily: "daily",
-  Weekly: "weekly",
-  Monthly: "monthly",
-  Quarterly: "quarterly",
-  Annually: "annually",
-  "10 Years": "10years",
+// Map UI period labels to API period values
+const periodMap: Record<string, MostSellingPeriod> = {
+  "7days": "7days",
+  "30days": "30days",
+  "6months": "6months",
+  "12months": "12months",
+  "all-time": "all-time",
+};
+
+// Map API period to UI display label
+const getPeriodLabel = (period: string): string => {
+  const labels: Record<string, string> = {
+    "7days": "Last 7 Days",
+    "30days": "Last 30 Days",
+    "6months": "Last 6 Months",
+    "12months": "Last 12 Months",
+    "all-time": "All Time",
+  };
+  return labels[period] || period;
 };
 
 interface TopSellingProduct {
@@ -52,7 +64,7 @@ interface ShortExpiryProduct {
 }
 
 export function MostSellingPage() {
-  const [selectedPeriod, setSelectedPeriod] = useState("Monthly");
+  const [period, setPeriod] = useState<MostSellingPeriod | "custom">("30days");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [salePerformance, setSalePerformance] = useState<any>(null);
@@ -65,19 +77,23 @@ export function MostSellingPage() {
   const [shortExpiryProducts, setShortExpiryProducts] = useState<
     ShortExpiryProduct[]
   >([]);
+  const [startDate, setStartDate] = useState<string>("");
+  const [endDate, setEndDate] = useState<string>("");
   const itemsPerPage = 10;
   const [topSellingPage, setTopSellingPage] = useState(1);
   const [leastSellingPage, setLeastSellingPage] = useState(1);
   const [shortExpiryPage, setShortExpiryPage] = useState(1);
 
-  const periods = [
-    "Daily",
-    "Weekly",
-    "Monthly",
-    "Quarterly",
-    "Annually",
-    "10 Years",
-  ];
+  // Set default date range (last 30 days) for custom period
+  useEffect(() => {
+    if (period === "custom" && !startDate && !endDate) {
+      const today = new Date();
+      const thirtyDaysAgo = new Date(today);
+      thirtyDaysAgo.setDate(today.getDate() - 30);
+      setEndDate(today.toISOString().split("T")[0]);
+      setStartDate(thirtyDaysAgo.toISOString().split("T")[0]);
+    }
+  }, [period, startDate, endDate]);
 
   // Fetch data from API
   useEffect(() => {
@@ -85,53 +101,87 @@ export function MostSellingPage() {
       try {
         setLoading(true);
         setError(null);
-        const periodType = periodMap[selectedPeriod] || "monthly";
-        const data = await mostSellingApi.getPage(periodType);
 
-        setSalePerformance(data.salePerformance);
-
-        // Transform top selling products
-        const transformedTopSelling = data.topSellingProducts.map(
-          (product, index) => ({
-            id: product.productId,
-            productName: product.productName,
-            soldQuantity: product.soldQuantity,
-            revenue: product.revenue,
-            remainingQuantity: product.remainingQuantity,
-          })
-        );
-        setTopSellingProducts(transformedTopSelling);
-
-        // Transform least selling products
-        const transformedLeastSelling = data.leastSellingProducts.map(
-          (product) => ({
-            id: product.productId,
-            productName: product.productName,
-            soldQuantity: product.soldQuantity,
-            daysSinceLastOrder: product.daysSinceLastOrder,
-            currentStock: product.currentStock,
-          })
-        );
-        setLeastSellingProducts(transformedLeastSelling);
-
-        // Transform short expiry products
-        const transformedShortExpiry = data.shortToExpiryProducts.map(
-          (product) => ({
-            id: product.productId,
-            productName: product.productName,
-            expiryDate: new Date(product.expiryDate).toLocaleDateString(
-              "en-US",
-              {
-                day: "numeric",
-                month: "short",
-                year: "numeric",
-              }
-            ),
-            daysLeft: product.daysLeft,
-            currentStock: product.currentStock,
-          })
-        );
-        setShortExpiryProducts(transformedShortExpiry);
+        // If custom range is selected, use dates only; otherwise use period only
+        if (period === "custom" && startDate && endDate) {
+          const data = await mostSellingApi.getPage(
+            undefined,
+            startDate,
+            endDate
+          );
+          setSalePerformance(data.salePerformance);
+          setTopSellingProducts(
+            data.topSellingProducts.map((product) => ({
+              id: product.productId,
+              productName: product.productName,
+              soldQuantity: product.soldQuantity,
+              revenue: product.revenue,
+              remainingQuantity: product.remainingQuantity,
+            }))
+          );
+          setLeastSellingProducts(
+            data.leastSellingProducts.map((product) => ({
+              id: product.productId,
+              productName: product.productName,
+              soldQuantity: product.soldQuantity,
+              daysSinceLastOrder: product.daysSinceLastOrder,
+              currentStock: product.currentStock,
+            }))
+          );
+          setShortExpiryProducts(
+            data.shortToExpiryProducts.map((product) => ({
+              id: product.productId,
+              productName: product.productName,
+              expiryDate: new Date(product.expiryDate).toLocaleDateString(
+                "en-US",
+                {
+                  day: "numeric",
+                  month: "short",
+                  year: "numeric",
+                }
+              ),
+              daysLeft: product.daysLeft,
+              currentStock: product.currentStock,
+            }))
+          );
+        } else if (period !== "custom") {
+          const data = await mostSellingApi.getPage(period as MostSellingPeriod);
+          setSalePerformance(data.salePerformance);
+          setTopSellingProducts(
+            data.topSellingProducts.map((product) => ({
+              id: product.productId,
+              productName: product.productName,
+              soldQuantity: product.soldQuantity,
+              revenue: product.revenue,
+              remainingQuantity: product.remainingQuantity,
+            }))
+          );
+          setLeastSellingProducts(
+            data.leastSellingProducts.map((product) => ({
+              id: product.productId,
+              productName: product.productName,
+              soldQuantity: product.soldQuantity,
+              daysSinceLastOrder: product.daysSinceLastOrder,
+              currentStock: product.currentStock,
+            }))
+          );
+          setShortExpiryProducts(
+            data.shortToExpiryProducts.map((product) => ({
+              id: product.productId,
+              productName: product.productName,
+              expiryDate: new Date(product.expiryDate).toLocaleDateString(
+                "en-US",
+                {
+                  day: "numeric",
+                  month: "short",
+                  year: "numeric",
+                }
+              ),
+              daysLeft: product.daysLeft,
+              currentStock: product.currentStock,
+            }))
+          );
+        }
       } catch (err) {
         console.error("Error fetching most selling data:", err);
         const errorMessage =
@@ -145,14 +195,53 @@ export function MostSellingPage() {
       }
     };
 
-    fetchData();
-  }, [selectedPeriod]);
+    // Only fetch if we have valid data (period or custom dates)
+    if (period !== "custom" || (startDate && endDate)) {
+      fetchData();
+    }
+  }, [period, startDate, endDate]);
 
   // Transform chart data for display
   const getChartData = () => {
     if (!salePerformance?.chartData) return [];
 
-    return salePerformance.chartData.map((point: any) => {
+    const chartData = salePerformance.chartData;
+
+    // For custom range, calculate the number of days
+    let customRangeDays = 0;
+    if (period === "custom" && startDate && endDate) {
+      const start = new Date(startDate);
+      const end = new Date(endDate);
+      customRangeDays = Math.ceil(
+        (end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)
+      );
+    }
+
+    // For all-time or custom, check if dates span multiple months/years
+    let dateFormat: "day" | "month" | "year-month" = "day";
+    if (
+      (period === "all-time" || period === "custom") &&
+      chartData.length > 0
+    ) {
+      const dates = chartData.map((item: any) => new Date(item.date));
+      const uniqueMonths = new Set(
+        dates.map((d: Date) => `${d.getFullYear()}-${d.getMonth()}`)
+      );
+      const uniqueYears = new Set(dates.map((d: Date) => d.getFullYear()));
+
+      // For custom ranges less than 90 days, always show day
+      if (period === "custom" && customRangeDays <= 90) {
+        dateFormat = "day";
+      } else if (uniqueYears.size > 1) {
+        dateFormat = "year-month";
+      } else if (uniqueMonths.size > 1) {
+        dateFormat = "month";
+      } else {
+        dateFormat = "day";
+      }
+    }
+
+    return chartData.map((point: any) => {
       const date = new Date(point.date);
       
       // Check if date is valid
@@ -160,52 +249,111 @@ export function MostSellingPage() {
         console.warn('Invalid date:', point.date);
         return {
           date: point.date || 'Unknown',
+          dateValue: date,
+          fullDate: point.date || 'Unknown',
           value: point.sales || 0,
         };
       }
       
+      // Format date based on period
       let dateLabel = "";
-
-      if (selectedPeriod === "Daily") {
-        dateLabel = date.toLocaleDateString("en-US", { 
-          weekday: "short",
+      if (period === "7days") {
+        dateLabel = date.toLocaleDateString("en-US", { weekday: "short" });
+      } else if (period === "30days") {
+        dateLabel = date.toLocaleDateString("en-US", {
           month: "short",
-          day: "numeric"
+          day: "numeric",
         });
-      } else if (selectedPeriod === "Weekly") {
-        // Get week number of the month
-        const firstDay = new Date(date.getFullYear(), date.getMonth(), 1);
-        const weekNum = Math.ceil((date.getDate() + firstDay.getDay()) / 7);
-        dateLabel = `${date.toLocaleDateString("en-US", { month: "short" })} W${weekNum}`;
-      } else if (selectedPeriod === "Monthly") {
-        dateLabel = date
-          .toLocaleDateString("en-US", { month: "short", year: "numeric" })
-          .toUpperCase();
-      } else if (selectedPeriod === "Quarterly") {
-        const month = date.getMonth(); // 0-11
-        const quarter = Math.floor(month / 3) + 1; // 1-4
-        const year = date.getFullYear();
-        dateLabel = `Q${quarter} ${year}`;
-      } else if (
-        selectedPeriod === "Annually" ||
-        selectedPeriod === "10 Years"
-      ) {
-        dateLabel = date.getFullYear().toString();
+      } else if (period === "6months") {
+        dateLabel = date.toLocaleDateString("en-US", { month: "short" });
+      } else if (period === "12months") {
+        dateLabel = date.toLocaleDateString("en-US", {
+          month: "short",
+          year: "numeric",
+        });
+      } else if (period === "custom") {
+        // For custom ranges, always show day when range is <= 90 days
+        if (customRangeDays <= 90) {
+          dateLabel = date.toLocaleDateString("en-US", {
+            month: "short",
+            day: "numeric",
+          });
+        } else if (dateFormat === "day") {
+          dateLabel = date.toLocaleDateString("en-US", {
+            month: "short",
+            day: "numeric",
+          });
+        } else if (dateFormat === "month") {
+          dateLabel = date.toLocaleDateString("en-US", { month: "short" });
+        } else {
+          dateLabel = date.toLocaleDateString("en-US", {
+            year: "numeric",
+            month: "short",
+          });
+        }
+      } else if (period === "all-time") {
+        // Smart formatting based on date span
+        if (dateFormat === "day") {
+          dateLabel = date.toLocaleDateString("en-US", {
+            month: "short",
+            day: "numeric",
+          });
+        } else if (dateFormat === "month") {
+          dateLabel = date.toLocaleDateString("en-US", { month: "short" });
+        } else {
+          dateLabel = date.toLocaleDateString("en-US", {
+            year: "numeric",
+            month: "short",
+          });
+        }
       }
 
       return {
         date: dateLabel || point.date,
+        dateValue: date, // Keep original date for sorting/interval calculation
+        fullDate: date.toLocaleDateString("en-US", {
+          year: "numeric",
+          month: "short",
+          day: "numeric",
+        }), // Full date for tooltip
         value: point.sales || 0,
       };
     });
   };
 
-  const getDataKey = () => {
-    return "date";
+  // Calculate interval for X-axis ticks based on data length and period
+  const getXAxisInterval = () => {
+    const data = getChartData();
+    if (data.length === 0) return 0;
+
+    // For 7 days: show every day (interval 0)
+    if (period === "7days") return 0;
+    
+    // For 30 days: show approximately 6 dates evenly spaced
+    if (period === "30days") {
+      return Math.max(0, Math.floor((data.length - 1) / 5));
+    }
+    
+    // For 6 months: show approximately 6 dates
+    if (period === "6months") {
+      return Math.max(0, Math.floor((data.length - 1) / 5));
+    }
+    
+    // For 12 months: show approximately 6 dates
+    if (period === "12months") {
+      return Math.max(0, Math.floor((data.length - 1) / 5));
+    }
+    
+    // For all-time or custom: show approximately 8 dates
+    if (period === "all-time" || period === "custom") {
+      return Math.max(0, Math.floor((data.length - 1) / 7));
+    }
+    
+    return 0;
   };
 
   const salesData = getChartData();
-  const dataKey = getDataKey();
+  const dataKey = "date";
 
   // Pagination calculations
   const topSellingTotalPages = Math.ceil(
@@ -404,6 +552,75 @@ export function MostSellingPage() {
         </p>
       </div>
 
+      {/* Period Selector */}
+      <div className="space-y-4">
+        <div className="flex gap-2 flex-wrap">
+          {Object.keys(periodMap).map((periodKey) => (
+            <button
+              key={periodKey}
+              onClick={() => {
+                setPeriod(periodMap[periodKey]);
+                setStartDate("");
+                setEndDate("");
+              }}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                period === periodMap[periodKey]
+                  ? "bg-[#13aaff] text-white"
+                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+              }`}
+            >
+              {getPeriodLabel(periodKey)}
+            </button>
+          ))}
+          <button
+            onClick={() => {
+              setPeriod("custom");
+              // Set default custom range to last 30 days if not already set
+              if (!startDate || !endDate) {
+                const today = new Date();
+                const thirtyDaysAgo = new Date();
+                thirtyDaysAgo.setDate(today.getDate() - 30);
+                setEndDate(today.toISOString().split("T")[0]);
+                setStartDate(thirtyDaysAgo.toISOString().split("T")[0]);
+              }
+            }}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 ${
+              period === "custom"
+                ? "bg-[#13aaff] text-white"
+                : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+            }`}
+          >
+            <Calendar className="w-4 h-4" />
+            Custom Range
+          </button>
+        </div>
+
+        {/* Custom Date Range Picker */}
+        {period === "custom" && (
+          <div className="bg-white border border-gray-200 rounded-lg p-4">
+            <p className="text-sm text-blue-600 font-medium mb-3">
+              {startDate && endDate
+                ? `${new Date(startDate).toLocaleDateString("en-US", {
+                    month: "short",
+                    day: "numeric",
+                    year: "numeric",
+                  })} to ${new Date(endDate).toLocaleDateString("en-US", {
+                    month: "short",
+                    day: "numeric",
+                    year: "numeric",
+                  })}`
+                : "Please select dates"}
+            </p>
+            <DateRangePicker
+              startDate={startDate}
+              endDate={endDate}
+              onStartDateChange={setStartDate}
+              onEndDateChange={setEndDate}
+            />
+          </div>
+        )}
+      </div>
+
       {/* Sale Performance Over The Time */}
       <div>
         <h2 className="text-lg font-semibold text-gray-900 mb-4">
@@ -435,21 +652,6 @@ export function MostSellingPage() {
                 )}
               </div>
             </div>
-            <div className="flex gap-2 bg-[#ebf7ff] p-2 rounded-lg">
-              {periods.map((period) => (
-                <button
-                  key={period}
-                  onClick={() => setSelectedPeriod(period)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer ${
-                    selectedPeriod === period
-                      ? "bg-[#13aaff] text-white"
-                      : "text-gray-700 hover:bg-[#dbf7ff]"
-                  }`}
-                >
-                  {period}
-                </button>
-              ))}
-            </div>
           </div>
           {salesData.length > 0 ? (
             <div className="h-80">
@@ -468,7 +670,33 @@ export function MostSellingPage() {
                     </linearGradient>
                   </defs>
                   <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                  <XAxis dataKey={dataKey} stroke="#6b7280" />
+                  <XAxis
+                    dataKey={dataKey}
+                    stroke="#6b7280"
+                    interval={getXAxisInterval()}
+                    angle={
+                      period === "30days" ||
+                      period === "7days" ||
+                      period === "custom"
+                        ? -30
+                        : 0
+                    }
+                    textAnchor={
+                      period === "30days" ||
+                      period === "7days" ||
+                      period === "custom"
+                        ? "end"
+                        : "middle"
+                    }
+                    height={
+                      period === "30days" ||
+                      period === "7days" ||
+                      period === "custom"
+                        ? 70
+                        : 50
+                    }
+                    tick={{ fontSize: 11 }}
+                  />
                   <YAxis
                     stroke="#6b7280"
                     tickFormatter={(value) => {
@@ -486,10 +714,17 @@ export function MostSellingPage() {
                         return (
                           <div className="bg-gray-900 text-white rounded-lg p-3 shadow-lg">
                             <p className="text-sm font-semibold mb-1">
-                              {data.date}
+                              {period === "custom" ||
+                              period === "all-time" ||
+                              period === "12months" ||
+                              period === "6months" ||
+                              period === "30days" ||
+                              period === "7days"
+                                ? data.fullDate
+                                : data.date}
                             </p>
                             <p className="text-sm">
-                              ₹{data.value?.toLocaleString("en-IN") || "0"}
+                              Sales: ₹{data.value?.toLocaleString("en-IN") || "0"}
                             </p>
                           </div>
                         );

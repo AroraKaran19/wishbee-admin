@@ -5,6 +5,8 @@ import { Product } from "@/lib/types/product";
 import { ArrowLeft, Edit, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
+import { productApi } from "@/lib/api/products";
+import toast from "react-hot-toast";
 
 interface ProductDetailPageProps {
   product: Product;
@@ -13,6 +15,8 @@ interface ProductDetailPageProps {
 export function ProductDetailPage({ product }: ProductDetailPageProps) {
   const router = useRouter();
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   const handleBack = () => {
     router.back();
@@ -22,8 +26,30 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
     router.push(`/inventory/product/${product._id}/edit`);
   };
 
-  const handleDelete = () => {
-    console.log("Delete product:", product);
+  const handleDeleteClick = () => {
+    setShowDeleteConfirm(true);
+  };
+
+  const handleDeleteCancel = () => {
+    setShowDeleteConfirm(false);
+  };
+
+  const handleDeleteConfirm = async () => {
+    try {
+      setIsDeleting(true);
+      await productApi.delete(product?._id ?? "");
+      toast.success("Product deleted successfully");
+      // Navigate back to inventory page after successful deletion
+      router.push("/inventory");
+    } catch (error) {
+      console.error("Error deleting product:", error);
+      toast.error(
+        error instanceof Error ? error.message : "Failed to delete product"
+      );
+      setShowDeleteConfirm(false);
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   return (
@@ -455,17 +481,61 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
                 Edit
               </Button>
               <Button
-                onClick={handleDelete}
+                onClick={handleDeleteClick}
                 variant="danger"
                 className="flex-1 py-3"
+                disabled={isDeleting}
               >
                 <Trash2 className="w-4 h-4 mr-2" />
-                Delete
+                {isDeleting ? "Deleting..." : "Delete"}
               </Button>
             </div>
           </div>
         </div>
       </div>
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4">
+            <h2 className="text-lg font-semibold mb-4 text-red-600">
+              Confirm Delete
+            </h2>
+            <p className="text-gray-700 mb-6">
+              Are you sure you want to delete this product? This action cannot be undone.
+            </p>
+            <div className="bg-gray-50 p-3 rounded-lg mb-6">
+              <p className="text-sm font-medium text-gray-900">
+                {product.name}
+              </p>
+              {product.sku && (
+                <p className="text-sm text-gray-600 mt-1">
+                  SKU: {product.sku}
+                </p>
+              )}
+            </div>
+            <div className="flex justify-end gap-3">
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={handleDeleteCancel}
+                disabled={isDeleting}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                variant="primary"
+                onClick={handleDeleteConfirm}
+                className="bg-red-600 hover:bg-red-700"
+                disabled={isDeleting}
+              >
+                {isDeleting ? "Deleting..." : "Delete Product"}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -89,33 +89,8 @@ export function SearchBar({
               onChange={handleSearchChange}
               className="w-full pl-10 pr-20 py-2 md:py-3 bg-gray-100 border-0 rounded-lg text-gray-700 placeholder-gray-500 focus:outline-none focus:bg-white transition-colors text-sm md:text-base"
             />
-            
-            {showVoiceSearch && (
-              <>
-                <div className="absolute right-12 top-1/2 transform -translate-y-1/2 w-px h-6 bg-gray-300"></div>
-                <button
-                  type="button"
-                  onClick={handleVoiceClick}
-                  className="absolute right-3 top-1/2 cursor-pointer transform -translate-y-1/2 text-gray-500 hover:text-gray-700 transition-colors"
-                  aria-label="Voice search"
-                >
-                  <Mic className="w-5 h-5" />
-                </button>
-              </>
-            )}
           </div>
         </form>
-        
-        {showFilter && (
-          <button 
-            onClick={handleFilterClick}
-            className="bg-[#d9f4ff] hover:text-[#00b8fbc9] hover:bg-[#00b8fb28]/20 text-[#00b7fb] p-2 md:p-3 rounded-lg cursor-pointer transition-colors focus:outline-none relative flex-shrink-0"
-            aria-label="Filter options"
-          >
-            <SlidersHorizontal className="w-5 h-5" />
-            <div className="absolute right-0 top-1/2 transform -translate-y-1/2 w-px h-4 bg-blue-300 opacity-50"></div>
-          </button>
-        )}
       </div>
 
       {/* Action Buttons - Only show if actions are explicitly provided */}

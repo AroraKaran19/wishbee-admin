@@ -181,6 +181,21 @@ export const orderApi = {
     const result = await response.json();
     return result.data;
   },
+
+  // Delete order
+  delete: async (orderId: string): Promise<void> => {
+    const response = await fetch(`${API_BASE_URL}/orders/${orderId}`, {
+      method: "DELETE",
+      headers: await getAuthHeaders(),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(
+        errorData.message || `Failed to delete order: ${response.statusText}`
+      );
+    }
+  },
 };
 
 // Helper function to convert API order to UI order format

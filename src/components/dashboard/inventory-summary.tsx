@@ -14,6 +14,7 @@ import toast from "react-hot-toast";
 export function InventorySummary() {
   const [currentPage, setCurrentPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -27,7 +28,21 @@ export function InventorySummary() {
   const [totalInventoryValue, setTotalInventoryValue] = useState(0);
   const [totalProducts, setTotalProducts] = useState(0);
   const [totalCombos, setTotalCombos] = useState(0);
+  const [refreshKey, setRefreshKey] = useState(0);
   const itemsPerPage = 10;
+
+  // Debounce search query - update debouncedSearchQuery after 500ms of no typing
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery);
+      setCurrentPage(1); // Reset to first page when search changes
+    }, 500);
+
+    // Cleanup function
+    return () => {
+      clearTimeout(timeoutId);
+    };
+  }, [searchQuery]);
 
   // Load inventory from API
   useEffect(() => {
@@ -38,6 +53,7 @@ export function InventorySummary() {
         const response = await dashboardApi.getInventory({
           page: currentPage,
           limit: itemsPerPage,
+          search: debouncedSearchQuery || undefined,
         });
 
         // Handle API response structure
@@ -55,7 +71,8 @@ export function InventorySummary() {
             currentPage: inventoryData.page || currentPage,
             totalPages: inventoryData.totalPages || 1,
             totalItems: response.data.totalProducts || 0,
-            hasNext: (inventoryData.page || 1) < (inventoryData.totalPages || 1),
+            hasNext:
+              (inventoryData.page || 1) < (inventoryData.totalPages || 1),
             hasPrev: (inventoryData.page || 1) > 1,
           });
         }
@@ -71,23 +88,7 @@ export function InventorySummary() {
     };
 
     loadInventory();
-  }, [currentPage, itemsPerPage]);
-
-  // Filter products locally if search query is provided
-  // Note: The API doesn't support search for inventory endpoint
-  const filteredProducts = searchQuery
-    ? products.filter(
-        (p) =>
-          p.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          p.sku?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          (p.category &&
-            typeof p.category === "object" &&
-            "name" in p.category &&
-            (p.category as any).name
-              ?.toLowerCase()
-              .includes(searchQuery.toLowerCase()))
-      )
-    : products;
+  }, [currentPage, itemsPerPage, debouncedSearchQuery, refreshKey]);
 
   const handlePageChange = (page: number) => {
     if (page >= 1 && page <= pagination.totalPages) {
@@ -97,19 +98,19 @@ export function InventorySummary() {
 
   const handleSearch = (query: string) => {
     setSearchQuery(query);
-    // Note: Search is client-side since API doesn't support it
   };
 
   const handleExportCSV = () => {
-    exportProductsToCSV(filteredProducts, "inventory-products");
+    exportProductsToCSV(products, "inventory-products");
   };
 
   const handleRefresh = () => {
     setSearchQuery("");
+    setDebouncedSearchQuery(""); // Immediately clear debounced query to trigger reload
     setCurrentPage(1);
+    setRefreshKey((prev) => prev + 1); // Force reload by updating refresh key
+    toast.success("Inventory refreshed");
   };
-
-  const currentProducts = filteredProducts;
 
   return (
     <div className="space-y-6 h-full flex flex-col">
@@ -152,9 +153,10 @@ export function InventorySummary() {
 
       <div className="flex-shrink-0 mb-4">
         <SearchBar
-          placeholder="Search by: Product Name, Category, Brand"
+          placeholder="Search by: Product Name, Category, Subcategory"
           onSearch={handleSearch}
           onSearchChange={setSearchQuery}
+          searchValue={searchQuery}
           showFilter={true}
           actions={[
             {
@@ -191,12 +193,12 @@ export function InventorySummary() {
               <p className="text-gray-500">Loading products...</p>
             </div>
           </div>
-        ) : filteredProducts.length === 0 ? (
+        ) : products.length === 0 ? (
           <div className="flex items-center justify-center h-64">
             <div className="text-center">
               <p className="text-gray-500 text-lg mb-2">No products found</p>
               <p className="text-gray-400 text-sm">
-                {searchQuery
+                {debouncedSearchQuery
                   ? "Try adjusting your search terms"
                   : "Add some products to get started"}
               </p>
@@ -204,7 +206,7 @@ export function InventorySummary() {
           </div>
         ) : (
           <InventoryTable
-            products={currentProducts}
+            products={products}
             currentPage={pagination.currentPage}
             totalPages={pagination.totalPages}
             onPageChange={handlePageChange}

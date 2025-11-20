@@ -276,9 +276,9 @@ export const productApi = {
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      throw new Error(
-        errorData.message || `HTTP error! status: ${response.status}`
-      );
+      // Handle nested error structure: error.error.message or error.message
+      const errorMessage = errorData.error?.message || errorData.message || `HTTP error! status: ${response.status}`;
+      throw new Error(errorMessage);
     }
 
     return response.json();

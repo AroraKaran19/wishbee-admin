@@ -2,10 +2,12 @@
 
 import React, { useState } from "react";
 import { DataTable } from "@/components/ui/data-table";
-import { Shield, Edit } from "lucide-react";
+import { Shield, Edit, Trash2 } from "lucide-react";
 import { AdminPermissionsModal } from "./admin-permissions-modal";
 import { UpdateAdminModal } from "./update-admin-modal";
 import { Badge } from "@/components/ui/badge";
+import { customerApi } from "@/lib/api/customers";
+import toast from "react-hot-toast";
 
 interface Admin {
   _id: string;
@@ -49,6 +51,7 @@ export function AdminTable({
   const [selectedAdmin, setSelectedAdmin] = useState<Admin | null>(null);
   const [isPermissionsModalOpen, setIsPermissionsModalOpen] = useState(false);
   const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const handleEditPermissions = (admin: Admin) => {
     setSelectedAdmin(admin);
@@ -68,6 +71,42 @@ export function AdminTable({
   const handleCloseUpdateModal = () => {
     setIsUpdateModalOpen(false);
     setSelectedAdmin(null);
+  };
+
+  const handleDelete = async (admin: Admin) => {
+    // Prevent deletion of SUPER_ADMIN users
+    if (admin.role === "SUPER_ADMIN") {
+      toast.error("Cannot delete SUPER_ADMIN users");
+      return;
+    }
+
+    const adminName = formatAdminName(admin);
+    if (
+      !confirm(
+        `Are you sure you want to delete "${adminName}"? This action cannot be undone.`
+      )
+    ) {
+      return;
+    }
+
+    try {
+      setDeletingId(admin._id);
+      await customerApi.delete(admin._id);
+      toast.success("Admin deleted successfully");
+      // Refresh the admin list
+      if (onAdminUpdate) {
+        await onAdminUpdate();
+      } else {
+        window.location.reload();
+      }
+    } catch (error) {
+      console.error("Error deleting admin:", error);
+      toast.error(
+        error instanceof Error ? error.message : "Failed to delete admin"
+      );
+    } finally {
+      setDeletingId(null);
+    }
   };
 
   const formatAdminName = (admin: Admin): string => {
@@ -176,6 +215,19 @@ export function AdminTable({
           "text-green-600 hover:text-green-700 bg-transparent hover:bg-green-50 border-0 shadow-none rounded-full pr-1.5 flex items-center justify-center",
         // Disable for SUPER_ADMIN users (they have all permissions)
         disabled: (admin: Admin) => admin.role === "SUPER_ADMIN",
+      },
+      {
+        key: "delete",
+        label: "",
+        icon: <Trash2 className="h-4 w-4" />,
+        onClick: (admin: Admin) => handleDelete(admin),
+        variant: "secondary" as const,
+        size: "sm" as const,
+        className:
+          "text-red-600 hover:text-red-700 bg-transparent hover:bg-red-50 border-0 shadow-none rounded-full pr-1.5 flex items-center justify-center",
+        // Disable for SUPER_ADMIN users and during deletion
+        disabled: (admin: Admin) =>
+          admin.role === "SUPER_ADMIN" || deletingId === admin._id,
       },
     ],
     pagination: {

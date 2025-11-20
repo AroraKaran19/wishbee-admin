@@ -3,7 +3,7 @@ import { getAuthHeaders } from '@/lib/utils/auth';
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_BACKEND_URL || 'https://wishbee-web.vercel.app/api';
 
-export type PeriodType = 'daily' | 'weekly' | 'monthly' | 'quarterly' | 'annually' | '10years';
+export type MostSellingPeriod = '7days' | '30days' | '6months' | '12months' | 'all-time';
 
 export interface ChartDataPoint {
   date: string;
@@ -50,9 +50,21 @@ export interface MostSellingPageData {
 
 export const mostSellingApi = {
   // Get most selling page data
-  getPage: async (periodType: PeriodType = 'monthly'): Promise<MostSellingPageData> => {
+  getPage: async (
+    period?: MostSellingPeriod,
+    startDate?: string,
+    endDate?: string
+  ): Promise<MostSellingPageData> => {
     const params = new URLSearchParams();
-    params.append('periodType', periodType);
+    
+    // If custom dates are provided, use them instead of period
+    if (startDate && endDate) {
+      params.append('startDate', startDate);
+      params.append('endDate', endDate);
+    } else {
+      // Otherwise, use the period (default to '30days' if not provided)
+      params.append('period', period || '30days');
+    }
 
     const response = await fetch(`${API_BASE_URL}/most-selling?${params.toString()}`, {
       method: 'GET',

@@ -89,7 +89,7 @@
 ### Login Admin
 
 - **API**: `POST /api/auth/login-admin`
-- **Access**: Admin
+- **Access**: Admin or SUPER_ADMIN
 - **Request**:
   ```json
   {
@@ -114,11 +114,13 @@
   }
   ```
 - **Note**:
+  - Works for both `ADMIN` and `SUPER_ADMIN` users
   - Refresh token is automatically set in HTTP-only cookie
   - Returns `permissions` array containing the admin's assigned permissions
   - `SUPER_ADMIN` users will have all permissions (handled on frontend)
   - If admin has no permissions assigned, returns empty array `[]`
   - Returns 401 error if account is not active
+  - For `SUPER_ADMIN` users, the `role` field will be `"SUPER_ADMIN"` instead of `"ADMIN"`
 
 ### Generate Access Token
 
@@ -233,7 +235,7 @@
 ### Update Profile
 
 - **API**: `PUT /api/user/profile`
-- **Access**: User
+- **Access**: User (Consumer, Admin, or SUPER_ADMIN)
 - **Request**:
   ```json
   {
@@ -242,8 +244,59 @@
     "photo": "string"
   }
   ```
-- **Note**: Either both `firstName` and `lastName` must be provided, or `photo` must be provided (or both)
-- **Response**: Updated profile object
+- **Note**: 
+  - Either both `firstName` and `lastName` must be provided, or `photo` must be provided (or both)
+  - Works for both Consumer and Admin/SUPER_ADMIN users
+  - For Admin/SUPER_ADMIN users, the password field is automatically excluded from updates (use change password endpoint instead)
+- **Response** (Consumer):
+  ```json
+  {
+    "success": true,
+    "data": {
+      "_id": "string",
+      "phoneNumber": "string",
+      "role": "CUSTOMER",
+      "isActive": true,
+      "firstName": "string",
+      "lastName": "string",
+      "photo": "string",
+      "gstNumber": "string",
+      "storeName": "string",
+      "loyaltyTier": "BRONZE",
+      "loyaltyPoints": 100,
+      "defaultAddress": {
+        "type": "HOME",
+        "addressLine": "string",
+        "city": "string",
+        "state": "string",
+        "postalCode": "string",
+        "country": "string",
+        "isDefault": true
+      },
+      "joinedAt": "2024-01-01T00:00:00.000Z"
+    },
+    "message": "Profile updated successfully"
+  }
+  ```
+- **Response** (Admin/SUPER_ADMIN):
+  ```json
+  {
+    "success": true,
+    "data": {
+      "_id": "string",
+      "email": "string",
+      "role": "ADMIN",
+      "isActive": true,
+      "firstName": "string",
+      "lastName": "string",
+      "photo": "string",
+      "gender": "MALE",
+      "permissions": ["DASHBOARD", "ORDERS", "CUSTOMERS", "INVENTORY"],
+      "joinedAt": "2024-01-01T00:00:00.000Z"
+    },
+    "message": "Profile updated successfully"
+  }
+  ```
 
 ### Delete Profile
 
@@ -646,6 +699,30 @@
   - `401` - Unauthorized: User not authenticated or not an admin
   - `403` - Forbidden: User does not have ADMINS permission
   - `404` - Not Found: Admin user not found
+
+### Delete User (Admin)
+
+- **API**: `DELETE /api/user/:userId`
+- **Access**: Admin
+- **Parameters**:
+  - `userId` (string) - User ID to delete
+- **Response**:
+  ```json
+  {
+    "success": true,
+    "data": null,
+    "message": "User deleted successfully"
+  }
+  ```
+- **Note**:
+  - Permanently deletes the user from the database
+  - For Consumer users, also deletes associated cart
+  - Removes order references from user's orders array
+  - Prevents deletion of the last active SUPER_ADMIN
+  - Returns 404 if user not found
+- **Error Responses**:
+  - `400` - Bad Request: Cannot delete the last active SUPER_ADMIN
+  - `404` - Not Found: User not found
 
 ---
 
@@ -1850,7 +1927,7 @@
 - **API**: `GET /api/dashboard/low-stock`
 - **Access**: Admin
 - **Query Parameters**:
-  - `threshold` (number, default: 100) - Stock threshold for low stock alert
+  - `threshold` (number, default: 10) - Stock threshold for low stock alert
 - **Response**:
   ```json
   {
@@ -1909,6 +1986,12 @@
 - **Query Parameters**:
   - `page` (number, default: 1) - Page number
   - `limit` (number, default: 10, max: 100) - Items per page
+  - `search` (string) - Search term to search across product name, category name, and subcategory name
+- **Note**:
+  - The `search` parameter performs case-insensitive search across:
+    - Product name
+    - Category name
+    - Subcategory name
 - **Response**:
   ```json
   {
@@ -2054,7 +2137,7 @@
           {
             "name": "Product Name",
             "currentStock": 5,
-            "threshold": 100
+            "threshold": 10
           }
         ]
       },
@@ -2082,11 +2165,11 @@
 - **Note**:
   - **Performance Summary**: Today's sales, total sales, total orders, and total customers
   - **Order Statistics**: All-time statistics for received, returned, and on-the-way orders
-  - **Sales Report**: Last 30 days trends for sales and orders (daily breakdown)
+  - **Sales Report**: Last 30 days trends for sales and orders (daily breakdown). Includes orders with status "COMPLETED" or "DELIVERED"
   - **Inventory Summary**: Total products, out of stock count, low stock count, and total inventory value
   - **Product Analytics**:
     - Top selling products (last 30 days) with sold quantity, revenue, and stock
-    - Low quantity stock products (threshold: 100)
+    - Low quantity stock products (threshold: 10)
   - **Customer Analytics**: New customers in last 30 days with growth percentage (compared to previous 30 days)
   - **Category Analytics**: Sales breakdown by category with percentages
   - **Growth Metrics**:
@@ -2106,6 +2189,13 @@
 - **Access**: Admin
 - **Query Parameters**:
   - `period` (string, default: "30days") - Time period: "7days", "30days", "6months", "12months", "all-time"
+  - `startDate` (string, ISO date, optional) - Custom start date (overrides period if provided)
+  - `endDate` (string, ISO date, optional) - Custom end date (overrides period if provided)
+- **Note**:
+  - If both `startDate` and `endDate` are provided, they override the `period` parameter
+  - Date format should be ISO date strings (YYYY-MM-DD)
+  - Start date must be before end date
+  - When custom dates are provided, the period label will show the date range (e.g., "2025-10-21 to 2025-11-20")
 - **Response**:
   ```json
   {
@@ -2587,10 +2677,19 @@
 - **Query Parameters**:
   - `status` (string) - Filter by order status
   - `userId` (string) - Filter by user ID
+  - `search` (string) - Search term to search across order ID, reference ID, customer name, customer phone number, and product/combo names
   - `page` (number, default: 1)
   - `limit` (number, default: 10)
   - `sortBy` (string, default: "createdAt")
   - `sortOrder` (string, default: "desc")
+- **Note**:
+  - The `search` parameter performs case-insensitive search across:
+    - Order ID (MongoDB `_id`)
+    - Order reference ID (`refId`)
+    - Customer first name and last name
+    - Customer phone number
+    - Product names in order items
+    - Combo names in order items
 - **Response**: Same as user orders response
 
 ### Get Order by ID
@@ -2630,6 +2729,49 @@
   }
   ```
 - **Response**: Updated order object
+
+### Get or Generate Invoice Number
+
+- **API**: `GET /api/orders/:orderId/invoice-number`
+- **Access**: User/Admin
+- **Parameters**:
+  - `orderId` (string) - Order ID
+- **Response**:
+  ```json
+  {
+    "success": true,
+    "data": {
+      "invoiceNumber": "000001"
+    },
+    "message": "Invoice number retrieved successfully"
+  }
+  ```
+- **Note**:
+  - Returns the invoice number for the order (6-digit format, e.g., 000001, 000002)
+  - If the order doesn't have an invoice number, it will be generated and assigned
+  - Invoice numbers are sequential and unique
+  - Format: 6-digit number with leading zeros (000001, 000002, etc.)
+
+### Delete Order
+
+- **API**: `DELETE /api/orders/:orderId`
+- **Access**: Admin
+- **Parameters**:
+  - `orderId` (string) - Order ID to delete
+- **Response**:
+  ```json
+  {
+    "success": true,
+    "data": null,
+    "message": "Order deleted successfully"
+  }
+  ```
+- **Note**:
+  - Permanently deletes the order from the database
+  - Removes order reference from user's orders array
+  - Returns 404 if order not found
+- **Error Responses**:
+  - `404` - Not Found: Order not found
 
 ### Get Order Analytics
 
@@ -2820,7 +2962,7 @@
 - **API**: `GET /api/banners/active`
 - **Access**: Public
 - **Query Parameters**:
-  - `type` (string, optional) - Filter by type: "hero" or "offers"
+  - `type` (string, optional) - Filter by type: "hero", "offers", "hero-mob", or "offers-mob"
 - **Response**:
   ```json
   {
@@ -2842,17 +2984,18 @@
   }
   ```
 - **Note**:
-  - Returns only active banners, sorted by order (ascending)
+  - Returns only active banners, sorted by type and order (ascending)
   - If `type` is provided, only returns banners of that type
-  - Valid types: "hero", "offers"
+  - Valid types: "hero" (desktop hero), "offers" (desktop offers), "hero-mob" (mobile hero), "offers-mob" (mobile offers)
 
 ### Get All Banners (Admin)
 
 - **API**: `GET /api/banners`
 - **Access**: Admin
 - **Query Parameters**:
-  - `type` (string, optional) - Filter by type: "hero" or "offers"
+  - `type` (string, optional) - Filter by type: "hero", "offers", "hero-mob", or "offers-mob"
 - **Response**: Same as active banners, but includes inactive banners too
+- **Note**: Banners are sorted by type, then by order (ascending)
 
 ### Create Banner (Admin)
 
@@ -2871,10 +3014,13 @@
   ```
 - **Note**:
   - `imageUrl` is required (use presigned URL to upload, then save the URL here)
-  - `type` is required and must be "hero" or "offers"
-  - `order` is optional - if not provided, will be set to highest order + 1
+  - `type` is required and must be one of: "hero", "offers", "hero-mob", "offers-mob"
+  - `order` is optional - if not provided, will be set to highest order + 1 for the specified type
   - `isActive` defaults to true
   - `link` and `title` are optional
+  - **Order uniqueness**: Order numbers must be unique within each type, but can be the same across different types
+    - Example: A "hero" banner with order 0 and an "offers" banner with order 0 can both exist
+    - But two "hero" banners cannot both have order 0
 - **Response**: Created banner object
 
 ### Update Banner (Admin)
@@ -2896,7 +3042,8 @@
   ```
 - **Note**:
   - All fields are optional, but at least one field must be provided
-  - `type` must be "hero" or "offers" if provided
+  - `type` must be one of: "hero", "offers", "hero-mob", "offers-mob" if provided
+  - **Order uniqueness**: When updating order or type, the new order must be unique within the target type
 - **Response**: Updated banner object
 
 ### Delete Banner (Admin)
@@ -2933,7 +3080,8 @@
   - Updates the order of multiple banners at once
   - Each object must have `id` and `order` fields
   - Lower order numbers appear first
-- **Response**: Updated banners array (sorted by order)
+  - **Order uniqueness**: The new orders must be unique within each banner type
+- **Response**: Updated banners array (sorted by type and order)
 
 ---
 
@@ -2944,7 +3092,15 @@
 - **API**: `GET /api/most-selling`
 - **Access**: Admin
 - **Query Parameters**:
-  - `periodType` (string, default: "monthly") - Time period type: "daily", "weekly", "monthly", "quarterly", "annually", "10years"
+  - `period` (string, optional, default: "30days") - Time period: "7days", "30days", "6months", "12months", "all-time"
+  - `startDate` (string, ISO date, optional) - Custom start date (overrides period if provided)
+  - `endDate` (string, ISO date, optional) - Custom end date (overrides period if provided)
+- **Note**:
+  - If both `startDate` and `endDate` are provided, they override the `period` parameter
+  - Date format should be ISO date strings (YYYY-MM-DD)
+  - Start date must be before end date
+  - When custom dates are provided, the period label will show the date range (e.g., "2025-10-20 to 2025-11-20")
+  - Default period is "30days" if no parameters are provided
 - **Response**:
   ```json
   {
@@ -2953,11 +3109,15 @@
       "salePerformance": {
         "salesAmount": 63750,
         "growthPercentage": 36.0,
-        "period": "This Month",
+        "period": "Last 30 Days",
         "chartData": [
           {
-            "date": "2024-01-01",
+            "date": "2025-10-21",
             "sales": 5000
+          },
+          {
+            "date": "2025-10-22",
+            "sales": 3500
           }
         ]
       },

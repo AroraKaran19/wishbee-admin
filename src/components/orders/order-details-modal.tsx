@@ -166,16 +166,8 @@ export function OrderDetailsModal({ orderId, isOpen, onClose }: OrderDetailsModa
                         <div className="flex-1">
                           <p className="font-medium text-gray-900">{item.productName}</p>
                           <p className="text-sm text-gray-500">
-                            Quantity: {item.quantity} × {formatCurrency(item.price)}
-                            {item.discountApplied && item.discountApplied > 0 && (
-                              <span className="ml-2 text-green-600">
-                                (Discount: {formatCurrency(item.discountApplied)})
-                              </span>
-                            )}
+                            Quantity: {item.quantity} x {formatCurrency(item.price)}
                           </p>
-                          {item.productType && (
-                            <p className="text-xs text-gray-400">Type: {item.productType}</p>
-                          )}
                         </div>
                         <p className="font-semibold text-gray-900">
                           {formatCurrency(item.quantity * item.price - (item.discountApplied || 0))}

@@ -254,15 +254,6 @@ export function DashboardPage() {
             <h2 className="text-base md:text-lg font-semibold text-gray-900">
               Sales Report (Last 30 Days)
             </h2>
-            <Button
-              variant="danger"
-              size="sm"
-              className="flex items-center gap-2 w-full sm:w-auto text-xs md:text-sm"
-            >
-              <Upload className="w-4 h-4" />
-              <span className="hidden sm:inline">Export PDF</span>
-              <span className="sm:hidden">Export</span>
-            </Button>
           </div>
           <div className="h-64">
             <ResponsiveContainer width="100%" height="100%">

@@ -5,10 +5,11 @@ import { X, Upload, Loader2, Image as ImageIcon } from "lucide-react";
 import {
   bannerApi,
   Banner,
+  BannerType,
   CreateBannerData,
   UpdateBannerData,
 } from "@/lib/api/banners";
-import { getPresignedUrl } from "@/lib/api/products";
+import { getPresignedUrl, deleteImage } from "@/lib/api/products";
 import toast from "react-hot-toast";
 
 interface BannerModalProps {
@@ -28,8 +29,7 @@ export function BannerModal({
     title: "",
     link: "",
     imageUrl: "",
-    type: "offers" as "hero" | "offers",
-    order: 0,
+    type: "offers" as BannerType,
     isActive: true,
   });
   const [isSaving, setIsSaving] = useState(false);
@@ -47,7 +47,6 @@ export function BannerModal({
           link: banner.link || "",
           imageUrl: banner.imageUrl || "",
           type: banner.type || "offers",
-          order: banner.order,
           isActive: banner.isActive,
         });
         setPreviewUrl(banner.imageUrl || null);
@@ -57,8 +56,7 @@ export function BannerModal({
           title: "",
           link: "",
           imageUrl: "",
-          type: "offers" as "hero" | "offers",
-          order: 0,
+          type: "offers" as BannerType,
           isActive: true,
         });
         setPreviewUrl(null);
@@ -164,7 +162,7 @@ export function BannerModal({
           // Send empty string to clear optional fields, or trimmed value if provided
           title: formData.title.trim(),
           link: formData.link.trim(),
-          order: formData.order,
+          // Order is controlled via drag and drop, don't update it here
           isActive: formData.isActive,
         };
 
@@ -177,7 +175,7 @@ export function BannerModal({
           type: formData.type,
           title: formData.title || undefined,
           link: formData.link || undefined,
-          order: formData.order || undefined,
+          // Order will be automatically set by API (highest order + 1 for the type)
           isActive: formData.isActive,
         };
         await bannerApi.create(createData);
@@ -258,7 +256,7 @@ export function BannerModal({
                   )}
                   <button
                     type="button"
-                    onClick={() => {
+                    onClick={async () => {
                       if (
                         banner &&
                         !confirm(
@@ -267,6 +265,43 @@ export function BannerModal({
                       ) {
                         return;
                       }
+
+                      // Delete image from AWS if it exists
+                      const currentImageUrl = formData.imageUrl;
+                      if (currentImageUrl) {
+                        try {
+                          // Extract S3 key from the image URL
+                          // URL format: https://bucket.s3.region.amazonaws.com/wishbee/banners/images/filename.jpg
+                          // We need to extract: wishbee/banners/images/filename.jpg
+                          const url = new URL(currentImageUrl);
+                          const pathParts = url.pathname.split("/");
+                          // Find the 'wishbee' part and get everything from there
+                          const wishbeeIndex = pathParts.findIndex(
+                            (part) => part === "wishbee"
+                          );
+                          if (wishbeeIndex !== -1) {
+                            const s3Key = pathParts
+                              .slice(wishbeeIndex)
+                              .join("/");
+                            // Delete from S3
+                            await deleteImage(s3Key);
+                            toast.success("Image deleted from server");
+                          } else {
+                            console.warn(
+                              "Invalid image URL format - wishbee folder not found"
+                            );
+                          }
+                        } catch (error) {
+                          console.error("Error deleting image from AWS:", error);
+                          toast.error(
+                            error instanceof Error
+                              ? error.message
+                              : "Failed to delete image from server"
+                          );
+                          // Continue to remove from UI even if server deletion fails
+                        }
+                      }
+
                       setPreviewUrl(null);
                       setFormData((prev) => ({ ...prev, imageUrl: "" }));
                     }}
@@ -319,20 +354,25 @@ export function BannerModal({
               onChange={(e) =>
                 setFormData({
                   ...formData,
-                  type: e.target.value as "hero" | "offers",
+                  type: e.target.value as BannerType,
                 })
               }
               disabled={isSaving || isUploading || !!banner}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <option value="hero">Hero Banner</option>
-              <option value="offers">Offers Banner</option>
+              <option value="hero">Hero Banner (Desktop)</option>
+              <option value="offers">Offers Banner (Desktop)</option>
+              <option value="hero-mob">Hero Banner (Mobile)</option>
+              <option value="offers-mob">Offers Banner (Mobile)</option>
             </select>
             {banner && (
               <p className="mt-1 text-xs text-gray-500">
                 Banner type cannot be changed after creation.
               </p>
             )}
+            <p className="mt-1 text-xs text-gray-500">
+              Order numbers must be unique within each type, but can be the same across different types.
+            </p>
           </div>
 
           {/* Title */}
@@ -367,29 +407,6 @@ export function BannerModal({
               placeholder="https://example.com"
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
             />
-          </div>
-
-          {/* Order */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Display Order
-            </label>
-            <input
-              type="number"
-              min="0"
-              value={formData.order}
-              onChange={(e) =>
-                setFormData({
-                  ...formData,
-                  order: parseInt(e.target.value) || 0,
-                })
-              }
-              disabled={isSaving || isUploading}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
-            />
-            <p className="mt-1 text-xs text-gray-500">
-              Lower numbers appear first. Leave as 0 to add at the end.
-            </p>
           </div>
 
           {/* Active Status */}
