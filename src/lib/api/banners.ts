@@ -47,7 +47,7 @@ export const bannerApi = {
     const url = `${API_BASE_URL}/banners${searchParams.toString() ? `?${searchParams.toString()}` : ''}`;
     const response = await fetch(url, {
       method: 'GET',
-      headers: getAuthHeaders(),
+      headers: await getAuthHeaders(),
     });
 
     if (!response.ok) {
@@ -89,7 +89,7 @@ export const bannerApi = {
   getById: async (bannerId: string): Promise<Banner> => {
     const response = await fetch(`${API_BASE_URL}/banners/${bannerId}`, {
       method: 'GET',
-      headers: getAuthHeaders(),
+      headers: await getAuthHeaders(),
     });
 
     if (!response.ok) {
@@ -107,7 +107,7 @@ export const bannerApi = {
   create: async (data: CreateBannerData): Promise<Banner> => {
     const response = await fetch(`${API_BASE_URL}/banners`, {
       method: 'POST',
-      headers: getAuthHeaders(),
+      headers: await getAuthHeaders(),
       body: JSON.stringify(data),
     });
 
@@ -126,7 +126,7 @@ export const bannerApi = {
   update: async (bannerId: string, data: UpdateBannerData): Promise<Banner> => {
     const response = await fetch(`${API_BASE_URL}/banners/${bannerId}`, {
       method: 'PATCH',
-      headers: getAuthHeaders(),
+      headers: await getAuthHeaders(),
       body: JSON.stringify(data),
     });
 
@@ -145,7 +145,7 @@ export const bannerApi = {
   delete: async (bannerId: string): Promise<void> => {
     const response = await fetch(`${API_BASE_URL}/banners/${bannerId}`, {
       method: 'DELETE',
-      headers: getAuthHeaders(),
+      headers: await getAuthHeaders(),
     });
 
     if (!response.ok) {
@@ -160,7 +160,7 @@ export const bannerApi = {
   reorder: async (bannerOrders: ReorderBannerData[]): Promise<Banner[]> => {
     const response = await fetch(`${API_BASE_URL}/banners/reorder`, {
       method: 'PATCH',
-      headers: getAuthHeaders(),
+      headers: await getAuthHeaders(),
       body: JSON.stringify({ bannerOrders }),
     });
 

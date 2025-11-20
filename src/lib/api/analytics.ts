@@ -101,7 +101,7 @@ export const analyticsApi = {
 
     const response = await fetch(`${API_BASE_URL}/analytics/page?${params.toString()}`, {
       method: 'GET',
-      headers: getAuthHeaders(),
+      headers: await getAuthHeaders(),
     });
 
     if (!response.ok) {
@@ -128,7 +128,7 @@ export const analyticsApi = {
 
     const response = await fetch(`${API_BASE_URL}/analytics/new-customers?${params.toString()}`, {
       method: 'GET',
-      headers: getAuthHeaders(),
+      headers: await getAuthHeaders(),
     });
 
     if (!response.ok) {
@@ -149,7 +149,7 @@ export const analyticsApi = {
 
     const response = await fetch(`${API_BASE_URL}/analytics/total-revenue?${params.toString()}`, {
       method: 'GET',
-      headers: getAuthHeaders(),
+      headers: await getAuthHeaders(),
     });
 
     if (!response.ok) {
@@ -170,7 +170,7 @@ export const analyticsApi = {
 
     const response = await fetch(`${API_BASE_URL}/analytics/total-orders?${params.toString()}`, {
       method: 'GET',
-      headers: getAuthHeaders(),
+      headers: await getAuthHeaders(),
     });
 
     if (!response.ok) {
@@ -197,7 +197,7 @@ export const analyticsApi = {
       `${API_BASE_URL}/analytics/sales-by-category?${params.toString()}`,
       {
         method: 'GET',
-        headers: getAuthHeaders(),
+        headers: await getAuthHeaders(),
       }
     );
 
@@ -219,7 +219,7 @@ export const analyticsApi = {
 
     const response = await fetch(`${API_BASE_URL}/analytics/dashboard?${params.toString()}`, {
       method: 'GET',
-      headers: getAuthHeaders(),
+      headers: await getAuthHeaders(),
     });
 
     if (!response.ok) {

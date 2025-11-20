@@ -204,7 +204,7 @@ export const comboApi = {
   create: async (data: ComboCreateData): Promise<ComboResponse> => {
     const response = await fetch(`${API_BASE_URL}/combos`, {
       method: "POST",
-      headers: getAuthHeaders(),
+      headers: await getAuthHeaders(),
       body: JSON.stringify(data),
     });
 
@@ -222,7 +222,7 @@ export const comboApi = {
     
     const response = await fetch(`${API_BASE_URL}/combos/${_id}`, {
       method: "PUT",
-      headers: getAuthHeaders(),
+      headers: await getAuthHeaders(),
       body: JSON.stringify(updateData),
     });
 
@@ -238,7 +238,7 @@ export const comboApi = {
   updateStock: async (id: string, quantity: number): Promise<ComboResponse> => {
     const response = await fetch(`${API_BASE_URL}/combos/${id}/stock`, {
       method: "PATCH",
-      headers: getAuthHeaders(),
+      headers: await getAuthHeaders(),
       body: JSON.stringify({ quantity }),
     });
 
@@ -258,7 +258,7 @@ export const comboApi = {
   }> => {
     const response = await fetch(`${API_BASE_URL}/combos/${id}`, {
       method: "DELETE",
-      headers: getAuthHeaders(),
+      headers: await getAuthHeaders(),
     });
 
     if (!response.ok) {

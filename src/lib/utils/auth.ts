@@ -14,10 +14,26 @@ export function getAccessToken(): string | null {
 
 /**
  * Get authorization headers for API requests
+ * Automatically generates access token if refreshToken exists but accessToken is missing/invalid
  * @returns Headers object with Authorization header if token is available
  */
-export function getAuthHeaders(): HeadersInit {
-  const token = getAccessToken();
+export async function getAuthHeaders(): Promise<HeadersInit> {
+  const state = useSessionStore.getState();
+  let token = getAccessToken();
+
+  // If no valid token, try to generate one if refreshToken exists
+  if (!token) {
+    try {
+      const refreshTokenExists = await state.checkRefreshTokenExists();
+      if (refreshTokenExists) {
+        token = await state.generateAccessToken();
+      }
+    } catch (error) {
+      console.error("Error generating access token in getAuthHeaders:", error);
+      // Continue without token - API will return 401 if needed
+    }
+  }
+
   const headers: HeadersInit = {
     "Content-Type": "application/json",
   };

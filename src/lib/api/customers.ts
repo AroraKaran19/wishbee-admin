@@ -41,7 +41,7 @@ export const customerApi = {
       `${API_BASE_URL}/users/all?${params.toString()}`,
       {
         method: "GET",
-        headers: getAuthHeaders(),
+        headers: await getAuthHeaders(),
       }
     );
 
@@ -60,7 +60,7 @@ export const customerApi = {
   getById: async (userId: string): Promise<any> => {
     const response = await fetch(`${API_BASE_URL}/users/${userId}`, {
       method: "GET",
-      headers: getAuthHeaders(),
+      headers: await getAuthHeaders(),
     });
 
     if (!response.ok) {
@@ -99,7 +99,7 @@ export const customerApi = {
   ): Promise<Customer> => {
     const response = await fetch(`${API_BASE_URL}/users/${userId}`, {
       method: "PATCH",
-      headers: getAuthHeaders(),
+      headers: await getAuthHeaders(),
       body: JSON.stringify(data),
     });
 
@@ -118,7 +118,7 @@ export const customerApi = {
   delete: async (customerId: string): Promise<void> => {
     const response = await fetch(`${API_BASE_URL}/user/${customerId}`, {
       method: "DELETE",
-      headers: getAuthHeaders(),
+      headers: await getAuthHeaders(),
     });
 
     if (!response.ok) {
@@ -138,7 +138,7 @@ export const customerApi = {
       `${API_BASE_URL}/users/${adminId}/permissions`,
       {
         method: "PATCH",
-        headers: getAuthHeaders(),
+        headers: await getAuthHeaders(),
         body: JSON.stringify({ permissions }),
       }
     );
@@ -170,7 +170,7 @@ export const customerApi = {
   ): Promise<any> => {
     const response = await fetch(`${API_BASE_URL}/users/admins`, {
       method: "POST",
-      headers: getAuthHeaders(),
+      headers: await getAuthHeaders(),
       body: JSON.stringify(data),
     });
 
@@ -201,7 +201,7 @@ export const customerApi = {
   ): Promise<any> => {
     const response = await fetch(`${API_BASE_URL}/users/${adminId}`, {
       method: "PATCH",
-      headers: getAuthHeaders(),
+      headers: await getAuthHeaders(),
       body: JSON.stringify(data),
     });
 

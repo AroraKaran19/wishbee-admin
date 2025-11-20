@@ -150,6 +150,10 @@ export default function InventoryEditProductPage() {
   });
   const [showCategoryModal, setShowCategoryModal] = useState(false);
   const [showSubcategoryModal, setShowSubcategoryModal] = useState(false);
+  const [editingCategory, setEditingCategory] = useState<any | null>(null);
+  const [editingSubcategory, setEditingSubcategory] = useState<any | null>(
+    null
+  );
   const [uploadingImages, setUploadingImages] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<{
     [key: string]: number;
@@ -213,15 +217,17 @@ export default function InventoryEditProductPage() {
 
         // Handle category and subcategory
         if (product.category) {
-          const categoryId = typeof product.category === "string" 
-            ? product.category 
-            : product.category._id;
+          const categoryId =
+            typeof product.category === "string"
+              ? product.category
+              : product.category._id;
           setValue("categoryId", categoryId);
         }
         if (product.subCategory) {
-          const subCategoryId = typeof product.subCategory === "string"
-            ? product.subCategory
-            : product.subCategory._id;
+          const subCategoryId =
+            typeof product.subCategory === "string"
+              ? product.subCategory
+              : product.subCategory._id;
           setValue("subCategoryId", subCategoryId);
         }
 
@@ -853,12 +859,30 @@ export default function InventoryEditProductPage() {
     setValue("subCategoryId", option.value);
   };
 
+  // Handle category edit
+  const handleCategoryEdit = (option: DropdownOption) => {
+    const category = categories.find((cat) => cat._id === option.value);
+    if (category) {
+      setEditingCategory(category);
+      setShowCategoryModal(true);
+    }
+  };
+
   // Handle category delete
   const handleCategoryDelete = (option: DropdownOption) => {
     const category = categories.find((cat) => cat._id === option.value);
     if (category) {
       setItemToDelete({ type: "category", item: category });
       setShowDeleteConfirm(true);
+    }
+  };
+
+  // Handle subcategory edit
+  const handleSubcategoryEdit = (option: DropdownOption) => {
+    const subcategory = subcategories.find((sub) => sub._id === option.value);
+    if (subcategory) {
+      setEditingSubcategory(subcategory);
+      setShowSubcategoryModal(true);
     }
   };
 
@@ -918,7 +942,12 @@ export default function InventoryEditProductPage() {
     showOnHomepage: boolean;
   }) => {
     try {
-      const response = await categoryApi.create(data);
+      // Prepare data - description is optional if not provided
+      const categoryData = {
+        ...data,
+        description: data.description || "",
+      };
+      const response = await categoryApi.create(categoryData);
       const newCategory = response.data || response;
 
       // Update categories state with the new category
@@ -935,6 +964,44 @@ export default function InventoryEditProductPage() {
     }
   };
 
+  // Category update
+  const handleUpdateCategory = async (data: {
+    name: string;
+    description: string;
+    slug: string;
+    image?: string;
+    showOnHomepage: boolean;
+  }) => {
+    if (!editingCategory) return;
+
+    try {
+      // Prepare data - description is optional if not provided
+      const categoryData = {
+        ...data,
+        description: data.description || "",
+      };
+      const response = await categoryApi.update(editingCategory._id, categoryData);
+      const updatedCategory = response.data || response;
+
+      // Update categories state
+      setCategories((prev) =>
+        prev.map((cat) =>
+          cat._id === editingCategory._id ? updatedCategory : cat
+        )
+      );
+      setShowCategoryModal(false);
+      setEditingCategory(null);
+      setSubmitError(null);
+      toast.success("Category updated successfully!");
+    } catch (error) {
+      console.error("Error updating category:", error);
+      const errorMessage =
+        error instanceof Error ? error.message : "Failed to update category";
+      setSubmitError(errorMessage);
+      toast.error(errorMessage);
+    }
+  };
+
   // Subcategory creation
   const handleCreateSubcategory = async (data: {
     name: string;
@@ -944,7 +1011,12 @@ export default function InventoryEditProductPage() {
     image?: string;
   }) => {
     try {
-      const response = await subcategoryApi.create(data);
+      // Prepare data - description is optional if not provided
+      const subcategoryData = {
+        ...data,
+        description: data.description || "",
+      };
+      const response = await subcategoryApi.create(subcategoryData);
       const newSubcategory = response.data || response;
 
       // Update subcategories state with the new subcategory
@@ -956,6 +1028,47 @@ export default function InventoryEditProductPage() {
       console.error("Error creating subcategory:", error);
       const errorMessage =
         error instanceof Error ? error.message : "Failed to create subcategory";
+      setSubmitError(errorMessage);
+      toast.error(errorMessage);
+    }
+  };
+
+  // Subcategory update
+  const handleUpdateSubcategory = async (data: {
+    name: string;
+    description: string;
+    parentCategoryId: string;
+    slug: string;
+    image?: string;
+  }) => {
+    if (!editingSubcategory) return;
+
+    try {
+      // Prepare data - description is optional if not provided
+      const subcategoryData = {
+        ...data,
+        description: data.description || "",
+      };
+      const response = await subcategoryApi.update(
+        editingSubcategory._id,
+        subcategoryData
+      );
+      const updatedSubcategory = response.data || response;
+
+      // Update subcategories state
+      setSubcategories((prev) =>
+        prev.map((sub) =>
+          sub._id === editingSubcategory._id ? updatedSubcategory : sub
+        )
+      );
+      setShowSubcategoryModal(false);
+      setEditingSubcategory(null);
+      setSubmitError(null);
+      toast.success("Sub-category updated successfully!");
+    } catch (error) {
+      console.error("Error updating subcategory:", error);
+      const errorMessage =
+        error instanceof Error ? error.message : "Failed to update subcategory";
       setSubmitError(errorMessage);
       toast.error(errorMessage);
     }
@@ -978,13 +1091,13 @@ export default function InventoryEditProductPage() {
       errors.push("Product name must be less than 200 characters");
     }
 
-    // Description validation (matching API: required, min 10, max 2000 chars)
+    // Description validation (matching API: required, min 10, max 1000 chars)
     if (!data.description?.trim()) {
       errors.push("Description is required");
     } else if (data.description.length < 10) {
       errors.push("Description must be at least 10 characters");
-    } else if (data.description.length > 2000) {
-      errors.push("Description must be less than 2000 characters");
+    } else if (data.description.length > 1000) {
+      errors.push("Description must be less than 1000 characters");
     }
 
     // Highlights validation (matching API: required, at least one)
@@ -1245,7 +1358,9 @@ export default function InventoryEditProductPage() {
             >
               <ArrowLeft className="w-4 h-4" />
             </button>
-            <h1 className="text-lg md:text-xl font-semibold text-gray-900">Edit Product</h1>
+            <h1 className="text-lg md:text-xl font-semibold text-gray-900">
+              Edit Product
+            </h1>
           </div>
           <p className="text-gray-500 mt-1 text-xs md:text-sm">
             Edit product details and update inventory information.
@@ -1262,753 +1377,1193 @@ export default function InventoryEditProductPage() {
             </CardContent>
           </Card>
         ) : (
-        <Card>
-          <CardContent>
-            <div className="grid gap-6 pb-10">
-              {/* Error Message */}
-              {submitError && (
-                <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
-                  <div className="flex items-center gap-2">
-                    <div className="w-5 h-5 bg-red-500 rounded-full flex items-center justify-center">
-                      <X className="w-3 h-3 text-white" />
+          <Card>
+            <CardContent>
+              <div className="grid gap-6 pb-10">
+                {/* Error Message */}
+                {submitError && (
+                  <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+                    <div className="flex items-center gap-2">
+                      <div className="w-5 h-5 bg-red-500 rounded-full flex items-center justify-center">
+                        <X className="w-3 h-3 text-white" />
+                      </div>
+                      <p className="text-red-700 text-sm font-medium">Error</p>
                     </div>
-                    <p className="text-red-700 text-sm font-medium">Error</p>
+                    <p className="text-red-600 text-sm mt-1">{submitError}</p>
                   </div>
-                  <p className="text-red-600 text-sm mt-1">{submitError}</p>
-                </div>
-              )}
+                )}
 
-              {/* Success Message */}
-              {submitSuccess && (
-                <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
-                  <div className="flex items-center gap-2">
-                    <div className="w-5 h-5 bg-green-500 rounded-full flex items-center justify-center">
-                      <svg
-                        className="w-3 h-3 text-white"
-                        fill="currentColor"
-                        viewBox="0 0 20 20"
-                      >
-                        <path
-                          fillRule="evenodd"
-                          d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                          clipRule="evenodd"
-                        />
-                      </svg>
+                {/* Success Message */}
+                {submitSuccess && (
+                  <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+                    <div className="flex items-center gap-2">
+                      <div className="w-5 h-5 bg-green-500 rounded-full flex items-center justify-center">
+                        <svg
+                          className="w-3 h-3 text-white"
+                          fill="currentColor"
+                          viewBox="0 0 20 20"
+                        >
+                          <path
+                            fillRule="evenodd"
+                            d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                            clipRule="evenodd"
+                          />
+                        </svg>
+                      </div>
+                      <p className="text-green-700 text-sm font-medium">
+                        Success
+                      </p>
                     </div>
-                    <p className="text-green-700 text-sm font-medium">
-                      Success
+                    <p className="text-green-600 text-sm mt-1">
+                      Product added successfully! Redirecting to inventory
+                      page...
                     </p>
                   </div>
-                  <p className="text-green-600 text-sm mt-1">
-                    Product added successfully! Redirecting to inventory page...
-                  </p>
-                </div>
-              )}
-              <div className="space-y-4">
-                <label className="text-sm font-medium text-gray-700">
-                  Product Images
-                </label>
+                )}
+                <div className="space-y-4">
+                  <label className="text-sm font-medium text-gray-700">
+                    Product Images
+                  </label>
 
-                {/* Image Upload Area */}
-                <div
-                  className={`flex flex-col md:flex-row items-center justify-center gap-4 md:gap-12 rounded-xl border border-dashed border-gray-400 bg-white p-4 md:p-8 transition-colors ${
-                    uploadingImages
-                      ? "opacity-50 cursor-not-allowed"
-                      : "hover:border-blue-400 hover:bg-blue-50/30 cursor-pointer"
-                  }`}
-                  onDragOver={!uploadingImages ? handleDragOver : undefined}
-                  onDragEnter={!uploadingImages ? handleDragEnter : undefined}
-                  onDragLeave={!uploadingImages ? handleDragLeave : undefined}
-                  onDrop={!uploadingImages ? handleDrop : undefined}
-                  onClick={() =>
-                    !uploadingImages &&
-                    document.getElementById("file-upload")?.click()
-                  }
-                >
-                  <div className="w-24 h-24 md:w-40 md:h-40 rounded-full bg-sky-100 flex items-center justify-center overflow-hidden relative flex-shrink-0">
-                    <ImageIcon
-                      className="w-14 h-14 md:w-24 md:h-24 text-sky-500"
-                      strokeWidth={1.2}
-                    />
-                  </div>
-                  <div className="flex flex-col items-center justify-center">
-                    {uploadingImages ? (
-                      <div className="text-center">
-                        <div className="w-8 h-8 border-2 border-gray-300 border-t-primary rounded-full animate-spin mx-auto mb-3" />
-                        <p className="text-xs md:text-sm text-gray-600 mb-2 font-medium">
-                          Uploading Images...
-                        </p>
-                        {Object.keys(uploadProgress).length > 0 && (
-                          <div className="w-32 md:w-48 bg-gray-200 rounded-full h-1.5 mb-2">
-                            <div
-                              className="bg-primary h-1.5 rounded-full transition-all duration-300"
-                              style={{
-                                width: `${
-                                  Object.values(uploadProgress).reduce(
-                                    (acc, curr) => acc + curr,
-                                    0
-                                  ) / Object.keys(uploadProgress).length
-                                }%`,
-                              }}
-                            />
-                          </div>
-                        )}
-                        <p className="text-xs text-gray-500">
-                          {Object.keys(uploadProgress).length} file(s) uploading
-                        </p>
-                      </div>
-                    ) : (
-                      <>
-                        <p className="text-xs md:text-sm text-gray-400 mb-2 md:mb-3 text-center font-medium">
-                          Drag and Drop
-                        </p>
-                        <p className="text-xs text-gray-400 mb-2 md:mb-3 text-center">
-                          or
-                        </p>
-                        <Button
-                          variant="secondary"
-                          icon={<Upload className="w-4 h-4" />}
-                          className="text-xs md:text-sm"
-                        >
-                          Upload Images
-                        </Button>
-                      </>
-                    )}
-                  </div>
-                  <input
-                    id="file-upload"
-                    type="file"
-                    accept="image/*"
-                    onChange={handleFileInput}
-                    className="hidden"
-                    aria-label="Upload product images"
-                    multiple
-                    disabled={uploadingImages}
-                  />
-                </div>
-
-                {/* Image Preview Grid */}
-                {(watch("images") && watch("images").length > 0) ||
-                Object.keys(uploadProgress).length > 0 ? (
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    {watch("images") &&
-                      watch("images").map((image, index) => (
-                        <div key={index} className="relative group">
-                          <Image
-                            src={image}
-                            alt={`Product image ${index + 1}`}
-                            width={120}
-                            height={120}
-                            loading="lazy"
-                            unoptimized
-                            quality={100}
-                            className="w-full h-24 object-cover rounded-lg border border-gray-200"
-                          />
-                          <button
-                            type="button"
-                            onClick={() => removeImage(index)}
-                            className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600"
-                          >
-                            <X className="w-3 h-3" />
-                          </button>
-                        </div>
-                      ))}
-
-                    {/* Upload Progress Items */}
-                    {Object.entries(uploadProgress).map(
-                      ([fileId, progress]) => (
-                        <div key={fileId} className="relative group">
-                          <div className="w-full h-24 bg-gray-100 rounded-lg border border-gray-200 flex flex-col items-center justify-center p-2">
-                            <div className="w-6 h-6 border-2 border-gray-300 border-t-primary rounded-full animate-spin mb-2" />
-                            <div className="w-full bg-gray-200 rounded-full h-1.5">
+                  {/* Image Upload Area */}
+                  <div
+                    className={`flex flex-col md:flex-row items-center justify-center gap-4 md:gap-12 rounded-xl border border-dashed border-gray-400 bg-white p-4 md:p-8 transition-colors ${
+                      uploadingImages
+                        ? "opacity-50 cursor-not-allowed"
+                        : "hover:border-blue-400 hover:bg-blue-50/30 cursor-pointer"
+                    }`}
+                    onDragOver={!uploadingImages ? handleDragOver : undefined}
+                    onDragEnter={!uploadingImages ? handleDragEnter : undefined}
+                    onDragLeave={!uploadingImages ? handleDragLeave : undefined}
+                    onDrop={!uploadingImages ? handleDrop : undefined}
+                    onClick={() =>
+                      !uploadingImages &&
+                      document.getElementById("file-upload")?.click()
+                    }
+                  >
+                    <div className="w-24 h-24 md:w-40 md:h-40 rounded-full bg-sky-100 flex items-center justify-center overflow-hidden relative flex-shrink-0">
+                      <ImageIcon
+                        className="w-14 h-14 md:w-24 md:h-24 text-sky-500"
+                        strokeWidth={1.2}
+                      />
+                    </div>
+                    <div className="flex flex-col items-center justify-center">
+                      {uploadingImages ? (
+                        <div className="text-center">
+                          <div className="w-8 h-8 border-2 border-gray-300 border-t-primary rounded-full animate-spin mx-auto mb-3" />
+                          <p className="text-xs md:text-sm text-gray-600 mb-2 font-medium">
+                            Uploading Images...
+                          </p>
+                          {Object.keys(uploadProgress).length > 0 && (
+                            <div className="w-32 md:w-48 bg-gray-200 rounded-full h-1.5 mb-2">
                               <div
                                 className="bg-primary h-1.5 rounded-full transition-all duration-300"
-                                style={{ width: `${progress}%` }}
+                                style={{
+                                  width: `${
+                                    Object.values(uploadProgress).reduce(
+                                      (acc, curr) => acc + curr,
+                                      0
+                                    ) / Object.keys(uploadProgress).length
+                                  }%`,
+                                }}
                               />
                             </div>
-                            <span className="text-xs text-gray-600 mt-1">
-                              {progress}%
-                            </span>
-                          </div>
-                        </div>
-                      )
-                    )}
-                  </div>
-                ) : null}
-              </div>
-
-              <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
-                {/* Basic Information */}
-                <div className="space-y-4">
-                  <h3 className="text-base md:text-lg font-medium text-gray-900">
-                    Basic Information
-                  </h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium text-gray-700">
-                        Product Name *
-                      </label>
-                      <Input
-                        variant="muted"
-                        icon={<FileText className="w-4 h-4" />}
-                        className="text-sm"
-                        placeholder="Enter product name"
-                        {...register("name", {
-                          required: "Product name is required",
-                        })}
-                      />
-                      {errors.name && (
-                        <p className="text-red-500 text-xs mt-1">
-                          {errors.name.message}
-                        </p>
-                      )}
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium text-gray-700">
-                        SKU *
-                      </label>
-                      <Input
-                        variant="muted"
-                        icon={<ScanBarcode className="w-4 h-4" />}
-                        className="text-sm"
-                        placeholder="Enter product SKU"
-                        {...register("sku", { required: "SKU is required" })}
-                      />
-                      {errors.sku && (
-                        <p className="text-red-500 text-xs mt-1">
-                          {errors.sku.message}
-                        </p>
-                      )}
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium text-gray-700">
-                        HSN Code
-                      </label>
-                      <Input
-                        variant="muted"
-                        icon={<FileText className="w-4 h-4" />}
-                        className="text-sm"
-                        placeholder="Enter HSN code"
-                        {...register("hsn")}
-                      />
-                      {errors.hsn && (
-                        <p className="text-red-500 text-xs mt-1">
-                          {errors.hsn.message}
-                        </p>
-                      )}
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium text-gray-700">
-                        Category *
-                      </label>
-                      <ActionDropdown
-                        options={categoryOptions}
-                        selectedValue={watch("categoryId")}
-                        placeholder={
-                          loadingCategories
-                            ? "Loading categories..."
-                            : "Select a category"
-                        }
-                        disabled={loadingCategories}
-                        loading={loadingCategories}
-                        onSelect={handleCategorySelect}
-                        onDelete={handleCategoryDelete}
-                        onAdd={() => setShowCategoryModal(true)}
-                        showActions={true}
-                        showAddButton={true}
-                        addButtonText="New"
-                        error={errors.categoryId?.message}
-                        hasMore={categoriesPagination.hasMore}
-                        onLoadMore={loadMoreCategories}
-                        loadingMore={loadingCategories}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium text-gray-700">
-                        Sub-category *
-                      </label>
-                      <ActionDropdown
-                        options={subcategoryOptions}
-                        selectedValue={watch("subCategoryId")}
-                        placeholder={
-                          loadingSubcategories
-                            ? "Loading subcategories..."
-                            : !watch("categoryId")
-                            ? "Select a category first"
-                            : "Select a sub-category"
-                        }
-                        disabled={loadingSubcategories || !watch("categoryId")}
-                        loading={loadingSubcategories}
-                        onSelect={handleSubcategorySelect}
-                        onDelete={handleSubcategoryDelete}
-                        onAdd={() => setShowSubcategoryModal(true)}
-                        showActions={true}
-                        showAddButton={true}
-                        addButtonText="New"
-                        error={errors.subCategoryId?.message}
-                        hasMore={subcategoriesPagination.hasMore}
-                        onLoadMore={loadMoreSubcategories}
-                        loadingMore={loadingSubcategories}
-                      />
-                    </div>
-                    {/* <div className="space-y-2 md:col-span-2">
-                      <label className="text-sm font-medium text-gray-700">
-                        Description *{" "}
-                        <span className="text-gray-500 text-xs">
-                          (min 10 characters, max 2000)
-                        </span>
-                      </label>
-                      <textarea
-                        className={`w-full px-3 py-2 border rounded-lg focus:outline-none bg-muted text-sm ${
-                          watch("description") &&
-                          watch("description").length > 0 &&
-                          (watch("description").length < 10 ||
-                            watch("description").length > 2000)
-                            ? "border-red-300 focus:border-red-500"
-                            : "border-gray-200 focus:border-gray-400"
-                        }`}
-                        placeholder="Enter product description (minimum 10 characters, maximum 2000)"
-                        {...register("description", {
-                          required: "Description is required",
-                        })}
-                        rows={3}
-                      />
-                      <div className="flex justify-between items-center">
-                        <div>
-                          {errors.description && (
-                            <p className="text-red-500 text-xs">
-                              {errors.description.message}
-                            </p>
                           )}
-                          {watch("description") &&
-                            watch("description").length > 0 &&
-                            watch("description").length < 10 && (
-                              <p className="text-red-500 text-xs">
-                                Description must be at least 10 characters long
-                              </p>
-                            )}
-                          {watch("description") &&
-                            watch("description").length > 2000 && (
-                              <p className="text-red-500 text-xs">
-                                Description must be less than 2000 characters
-                              </p>
-                            )}
+                          <p className="text-xs text-gray-500">
+                            {Object.keys(uploadProgress).length} file(s)
+                            uploading
+                          </p>
                         </div>
-                        <span
-                          className={`text-xs ${
+                      ) : (
+                        <>
+                          <p className="text-xs md:text-sm text-gray-400 mb-2 md:mb-3 text-center font-medium">
+                            Drag and Drop
+                          </p>
+                          <p className="text-xs text-gray-400 mb-2 md:mb-3 text-center">
+                            or
+                          </p>
+                          <Button
+                            variant="secondary"
+                            icon={<Upload className="w-4 h-4" />}
+                            className="text-xs md:text-sm"
+                          >
+                            Upload Images
+                          </Button>
+                        </>
+                      )}
+                    </div>
+                    <input
+                      id="file-upload"
+                      type="file"
+                      accept="image/*"
+                      onChange={handleFileInput}
+                      className="hidden"
+                      aria-label="Upload product images"
+                      multiple
+                      disabled={uploadingImages}
+                    />
+                  </div>
+
+                  {/* Image Preview Grid */}
+                  {(watch("images") && watch("images").length > 0) ||
+                  Object.keys(uploadProgress).length > 0 ? (
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                      {watch("images") &&
+                        watch("images").map((image, index) => (
+                          <div key={index} className="relative group">
+                            <Image
+                              src={image}
+                              alt={`Product image ${index + 1}`}
+                              width={120}
+                              height={120}
+                              loading="lazy"
+                              unoptimized
+                              quality={100}
+                              className="w-full h-24 object-cover rounded-lg border border-gray-200"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => removeImage(index)}
+                              className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600"
+                            >
+                              <X className="w-3 h-3" />
+                            </button>
+                          </div>
+                        ))}
+
+                      {/* Upload Progress Items */}
+                      {Object.entries(uploadProgress).map(
+                        ([fileId, progress]) => (
+                          <div key={fileId} className="relative group">
+                            <div className="w-full h-24 bg-gray-100 rounded-lg border border-gray-200 flex flex-col items-center justify-center p-2">
+                              <div className="w-6 h-6 border-2 border-gray-300 border-t-primary rounded-full animate-spin mb-2" />
+                              <div className="w-full bg-gray-200 rounded-full h-1.5">
+                                <div
+                                  className="bg-primary h-1.5 rounded-full transition-all duration-300"
+                                  style={{ width: `${progress}%` }}
+                                />
+                              </div>
+                              <span className="text-xs text-gray-600 mt-1">
+                                {progress}%
+                              </span>
+                            </div>
+                          </div>
+                        )
+                      )}
+                    </div>
+                  ) : null}
+                </div>
+
+                <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
+                  {/* Basic Information */}
+                  <div className="space-y-4">
+                    <h3 className="text-base md:text-lg font-medium text-gray-900">
+                      Basic Information
+                    </h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium text-gray-700">
+                          Product Name *
+                        </label>
+                        <Input
+                          variant="muted"
+                          icon={<FileText className="w-4 h-4" />}
+                          className="text-sm"
+                          placeholder="Enter product name"
+                          {...register("name", {
+                            required: "Product name is required",
+                          })}
+                        />
+                        {errors.name && (
+                          <p className="text-red-500 text-xs mt-1">
+                            {errors.name.message}
+                          </p>
+                        )}
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium text-gray-700">
+                          SKU *
+                        </label>
+                        <Input
+                          variant="muted"
+                          icon={<ScanBarcode className="w-4 h-4" />}
+                          className="text-sm"
+                          placeholder="Enter product SKU"
+                          {...register("sku", { required: "SKU is required" })}
+                        />
+                        {errors.sku && (
+                          <p className="text-red-500 text-xs mt-1">
+                            {errors.sku.message}
+                          </p>
+                        )}
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium text-gray-700">
+                          HSN Code
+                        </label>
+                        <Input
+                          variant="muted"
+                          icon={<FileText className="w-4 h-4" />}
+                          className="text-sm"
+                          placeholder="Enter HSN code"
+                          {...register("hsn")}
+                        />
+                        {errors.hsn && (
+                          <p className="text-red-500 text-xs mt-1">
+                            {errors.hsn.message}
+                          </p>
+                        )}
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium text-gray-700">
+                          Category *
+                        </label>
+                        <ActionDropdown
+                          options={categoryOptions}
+                          selectedValue={watch("categoryId")}
+                          placeholder={
+                            loadingCategories
+                              ? "Loading categories..."
+                              : "Select a category"
+                          }
+                          disabled={loadingCategories}
+                          loading={loadingCategories}
+                          onSelect={handleCategorySelect}
+                          onEdit={handleCategoryEdit}
+                          onDelete={handleCategoryDelete}
+                          onAdd={() => {
+                            setEditingCategory(null);
+                            setShowCategoryModal(true);
+                          }}
+                          showActions={true}
+                          showAddButton={true}
+                          addButtonText="New"
+                          error={errors.categoryId?.message}
+                          hasMore={categoriesPagination.hasMore}
+                          onLoadMore={loadMoreCategories}
+                          loadingMore={loadingCategories}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium text-gray-700">
+                          Sub-category *
+                        </label>
+                        <ActionDropdown
+                          options={subcategoryOptions}
+                          selectedValue={watch("subCategoryId")}
+                          placeholder={
+                            loadingSubcategories
+                              ? "Loading subcategories..."
+                              : !watch("categoryId")
+                              ? "Select a category first"
+                              : "Select a sub-category"
+                          }
+                          disabled={
+                            loadingSubcategories || !watch("categoryId")
+                          }
+                          loading={loadingSubcategories}
+                          onSelect={handleSubcategorySelect}
+                          onEdit={handleSubcategoryEdit}
+                          onDelete={handleSubcategoryDelete}
+                          onAdd={() => {
+                            setEditingSubcategory(null);
+                            setShowSubcategoryModal(true);
+                          }}
+                          showActions={true}
+                          showAddButton={true}
+                          addButtonText="New"
+                          error={errors.subCategoryId?.message}
+                          hasMore={subcategoriesPagination.hasMore}
+                          onLoadMore={loadMoreSubcategories}
+                          loadingMore={loadingSubcategories}
+                        />
+                      </div>
+                      <div className="space-y-2 md:col-span-2">
+                        <label className="text-sm font-medium text-gray-700">
+                          Description *{" "}
+                          <span className="text-gray-500 text-xs">
+                            (min 10 characters, max 1000)
+                          </span>
+                        </label>
+                        <textarea
+                          className={`w-full px-3 py-2 border rounded-lg focus:outline-none bg-muted text-sm ${
                             watch("description") &&
                             watch("description").length > 0 &&
                             (watch("description").length < 10 ||
-                              watch("description").length > 2000)
-                              ? "text-red-500"
-                              : "text-gray-500"
+                              watch("description").length > 1000)
+                              ? "border-red-300 focus:border-red-500"
+                              : "border-gray-200 focus:border-gray-400"
                           }`}
-                        >
-                          {watch("description")
-                            ? `${watch("description").length} characters`
-                            : "0 characters"}
-                        </span>
+                          placeholder="Enter product description (minimum 10 characters, maximum 1000)"
+                          {...register("description", {
+                            required: "Description is required",
+                            minLength: {
+                              value: 10,
+                              message:
+                                "Description must be at least 10 characters long",
+                            },
+                            maxLength: {
+                              value: 1000,
+                              message:
+                                "Description must be less than 1000 characters",
+                            },
+                          })}
+                          rows={3}
+                        />
+                        <div className="flex justify-between items-center">
+                          <div>
+                            {errors.description && (
+                              <p className="text-red-500 text-xs">
+                                {errors.description.message}
+                              </p>
+                            )}
+                            {watch("description") &&
+                              watch("description").length > 0 &&
+                              watch("description").length < 10 && (
+                                <p className="text-red-500 text-xs">
+                                  Description must be at least 10 characters
+                                  long
+                                </p>
+                              )}
+                            {watch("description") &&
+                              watch("description").length > 1000 && (
+                                <p className="text-red-500 text-xs">
+                                  Description must be less than 1000 characters
+                                </p>
+                              )}
+                          </div>
+                          <span
+                            className={`text-xs ${
+                              watch("description") &&
+                              watch("description").length > 0 &&
+                              (watch("description").length < 10 ||
+                                watch("description").length > 1000)
+                                ? "text-red-500"
+                                : "text-gray-500"
+                            }`}
+                          >
+                            {watch("description")
+                              ? `${watch("description").length} characters`
+                              : "0 characters"}
+                          </span>
+                        </div>
                       </div>
-                    </div> */}
-                    <div className="space-y-2 md:col-span-2">
-                      <label className="text-sm font-medium text-gray-700">
-                        Highlights *{" "}
-                        <span className="text-gray-500 text-xs">
-                          (at least one required)
-                        </span>
-                      </label>
+                      <div className="space-y-2 md:col-span-2">
+                        <label className="text-sm font-medium text-gray-700">
+                          Highlights *{" "}
+                          <span className="text-gray-500 text-xs">
+                            (at least one required)
+                          </span>
+                        </label>
+                        <div className="space-y-2">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
+                            <Input
+                              variant="muted"
+                              placeholder="Highlight key (e.g., Material)"
+                              value={highlightKeyInput}
+                              onChange={(e) =>
+                                setHighlightKeyInput(e.target.value)
+                              }
+                              className="text-xs md:text-sm"
+                            />
+                            <Input
+                              variant="muted"
+                              placeholder="Highlight value (e.g., 100% Cotton)"
+                              value={highlightValueInput}
+                              onChange={(e) =>
+                                setHighlightValueInput(e.target.value)
+                              }
+                              onKeyPress={(e) =>
+                                e.key === "Enter" &&
+                                (e.preventDefault(), addHighlight())
+                              }
+                              className="text-xs md:text-sm"
+                            />
+                            <Button
+                              type="button"
+                              variant="secondary"
+                              onClick={addHighlight}
+                              icon={<Plus className="w-4 h-4" />}
+                              className="w-full sm:w-auto text-xs md:text-sm"
+                            >
+                              Add
+                            </Button>
+                          </div>
+                          {highlights.length > 0 && (
+                            <div className="flex flex-wrap gap-2">
+                              {highlights.map((highlight, index) => (
+                                <span
+                                  key={index}
+                                  className="inline-flex items-center gap-1 px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full"
+                                >
+                                  <strong>{highlight.key}:</strong>{" "}
+                                  {highlight.value}
+                                  <button
+                                    type="button"
+                                    onClick={() => removeHighlight(index)}
+                                  >
+                                    <X className="w-3 h-3" />
+                                  </button>
+                                </span>
+                              ))}
+                            </div>
+                          )}
+                          {highlights.length === 0 && (
+                            <p className="text-red-500 text-xs">
+                              At least one highlight is required
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Pricing Information */}
+                  <div className="space-y-4">
+                    <h3 className="text-base md:text-lg font-medium text-gray-900">
+                      Pricing Information
+                    </h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div className="space-y-2">
-                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
+                        <label className="text-sm font-medium text-gray-700">
+                          MRP (Maximum Retail Price) *
+                        </label>
+                        <Controller
+                          name="mrp"
+                          control={control}
+                          rules={{
+                            required: "MRP is required",
+                            min: { value: 0, message: "MRP must be positive" },
+                          }}
+                          render={({ field }) => (
+                            <Input
+                              variant="muted"
+                              icon={<IndianRupee className="w-4 h-4" />}
+                              className="text-sm"
+                              placeholder="Enter MRP"
+                              type="number"
+                              step="0.01"
+                              value={field.value === 0 ? "" : field.value || ""}
+                              onChange={(e) => {
+                                const value = e.target.value;
+                                if (
+                                  value === "" ||
+                                  value === null ||
+                                  value === undefined
+                                ) {
+                                  field.onChange("");
+                                } else {
+                                  const numValue = parseFloat(value);
+                                  field.onChange(
+                                    isNaN(numValue) ? "" : numValue
+                                  );
+                                }
+                              }}
+                            />
+                          )}
+                        />
+                        {errors.mrp && (
+                          <p className="text-red-500 text-xs mt-1">
+                            {errors.mrp.message}
+                          </p>
+                        )}
+                      </div>
+
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium text-gray-700">
+                          GST (Goods and Services Tax) %
+                        </label>
+                        <Controller
+                          name="gst"
+                          control={control}
+                          rules={{
+                            min: { value: 0, message: "GST must be positive" },
+                            max: {
+                              value: 100,
+                              message: "GST cannot exceed 100%",
+                            },
+                          }}
+                          render={({ field }) => (
+                            <div className="relative">
+                              <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">
+                                <Percent className="w-4 h-4" />
+                              </div>
+                              <select
+                                className="w-full pl-10 pr-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-gray-400 bg-muted text-sm"
+                                {...field}
+                                onChange={(e) =>
+                                  field.onChange(
+                                    parseFloat(e.target.value) || 0
+                                  )
+                                }
+                                value={field.value || 0}
+                              >
+                                <option value={0}>0%</option>
+                                <option value={5}>5%</option>
+                                <option value={18}>18%</option>
+                                <option value={40}>40%</option>
+                              </select>
+                            </div>
+                          )}
+                        />
+                        {errors.gst && (
+                          <p className="text-red-500 text-xs mt-1">
+                            {errors.gst.message}
+                          </p>
+                        )}
+                      </div>
+
+                      {/* Discount Toggle */}
+                      <div className="space-y-2 md:col-span-2">
+                        <label className="flex items-center gap-3 p-3 bg-gray-50 border border-gray-200 rounded-lg hover:bg-gray-100 cursor-pointer transition-colors">
+                          <input
+                            type="checkbox"
+                            checked={showDiscountFields}
+                            onChange={(e) =>
+                              handleDiscountToggle(e.target.checked)
+                            }
+                            className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                          />
+                          <div className="flex items-center gap-2">
+                            <Tag className="w-4 h-4 text-gray-600" />
+                            <span className="text-sm font-medium text-gray-700">
+                              Add Discount
+                            </span>
+                          </div>
+                        </label>
+                      </div>
+
+                      {/* Discount Fields - Only show when checkbox is checked */}
+                      {showDiscountFields && (
+                        <div className="md:col-span-2 p-4 bg-blue-50 border border-blue-200 rounded-lg space-y-4">
+                          <h4 className="text-sm font-medium text-blue-900">
+                            Discount Settings
+                          </h4>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div className="space-y-2">
+                              <label className="text-sm font-medium text-gray-700">
+                                Discount Type
+                              </label>
+                              <Controller
+                                name="discount.type"
+                                control={control}
+                                render={({ field }) => (
+                                  <select
+                                    className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-gray-400 bg-muted text-sm"
+                                    {...field}
+                                  >
+                                    <option value="percentage">
+                                      Percentage
+                                    </option>
+                                    <option value="fixed">Fixed Amount</option>
+                                  </select>
+                                )}
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <label className="text-sm font-medium text-gray-700">
+                                Discount Value
+                              </label>
+                              <Controller
+                                name="discount.value"
+                                control={control}
+                                rules={{
+                                  min: {
+                                    value: 0,
+                                    message: "Discount value must be positive",
+                                  },
+                                }}
+                                render={({ field }) => (
+                                  <Input
+                                    variant="muted"
+                                    icon={<Tag className="w-4 h-4" />}
+                                    className="text-sm"
+                                    placeholder="Enter discount value"
+                                    type="number"
+                                    step="0.01"
+                                    {...field}
+                                    onChange={(e) =>
+                                      field.onChange(
+                                        parseFloat(e.target.value) || 0
+                                      )
+                                    }
+                                  />
+                                )}
+                              />
+                              {errors.discount?.value && (
+                                <p className="text-red-500 text-xs mt-1">
+                                  {errors.discount.value.message}
+                                </p>
+                              )}
+                            </div>
+                            <div className="space-y-2">
+                              <label className="text-sm font-medium text-gray-700">
+                                Discount Start Date
+                              </label>
+                              <Controller
+                                name="discount.startDate"
+                                control={control}
+                                render={({ field }) => (
+                                  <Input
+                                    variant="muted"
+                                    icon={<Calendar className="w-4 h-4" />}
+                                    className="text-sm"
+                                    placeholder="Select start date"
+                                    type="date"
+                                    {...field}
+                                  />
+                                )}
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <label className="text-sm font-medium text-gray-700">
+                                Discount End Date
+                              </label>
+                              <Controller
+                                name="discount.endDate"
+                                control={control}
+                                render={({ field }) => (
+                                  <Input
+                                    variant="muted"
+                                    icon={<Calendar className="w-4 h-4" />}
+                                    className="text-sm"
+                                    placeholder="Select end date"
+                                    type="date"
+                                    {...field}
+                                  />
+                                )}
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Pricing Ranges */}
+                    <div className="space-y-4">
+                      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+                        <h4 className="text-sm md:text-md font-medium text-gray-900">
+                          Pricing Ranges
+                        </h4>
+                        <p className="text-xs md:text-sm text-gray-500">
+                          Set different prices based on quantity ranges
+                        </p>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+                        <div className="space-y-2">
+                          <label className="text-xs md:text-sm font-medium text-gray-700">
+                            Quantity Start
+                          </label>
                           <Input
                             variant="muted"
-                            placeholder="Highlight key (e.g., Material)"
-                            value={highlightKeyInput}
-                            onChange={(e) =>
-                              setHighlightKeyInput(e.target.value)
-                            }
+                            icon={<Package className="w-4 h-4" />}
                             className="text-xs md:text-sm"
+                            placeholder="Start quantity"
+                            type="number"
+                            value={newPricingRange.quantity_start}
+                            onChange={(e) =>
+                              setNewPricingRange({
+                                ...newPricingRange,
+                                quantity_start: parseInt(e.target.value) || 0,
+                              })
+                            }
                           />
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-xs md:text-sm font-medium text-gray-700">
+                            Quantity End
+                          </label>
                           <Input
                             variant="muted"
-                            placeholder="Highlight value (e.g., 100% Cotton)"
-                            value={highlightValueInput}
-                            onChange={(e) =>
-                              setHighlightValueInput(e.target.value)
-                            }
-                            onKeyPress={(e) =>
-                              e.key === "Enter" &&
-                              (e.preventDefault(), addHighlight())
-                            }
+                            icon={<Package className="w-4 h-4" />}
                             className="text-xs md:text-sm"
+                            placeholder="End quantity"
+                            type="number"
+                            value={newPricingRange.quantity_end}
+                            onChange={(e) =>
+                              setNewPricingRange({
+                                ...newPricingRange,
+                                quantity_end: parseInt(e.target.value) || 0,
+                              })
+                            }
                           />
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-xs md:text-sm font-medium text-gray-700">
+                            Price
+                          </label>
+                          <Input
+                            variant="muted"
+                            icon={<IndianRupee className="w-4 h-4" />}
+                            className="text-xs md:text-sm"
+                            placeholder="Price for this range"
+                            type="number"
+                            step="0.01"
+                            value={newPricingRange.price}
+                            onChange={(e) =>
+                              setNewPricingRange({
+                                ...newPricingRange,
+                                price: parseFloat(e.target.value) || 0,
+                              })
+                            }
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-xs md:text-sm font-medium text-gray-700">
+                            Action
+                          </label>
                           <Button
                             type="button"
                             variant="secondary"
-                            onClick={addHighlight}
+                            onClick={addPricingRange}
                             icon={<Plus className="w-4 h-4" />}
-                            className="w-full sm:w-auto text-xs md:text-sm"
+                            className="w-full text-xs md:text-sm"
                           >
-                            Add
+                            Add Range
                           </Button>
                         </div>
-                        {highlights.length > 0 && (
-                          <div className="flex flex-wrap gap-2">
-                            {highlights.map((highlight, index) => (
-                              <span
-                                key={index}
-                                className="inline-flex items-center gap-1 px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full"
-                              >
-                                <strong>{highlight.key}:</strong>{" "}
-                                {highlight.value}
-                                <button
-                                  type="button"
-                                  onClick={() => removeHighlight(index)}
+                      </div>
+
+                      {/* Pricing Ranges List */}
+                      {watch("pricing_range") &&
+                        watch("pricing_range").length > 0 && (
+                          <div className="space-y-2">
+                            <label className="text-sm font-medium text-gray-700">
+                              Added Pricing Ranges
+                            </label>
+                            <div className="space-y-2">
+                              {watch("pricing_range").map((range, index) => (
+                                <div
+                                  key={index}
+                                  className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4 p-3 bg-gray-50 rounded-lg border border-gray-200"
                                 >
-                                  <X className="w-3 h-3" />
-                                </button>
-                              </span>
-                            ))}
+                                  <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 sm:gap-4">
+                                    <div>
+                                      <label className="text-xs text-gray-500">
+                                        Quantity: {range.quantity_start} -{" "}
+                                        {range.quantity_end}
+                                      </label>
+                                    </div>
+                                    <div>
+                                      <label className="text-xs text-gray-500">
+                                        Price: ₹{range.price}
+                                      </label>
+                                    </div>
+                                  </div>
+                                  <Button
+                                    type="button"
+                                    variant="secondary"
+                                    onClick={() => removePricingRange(index)}
+                                    icon={<X className="w-4 h-4" />}
+                                    className="px-2 py-1 w-full sm:w-auto text-xs"
+                                  >
+                                    Remove
+                                  </Button>
+                                </div>
+                              ))}
+                            </div>
                           </div>
                         )}
-                        {highlights.length === 0 && (
-                          <p className="text-red-500 text-xs">
-                            At least one highlight is required
+                    </div>
+                  </div>
+
+                  {/* Inventory Information */}
+                  <div className="space-y-4">
+                    <h3 className="text-base md:text-lg font-medium text-gray-900">
+                      Inventory Information
+                    </h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium text-gray-700">
+                          Stock Quantity *
+                        </label>
+                        <Input
+                          variant="muted"
+                          icon={<Package className="w-4 h-4" />}
+                          className="text-sm"
+                          placeholder="Enter stock quantity"
+                          type="number"
+                          {...register("stock", {
+                            required: "Stock quantity is required",
+                            min: {
+                              value: 0,
+                              message: "Stock must be non-negative",
+                            },
+                          })}
+                        />
+                        {errors.stock && (
+                          <p className="text-red-500 text-xs mt-1">
+                            {errors.stock.message}
+                          </p>
+                        )}
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium text-gray-700">
+                          Status
+                        </label>
+                        <select
+                          className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-gray-400 bg-muted text-sm"
+                          {...register("status")}
+                        >
+                          <option value="ACTIVE">Active</option>
+                          <option value="OUT_OF_STOCK">Out of Stock</option>
+                          <option value="DISCONTINUED">Discontinued</option>
+                        </select>
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium text-gray-700">
+                          Min Order Quantity
+                        </label>
+                        <Input
+                          variant="muted"
+                          icon={<Package className="w-4 h-4" />}
+                          className="text-sm"
+                          placeholder="Enter minimum order quantity"
+                          type="number"
+                          {...register("minimumOrderQuantity", {
+                            min: {
+                              value: 1,
+                              message:
+                                "Minimum order quantity must be at least 1",
+                            },
+                          })}
+                        />
+                        {errors.minimumOrderQuantity && (
+                          <p className="text-red-500 text-xs mt-1">
+                            {errors.minimumOrderQuantity.message}
+                          </p>
+                        )}
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium text-gray-700">
+                          Max Order Quantity
+                        </label>
+                        <Input
+                          variant="muted"
+                          icon={<Package className="w-4 h-4" />}
+                          className="text-sm"
+                          placeholder="Enter maximum order quantity"
+                          type="number"
+                          {...register("maximumOrderQuantity", {
+                            min: {
+                              value: 1,
+                              message:
+                                "Maximum order quantity must be at least 1",
+                            },
+                          })}
+                        />
+                        {errors.maximumOrderQuantity && (
+                          <p className="text-red-500 text-xs mt-1">
+                            {errors.maximumOrderQuantity.message}
+                          </p>
+                        )}
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium text-gray-700">
+                          Expiry Date
+                        </label>
+                        <Input
+                          variant="muted"
+                          icon={<Calendar className="w-4 h-4" />}
+                          className="text-sm"
+                          placeholder="Select expiry date"
+                          type="date"
+                          {...register("expiry")}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium text-gray-700">
+                          Alert Before Expiry (Days)
+                        </label>
+                        <Input
+                          variant="muted"
+                          icon={<Calendar className="w-4 h-4" />}
+                          className="text-sm"
+                          placeholder="Enter days before expiry"
+                          type="number"
+                          {...register("alertExpiry", {
+                            min: {
+                              value: 1,
+                              message: "Must be at least 1 day",
+                            },
+                          })}
+                        />
+                      </div>
+                      <div className="space-y-2 md:col-span-2">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <label className="flex items-center gap-2">
+                            <input
+                              type="checkbox"
+                              {...register("isOrganic")}
+                              className="rounded border-gray-300"
+                            />
+                            <span className="text-sm font-medium text-gray-700">
+                              Organic Product
+                            </span>
+                          </label>
+                          <label className="flex items-center gap-2">
+                            <input
+                              type="checkbox"
+                              {...register("isB2B")}
+                              className="rounded border-gray-300"
+                            />
+                            <span className="text-sm font-medium text-gray-700">
+                              B2B Product
+                            </span>
+                          </label>
+                          <label className="flex items-center gap-2">
+                            <input
+                              type="checkbox"
+                              {...register("dotd")}
+                              className="rounded border-gray-300"
+                            />
+                            <span className="text-sm font-medium text-gray-700">
+                              Deal of the Day
+                            </span>
+                          </label>
+                          <label className="flex items-center gap-2">
+                            <input
+                              type="checkbox"
+                              {...register("pfy")}
+                              className="rounded border-gray-300"
+                            />
+                            <span className="text-sm font-medium text-gray-700">
+                              Pick for You
+                            </span>
+                          </label>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Weight Information */}
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-medium text-gray-900">
+                      Weight Information
+                    </h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium text-gray-700">
+                          Weight Value *
+                        </label>
+                        <Controller
+                          name="weight.value"
+                          control={control}
+                          rules={{
+                            required: "Weight value is required",
+                            min: {
+                              value: 0,
+                              message: "Weight must be positive",
+                            },
+                          }}
+                          render={({ field }) => (
+                            <Input
+                              variant="muted"
+                              icon={<Weight className="w-4 h-4" />}
+                              className="text-sm"
+                              placeholder="Enter weight value"
+                              type="number"
+                              step="0.01"
+                              {...field}
+                              onChange={(e) =>
+                                field.onChange(parseFloat(e.target.value) || 0)
+                              }
+                            />
+                          )}
+                        />
+                        {errors.weight?.value && (
+                          <p className="text-red-500 text-xs mt-1">
+                            {errors.weight.value.message}
+                          </p>
+                        )}
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium text-gray-700">
+                          Weight Unit *
+                        </label>
+                        <Controller
+                          name="weight.unit"
+                          control={control}
+                          rules={{
+                            required: "Weight unit is required",
+                          }}
+                          render={({ field }) => (
+                            <Input
+                              variant="muted"
+                              className="text-sm"
+                              placeholder="e.g., kg, g, lb, oz, packets"
+                              {...field}
+                            />
+                          )}
+                        />
+                        {errors.weight?.unit && (
+                          <p className="text-red-500 text-xs mt-1">
+                            {errors.weight.unit.message}
                           </p>
                         )}
                       </div>
                     </div>
                   </div>
-                </div>
 
-                {/* Pricing Information */}
-                <div className="space-y-4">
-                  <h3 className="text-base md:text-lg font-medium text-gray-900">
-                    Pricing Information
-                  </h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium text-gray-700">
-                        MRP (Maximum Retail Price) *
-                      </label>
-                      <Controller
-                        name="mrp"
-                        control={control}
-                        rules={{
-                          required: "MRP is required",
-                          min: { value: 0, message: "MRP must be positive" },
-                        }}
-                        render={({ field }) => (
+                  {/* Collection Information */}
+                  <div className="space-y-4">
+                    <h3 className="text-base md:text-lg font-medium text-gray-900">
+                      Collection Information
+                    </h3>
+                    <p className="text-xs md:text-sm text-gray-500">
+                      Add different collection options for this product (e.g.,
+                      5kg, 2 packets, etc.)
+                    </p>
+                    <div className="space-y-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+                        <div className="space-y-2">
+                          <label className="text-xs md:text-sm font-medium text-gray-700">
+                            Quantity
+                          </label>
+                          <Input
+                            variant="muted"
+                            icon={<Package className="w-4 h-4" />}
+                            className="text-xs md:text-sm"
+                            placeholder="Enter quantity"
+                            type="number"
+                            value={newCollection.quantity}
+                            onChange={(e) =>
+                              setNewCollection({
+                                ...newCollection,
+                                quantity: parseInt(e.target.value) || 0,
+                              })
+                            }
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-xs md:text-sm font-medium text-gray-700">
+                            Price
+                          </label>
                           <Input
                             variant="muted"
                             icon={<IndianRupee className="w-4 h-4" />}
-                            className="text-sm"
-                            placeholder="Enter MRP"
+                            className="text-xs md:text-sm"
+                            placeholder="Enter price"
                             type="number"
                             step="0.01"
-                            value={field.value === 0 ? "" : field.value || ""}
-                            onChange={(e) => {
-                              const value = e.target.value;
-                              if (value === "" || value === null || value === undefined) {
-                                field.onChange("");
-                              } else {
-                                const numValue = parseFloat(value);
-                                field.onChange(isNaN(numValue) ? "" : numValue);
-                              }
-                            }}
+                            value={newCollection.price}
+                            onChange={(e) =>
+                              setNewCollection({
+                                ...newCollection,
+                                price: parseFloat(e.target.value) || 0,
+                              })
+                            }
                           />
-                        )}
-                      />
-                      {errors.mrp && (
-                        <p className="text-red-500 text-xs mt-1">
-                          {errors.mrp.message}
-                        </p>
-                      )}
-                    </div>
-
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium text-gray-700">
-                        GST (Goods and Services Tax) %
-                      </label>
-                      <Controller
-                        name="gst"
-                        control={control}
-                        rules={{
-                          min: { value: 0, message: "GST must be positive" },
-                          max: {
-                            value: 100,
-                            message: "GST cannot exceed 100%",
-                          },
-                        }}
-                        render={({ field }) => (
-                          <div className="relative">
-                            <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">
-                              <Percent className="w-4 h-4" />
-                            </div>
-                            <select
-                              className="w-full pl-10 pr-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-gray-400 bg-muted text-sm"
-                              {...field}
-                              onChange={(e) =>
-                                field.onChange(parseFloat(e.target.value) || 0)
-                              }
-                              value={field.value || 0}
-                            >
-                              <option value={0}>0%</option>
-                              <option value={5}>5%</option>
-                              <option value={18}>18%</option>
-                              <option value={40}>40%</option>
-                            </select>
-                          </div>
-                        )}
-                      />
-                      {errors.gst && (
-                        <p className="text-red-500 text-xs mt-1">
-                          {errors.gst.message}
-                        </p>
-                      )}
-                    </div>
-
-                    {/* Discount Toggle */}
-                    <div className="space-y-2 md:col-span-2">
-                      <label className="flex items-center gap-3 p-3 bg-gray-50 border border-gray-200 rounded-lg hover:bg-gray-100 cursor-pointer transition-colors">
-                        <input
-                          type="checkbox"
-                          checked={showDiscountFields}
-                          onChange={(e) =>
-                            handleDiscountToggle(e.target.checked)
-                          }
-                          className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                        />
-                        <div className="flex items-center gap-2">
-                          <Tag className="w-4 h-4 text-gray-600" />
-                          <span className="text-sm font-medium text-gray-700">
-                            Add Discount
-                          </span>
                         </div>
-                      </label>
-                    </div>
-
-                    {/* Discount Fields - Only show when checkbox is checked */}
-                    {showDiscountFields && (
-                      <div className="md:col-span-2 p-4 bg-blue-50 border border-blue-200 rounded-lg space-y-4">
-                        <h4 className="text-sm font-medium text-blue-900">
-                          Discount Settings
-                        </h4>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                          <div className="space-y-2">
-                            <label className="text-sm font-medium text-gray-700">
-                              Discount Type
-                            </label>
-                            <Controller
-                              name="discount.type"
-                              control={control}
-                              render={({ field }) => (
-                                <select
-                                  className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-gray-400 bg-muted text-sm"
-                                  {...field}
-                                >
-                                  <option value="percentage">Percentage</option>
-                                  <option value="fixed">Fixed Amount</option>
-                                </select>
-                              )}
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <label className="text-sm font-medium text-gray-700">
-                              Discount Value
-                            </label>
-                            <Controller
-                              name="discount.value"
-                              control={control}
-                              rules={{
-                                min: {
-                                  value: 0,
-                                  message: "Discount value must be positive",
-                                },
-                              }}
-                              render={({ field }) => (
-                                <Input
-                                  variant="muted"
-                                  icon={<Tag className="w-4 h-4" />}
-                                  className="text-sm"
-                                  placeholder="Enter discount value"
-                                  type="number"
-                                  step="0.01"
-                                  {...field}
-                                  onChange={(e) =>
-                                    field.onChange(
-                                      parseFloat(e.target.value) || 0
-                                    )
-                                  }
-                                />
-                              )}
-                            />
-                            {errors.discount?.value && (
-                              <p className="text-red-500 text-xs mt-1">
-                                {errors.discount.value.message}
-                              </p>
-                            )}
-                          </div>
-                          <div className="space-y-2">
-                            <label className="text-sm font-medium text-gray-700">
-                              Discount Start Date
-                            </label>
-                            <Controller
-                              name="discount.startDate"
-                              control={control}
-                              render={({ field }) => (
-                                <Input
-                                  variant="muted"
-                                  icon={<Calendar className="w-4 h-4" />}
-                                  className="text-sm"
-                                  placeholder="Select start date"
-                                  type="date"
-                                  {...field}
-                                />
-                              )}
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <label className="text-sm font-medium text-gray-700">
-                              Discount End Date
-                            </label>
-                            <Controller
-                              name="discount.endDate"
-                              control={control}
-                              render={({ field }) => (
-                                <Input
-                                  variant="muted"
-                                  icon={<Calendar className="w-4 h-4" />}
-                                  className="text-sm"
-                                  placeholder="Select end date"
-                                  type="date"
-                                  {...field}
-                                />
-                              )}
-                            />
-                          </div>
+                        <div className="space-y-2">
+                          <label className="text-xs md:text-sm font-medium text-gray-700">
+                            Unit
+                          </label>
+                          <Input
+                            variant="muted"
+                            icon={<Weight className="w-4 h-4" />}
+                            className="text-xs md:text-sm"
+                            placeholder="e.g., kg, packets"
+                            value={newCollection.unit}
+                            onChange={(e) =>
+                              setNewCollection({
+                                ...newCollection,
+                                unit: e.target.value,
+                              })
+                            }
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-xs md:text-sm font-medium text-gray-700">
+                            Action
+                          </label>
+                          <Button
+                            type="button"
+                            variant="secondary"
+                            onClick={addCollection}
+                            icon={<Plus className="w-4 h-4" />}
+                            className="w-full text-xs md:text-sm"
+                          >
+                            Add Collection
+                          </Button>
                         </div>
                       </div>
-                    )}
-                  </div>
 
-                  {/* Pricing Ranges */}
-                  <div className="space-y-4">
-                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
-                      <h4 className="text-sm md:text-md font-medium text-gray-900">
-                        Pricing Ranges
-                      </h4>
-                      <p className="text-xs md:text-sm text-gray-500">
-                        Set different prices based on quantity ranges
-                      </p>
-                    </div>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-                      <div className="space-y-2">
-                        <label className="text-xs md:text-sm font-medium text-gray-700">
-                          Quantity Start
-                        </label>
-                        <Input
-                          variant="muted"
-                          icon={<Package className="w-4 h-4" />}
-                          className="text-xs md:text-sm"
-                          placeholder="Start quantity"
-                          type="number"
-                          value={newPricingRange.quantity_start}
-                          onChange={(e) =>
-                            setNewPricingRange({
-                              ...newPricingRange,
-                              quantity_start: parseInt(e.target.value) || 0,
-                            })
-                          }
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <label className="text-xs md:text-sm font-medium text-gray-700">
-                          Quantity End
-                        </label>
-                        <Input
-                          variant="muted"
-                          icon={<Package className="w-4 h-4" />}
-                          className="text-xs md:text-sm"
-                          placeholder="End quantity"
-                          type="number"
-                          value={newPricingRange.quantity_end}
-                          onChange={(e) =>
-                            setNewPricingRange({
-                              ...newPricingRange,
-                              quantity_end: parseInt(e.target.value) || 0,
-                            })
-                          }
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <label className="text-xs md:text-sm font-medium text-gray-700">
-                          Price
-                        </label>
-                        <Input
-                          variant="muted"
-                          icon={<IndianRupee className="w-4 h-4" />}
-                          className="text-xs md:text-sm"
-                          placeholder="Price for this range"
-                          type="number"
-                          step="0.01"
-                          value={newPricingRange.price}
-                          onChange={(e) =>
-                            setNewPricingRange({
-                              ...newPricingRange,
-                              price: parseFloat(e.target.value) || 0,
-                            })
-                          }
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <label className="text-xs md:text-sm font-medium text-gray-700">
-                          Action
-                        </label>
-                        <Button
-                          type="button"
-                          variant="secondary"
-                          onClick={addPricingRange}
-                          icon={<Plus className="w-4 h-4" />}
-                          className="w-full text-xs md:text-sm"
-                        >
-                          Add Range
-                        </Button>
-                      </div>
-                    </div>
-
-                    {/* Pricing Ranges List */}
-                    {watch("pricing_range") &&
-                      watch("pricing_range").length > 0 && (
+                      {/* Collection List */}
+                      {productCollections.length > 0 && (
                         <div className="space-y-2">
                           <label className="text-sm font-medium text-gray-700">
-                            Added Pricing Ranges
+                            Added Collections
                           </label>
                           <div className="space-y-2">
-                            {watch("pricing_range").map((range, index) => (
+                            {productCollections.map((collection, index) => (
                               <div
                                 key={index}
                                 className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4 p-3 bg-gray-50 rounded-lg border border-gray-200"
                               >
-                                <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 sm:gap-4">
+                                <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
                                   <div>
                                     <label className="text-xs text-gray-500">
-                                      Quantity: {range.quantity_start} -{" "}
-                                      {range.quantity_end}
+                                      Quantity
                                     </label>
+                                    <Input
+                                      variant="muted"
+                                      className="text-sm"
+                                      type="number"
+                                      value={collection.quantity}
+                                      onChange={(e) =>
+                                        updateCollection(
+                                          index,
+                                          "quantity",
+                                          parseInt(e.target.value) || 0
+                                        )
+                                      }
+                                    />
                                   </div>
                                   <div>
                                     <label className="text-xs text-gray-500">
-                                      Price: ₹{range.price}
+                                      Price
                                     </label>
+                                    <Input
+                                      variant="muted"
+                                      className="text-sm"
+                                      type="number"
+                                      step="0.01"
+                                      value={collection.price}
+                                      onChange={(e) =>
+                                        updateCollection(
+                                          index,
+                                          "price",
+                                          parseFloat(e.target.value) || 0
+                                        )
+                                      }
+                                    />
+                                  </div>
+                                  <div>
+                                    <label className="text-xs text-gray-500">
+                                      Unit
+                                    </label>
+                                    <Input
+                                      variant="muted"
+                                      className="text-sm"
+                                      value={collection.unit || ""}
+                                      onChange={(e) =>
+                                        updateCollection(
+                                          index,
+                                          "unit",
+                                          e.target.value
+                                        )
+                                      }
+                                    />
                                   </div>
                                 </div>
                                 <Button
                                   type="button"
                                   variant="secondary"
-                                  onClick={() => removePricingRange(index)}
+                                  onClick={() => removeCollection(index)}
                                   icon={<X className="w-4 h-4" />}
-                                  className="px-2 py-1 w-full sm:w-auto text-xs"
+                                  className="px-2 py-1"
                                 >
                                   Remove
                                 </Button>
@@ -2017,560 +2572,166 @@ export default function InventoryEditProductPage() {
                           </div>
                         </div>
                       )}
-                  </div>
-                </div>
-
-                {/* Inventory Information */}
-                <div className="space-y-4">
-                  <h3 className="text-base md:text-lg font-medium text-gray-900">
-                    Inventory Information
-                  </h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium text-gray-700">
-                        Stock Quantity *
-                      </label>
-                      <Input
-                        variant="muted"
-                        icon={<Package className="w-4 h-4" />}
-                        className="text-sm"
-                        placeholder="Enter stock quantity"
-                        type="number"
-                        {...register("stock", {
-                          required: "Stock quantity is required",
-                          min: {
-                            value: 0,
-                            message: "Stock must be non-negative",
-                          },
-                        })}
-                      />
-                      {errors.stock && (
-                        <p className="text-red-500 text-xs mt-1">
-                          {errors.stock.message}
-                        </p>
-                      )}
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium text-gray-700">
-                        Status
-                      </label>
-                      <select
-                        className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-gray-400 bg-muted text-sm"
-                        {...register("status")}
-                      >
-                        <option value="ACTIVE">Active</option>
-                        <option value="OUT_OF_STOCK">Out of Stock</option>
-                        <option value="DISCONTINUED">Discontinued</option>
-                      </select>
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium text-gray-700">
-                        Min Order Quantity
-                      </label>
-                      <Input
-                        variant="muted"
-                        icon={<Package className="w-4 h-4" />}
-                        className="text-sm"
-                        placeholder="Enter minimum order quantity"
-                        type="number"
-                        {...register("minimumOrderQuantity", {
-                          min: {
-                            value: 1,
-                            message:
-                              "Minimum order quantity must be at least 1",
-                          },
-                        })}
-                      />
-                      {errors.minimumOrderQuantity && (
-                        <p className="text-red-500 text-xs mt-1">
-                          {errors.minimumOrderQuantity.message}
-                        </p>
-                      )}
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium text-gray-700">
-                        Max Order Quantity
-                      </label>
-                      <Input
-                        variant="muted"
-                        icon={<Package className="w-4 h-4" />}
-                        className="text-sm"
-                        placeholder="Enter maximum order quantity"
-                        type="number"
-                        {...register("maximumOrderQuantity", {
-                          min: {
-                            value: 1,
-                            message:
-                              "Maximum order quantity must be at least 1",
-                          },
-                        })}
-                      />
-                      {errors.maximumOrderQuantity && (
-                        <p className="text-red-500 text-xs mt-1">
-                          {errors.maximumOrderQuantity.message}
-                        </p>
-                      )}
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium text-gray-700">
-                        Expiry Date
-                      </label>
-                      <Input
-                        variant="muted"
-                        icon={<Calendar className="w-4 h-4" />}
-                        className="text-sm"
-                        placeholder="Select expiry date"
-                        type="date"
-                        {...register("expiry")}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium text-gray-700">
-                        Alert Before Expiry (Days)
-                      </label>
-                      <Input
-                        variant="muted"
-                        icon={<Calendar className="w-4 h-4" />}
-                        className="text-sm"
-                        placeholder="Enter days before expiry"
-                        type="number"
-                        {...register("alertExpiry", {
-                          min: { value: 1, message: "Must be at least 1 day" },
-                        })}
-                      />
-                    </div>
-                    <div className="space-y-2 md:col-span-2">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <label className="flex items-center gap-2">
-                          <input
-                            type="checkbox"
-                            {...register("isOrganic")}
-                            className="rounded border-gray-300"
-                          />
-                          <span className="text-sm font-medium text-gray-700">
-                            Organic Product
-                          </span>
-                        </label>
-                        <label className="flex items-center gap-2">
-                          <input
-                            type="checkbox"
-                            {...register("isB2B")}
-                            className="rounded border-gray-300"
-                          />
-                          <span className="text-sm font-medium text-gray-700">
-                            B2B Product
-                          </span>
-                        </label>
-                        <label className="flex items-center gap-2">
-                          <input
-                            type="checkbox"
-                            {...register("dotd")}
-                            className="rounded border-gray-300"
-                          />
-                          <span className="text-sm font-medium text-gray-700">
-                            Deal of the Day
-                          </span>
-                        </label>
-                        <label className="flex items-center gap-2">
-                          <input
-                            type="checkbox"
-                            {...register("pfy")}
-                            className="rounded border-gray-300"
-                          />
-                          <span className="text-sm font-medium text-gray-700">
-                            Pick for You
-                          </span>
-                        </label>
-                      </div>
                     </div>
                   </div>
-                </div>
 
-                {/* Weight Information */}
-                <div className="space-y-4">
-                  <h3 className="text-lg font-medium text-gray-900">
-                    Weight Information
-                  </h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium text-gray-700">
-                        Weight Value *
-                      </label>
-                      <Controller
-                        name="weight.value"
-                        control={control}
-                        rules={{
-                          required: "Weight value is required",
-                          min: {
-                            value: 0,
-                            message: "Weight must be positive",
-                          },
-                        }}
-                        render={({ field }) => (
-                          <Input
-                            variant="muted"
-                            icon={<Weight className="w-4 h-4" />}
-                            className="text-sm"
-                            placeholder="Enter weight value"
-                            type="number"
-                            step="0.01"
-                            {...field}
-                            onChange={(e) =>
-                              field.onChange(parseFloat(e.target.value) || 0)
-                            }
-                          />
-                        )}
-                      />
-                      {errors.weight?.value && (
-                        <p className="text-red-500 text-xs mt-1">
-                          {errors.weight.value.message}
-                        </p>
-                      )}
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium text-gray-700">
-                        Weight Unit *
-                      </label>
-                      <Controller
-                        name="weight.unit"
-                        control={control}
-                        rules={{
-                          required: "Weight unit is required",
-                        }}
-                        render={({ field }) => (
-                          <Input
-                            variant="muted"
-                            className="text-sm"
-                            placeholder="e.g., kg, g, lb, oz, packets"
-                            {...field}
-                          />
-                        )}
-                      />
-                      {errors.weight?.unit && (
-                        <p className="text-red-500 text-xs mt-1">
-                          {errors.weight.unit.message}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Collection Information */}
-                <div className="space-y-4">
-                  <h3 className="text-base md:text-lg font-medium text-gray-900">
-                    Collection Information
-                  </h3>
-                  <p className="text-xs md:text-sm text-gray-500">
-                    Add different collection options for this product (e.g.,
-                    5kg, 2 packets, etc.)
-                  </p>
+                  {/* SEO Information */}
                   <div className="space-y-4">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-                      <div className="space-y-2">
-                        <label className="text-xs md:text-sm font-medium text-gray-700">
-                          Quantity
-                        </label>
-                        <Input
-                          variant="muted"
-                          icon={<Package className="w-4 h-4" />}
-                          className="text-xs md:text-sm"
-                          placeholder="Enter quantity"
-                          type="number"
-                          value={newCollection.quantity}
-                          onChange={(e) =>
-                            setNewCollection({
-                              ...newCollection,
-                              quantity: parseInt(e.target.value) || 0,
-                            })
-                          }
-                        />
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                      <div>
+                        <h3 className="text-base md:text-lg font-medium text-gray-900">
+                          SEO Information
+                        </h3>
+                        <p className="text-xs md:text-sm text-gray-500 mt-1">
+                          Generate SEO fields automatically from product name
+                        </p>
                       </div>
-                      <div className="space-y-2">
-                        <label className="text-xs md:text-sm font-medium text-gray-700">
-                          Price
-                        </label>
-                        <Input
-                          variant="muted"
-                          icon={<IndianRupee className="w-4 h-4" />}
-                          className="text-xs md:text-sm"
-                          placeholder="Enter price"
-                          type="number"
-                          step="0.01"
-                          value={newCollection.price}
-                          onChange={(e) =>
-                            setNewCollection({
-                              ...newCollection,
-                              price: parseFloat(e.target.value) || 0,
-                            })
-                          }
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <label className="text-xs md:text-sm font-medium text-gray-700">
-                          Unit
-                        </label>
-                        <Input
-                          variant="muted"
-                          icon={<Weight className="w-4 h-4" />}
-                          className="text-xs md:text-sm"
-                          placeholder="e.g., kg, packets"
-                          value={newCollection.unit}
-                          onChange={(e) =>
-                            setNewCollection({
-                              ...newCollection,
-                              unit: e.target.value,
-                            })
-                          }
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <label className="text-xs md:text-sm font-medium text-gray-700">
-                          Action
-                        </label>
-                        <Button
-                          type="button"
-                          variant="secondary"
-                          onClick={addCollection}
-                          icon={<Plus className="w-4 h-4" />}
-                          className="w-full text-xs md:text-sm"
-                        >
-                          Add Collection
-                        </Button>
-                      </div>
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        size="sm"
+                        onClick={autoGenerateSEO}
+                        icon={<Search className="w-4 h-4" />}
+                        className="w-full sm:w-auto"
+                      >
+                        Auto Generate
+                      </Button>
                     </div>
-
-                    {/* Collection List */}
-                    {productCollections.length > 0 && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div className="space-y-2">
                         <label className="text-sm font-medium text-gray-700">
-                          Added Collections
+                          Meta Title
+                        </label>
+                        <Input
+                          variant="muted"
+                          icon={<Search className="w-4 h-4" />}
+                          className="text-sm"
+                          placeholder="Enter meta title"
+                          {...register("metaTitle")}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium text-gray-700">
+                          Slug
+                        </label>
+                        <Input
+                          variant="muted"
+                          icon={<Search className="w-4 h-4" />}
+                          className="text-sm"
+                          placeholder="Enter URL slug"
+                          {...register("slug")}
+                        />
+                      </div>
+                      <div className="space-y-2 md:col-span-2">
+                        <label className="text-sm font-medium text-gray-700">
+                          Meta Description
+                        </label>
+                        <textarea
+                          className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-gray-400 bg-muted text-sm"
+                          placeholder="Enter meta description"
+                          {...register("metaDescription")}
+                          rows={2}
+                        />
+                      </div>
+                      <div className="space-y-2 md:col-span-2">
+                        <label className="text-sm font-medium text-gray-700">
+                          Meta Keywords
                         </label>
                         <div className="space-y-2">
-                          {productCollections.map((collection, index) => (
-                            <div
-                              key={index}
-                              className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4 p-3 bg-gray-50 rounded-lg border border-gray-200"
+                          <div className="flex gap-2">
+                            <Input
+                              variant="muted"
+                              placeholder="Add a keyword"
+                              value={keywordInput}
+                              onChange={(e) => setKeywordInput(e.target.value)}
+                              onKeyPress={(e) =>
+                                e.key === "Enter" &&
+                                (e.preventDefault(), addKeyword())
+                              }
+                            />
+                            <Button
+                              type="button"
+                              variant="secondary"
+                              onClick={addKeyword}
+                              icon={<Plus className="w-4 h-4" />}
                             >
-                              <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
-                                <div>
-                                  <label className="text-xs text-gray-500">
-                                    Quantity
-                                  </label>
-                                  <Input
-                                    variant="muted"
-                                    className="text-sm"
-                                    type="number"
-                                    value={collection.quantity}
-                                    onChange={(e) =>
-                                      updateCollection(
-                                        index,
-                                        "quantity",
-                                        parseInt(e.target.value) || 0
-                                      )
-                                    }
-                                  />
-                                </div>
-                                <div>
-                                  <label className="text-xs text-gray-500">
-                                    Price
-                                  </label>
-                                  <Input
-                                    variant="muted"
-                                    className="text-sm"
-                                    type="number"
-                                    step="0.01"
-                                    value={collection.price}
-                                    onChange={(e) =>
-                                      updateCollection(
-                                        index,
-                                        "price",
-                                        parseFloat(e.target.value) || 0
-                                      )
-                                    }
-                                  />
-                                </div>
-                                <div>
-                                  <label className="text-xs text-gray-500">
-                                    Unit
-                                  </label>
-                                  <Input
-                                    variant="muted"
-                                    className="text-sm"
-                                    value={collection.unit || ""}
-                                    onChange={(e) =>
-                                      updateCollection(
-                                        index,
-                                        "unit",
-                                        e.target.value
-                                      )
-                                    }
-                                  />
-                                </div>
-                              </div>
-                              <Button
-                                type="button"
-                                variant="secondary"
-                                onClick={() => removeCollection(index)}
-                                icon={<X className="w-4 h-4" />}
-                                className="px-2 py-1"
-                              >
-                                Remove
-                              </Button>
+                              Add
+                            </Button>
+                          </div>
+                          {metaKeywords.length > 0 && (
+                            <div className="flex flex-wrap gap-2">
+                              {metaKeywords.map((keyword, index) => (
+                                <span
+                                  key={index}
+                                  className="inline-flex items-center gap-1 px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full"
+                                >
+                                  {keyword}
+                                  <button
+                                    type="button"
+                                    onClick={() => removeKeyword(index)}
+                                  >
+                                    <X className="w-3 h-3" />
+                                  </button>
+                                </span>
+                              ))}
                             </div>
-                          ))}
+                          )}
                         </div>
                       </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* SEO Information */}
-                <div className="space-y-4">
-                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-                    <div>
-                      <h3 className="text-base md:text-lg font-medium text-gray-900">
-                        SEO Information
-                      </h3>
-                      <p className="text-xs md:text-sm text-gray-500 mt-1">
-                        Generate SEO fields automatically from product name
-                      </p>
                     </div>
+                  </div>
+
+                  <div className="flex flex-col sm:flex-row justify-end gap-3 sm:gap-4 pt-6 border-t border-gray-200">
                     <Button
                       type="button"
                       variant="secondary"
-                      size="sm"
-                      onClick={autoGenerateSEO}
-                      icon={<Search className="w-4 h-4" />}
+                      onClick={() => router.push("/inventory")}
                       className="w-full sm:w-auto"
                     >
-                      Auto Generate
+                      Cancel
+                    </Button>
+                    <Button
+                      type="submit"
+                      variant="primary"
+                      disabled={isSubmitting}
+                      className="w-full sm:w-auto"
+                    >
+                      {isSubmitting ? "Updating Product..." : "Update Product"}
                     </Button>
                   </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium text-gray-700">
-                        Meta Title
-                      </label>
-                      <Input
-                        variant="muted"
-                        icon={<Search className="w-4 h-4" />}
-                        className="text-sm"
-                        placeholder="Enter meta title"
-                        {...register("metaTitle")}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium text-gray-700">
-                        Slug
-                      </label>
-                      <Input
-                        variant="muted"
-                        icon={<Search className="w-4 h-4" />}
-                        className="text-sm"
-                        placeholder="Enter URL slug"
-                        {...register("slug")}
-                      />
-                    </div>
-                    <div className="space-y-2 md:col-span-2">
-                      <label className="text-sm font-medium text-gray-700">
-                        Meta Description
-                      </label>
-                      <textarea
-                        className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-gray-400 bg-muted text-sm"
-                        placeholder="Enter meta description"
-                        {...register("metaDescription")}
-                        rows={2}
-                      />
-                    </div>
-                    <div className="space-y-2 md:col-span-2">
-                      <label className="text-sm font-medium text-gray-700">
-                        Meta Keywords
-                      </label>
-                      <div className="space-y-2">
-                        <div className="flex gap-2">
-                          <Input
-                            variant="muted"
-                            placeholder="Add a keyword"
-                            value={keywordInput}
-                            onChange={(e) => setKeywordInput(e.target.value)}
-                            onKeyPress={(e) =>
-                              e.key === "Enter" &&
-                              (e.preventDefault(), addKeyword())
-                            }
-                          />
-                          <Button
-                            type="button"
-                            variant="secondary"
-                            onClick={addKeyword}
-                            icon={<Plus className="w-4 h-4" />}
-                          >
-                            Add
-                          </Button>
-                        </div>
-                        {metaKeywords.length > 0 && (
-                          <div className="flex flex-wrap gap-2">
-                            {metaKeywords.map((keyword, index) => (
-                              <span
-                                key={index}
-                                className="inline-flex items-center gap-1 px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full"
-                              >
-                                {keyword}
-                                <button
-                                  type="button"
-                                  onClick={() => removeKeyword(index)}
-                                >
-                                  <X className="w-3 h-3" />
-                                </button>
-                              </span>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex flex-col sm:flex-row justify-end gap-3 sm:gap-4 pt-6 border-t border-gray-200">
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    onClick={() => router.push("/inventory")}
-                    className="w-full sm:w-auto"
-                  >
-                    Cancel
-                  </Button>
-                  <Button
-                    type="submit"
-                    variant="primary"
-                    disabled={isSubmitting}
-                    className="w-full sm:w-auto"
-                  >
-                    {isSubmitting ? "Updating Product..." : "Update Product"}
-                  </Button>
-                </div>
-              </form>
-            </div>
-          </CardContent>
-        </Card>
+                </form>
+              </div>
+            </CardContent>
+          </Card>
         )}
 
-        {/* Category Creation Modal */}
+        {/* Category Creation/Edit Modal */}
         {showCategoryModal && (
           <CreateCategoryModal
-            onClose={() => setShowCategoryModal(false)}
-            onSubmit={handleCreateCategory}
+            initialData={editingCategory}
+            onClose={() => {
+              setShowCategoryModal(false);
+              setEditingCategory(null);
+            }}
+            onCreate={handleCreateCategory}
+            onUpdate={handleUpdateCategory}
             onImageUpload={handleCategoryImageUpload}
             isUploading={uploadingCategoryImage}
           />
         )}
 
-        {/* Subcategory Creation Modal */}
+        {/* Subcategory Creation/Edit Modal */}
         {showSubcategoryModal && (
           <CreateSubcategoryModal
             categories={categories}
             selectedCategoryId={watch("categoryId")}
-            onClose={() => setShowSubcategoryModal(false)}
-            onSubmit={handleCreateSubcategory}
+            initialData={editingSubcategory}
+            onClose={() => {
+              setShowSubcategoryModal(false);
+              setEditingSubcategory(null);
+            }}
+            onCreate={handleCreateSubcategory}
+            onUpdate={handleUpdateSubcategory}
             onImageUpload={handleCategoryImageUpload}
             isUploading={uploadingSubcategoryImage}
           />
@@ -2628,15 +2789,25 @@ export default function InventoryEditProductPage() {
   );
 }
 
-// Category Creation Modal Component
+// Category Creation/Edit Modal Component
 function CreateCategoryModal({
+  initialData,
   onClose,
-  onSubmit,
+  onCreate,
+  onUpdate,
   onImageUpload,
   isUploading,
 }: {
+  initialData?: any;
   onClose: () => void;
-  onSubmit: (data: {
+  onCreate: (data: {
+    name: string;
+    description: string;
+    slug: string;
+    image?: string;
+    showOnHomepage: boolean;
+  }) => void;
+  onUpdate: (data: {
     name: string;
     description: string;
     slug: string;
@@ -2649,33 +2820,63 @@ function CreateCategoryModal({
   ) => Promise<string | null>;
   isUploading: boolean;
 }) {
+  const isEditMode = !!initialData;
   const [formData, setFormData] = useState({
-    name: "",
-    description: "",
-    slug: "",
-    image: "",
-    showOnHomepage: false,
+    name: initialData?.name || "",
+    description: initialData?.description || "",
+    slug: initialData?.slug || "",
+    image: initialData?.image || "",
+    showOnHomepage: initialData?.showOnHomepage || false,
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [previewImage, setPreviewImage] = useState<string | null>(null);
+  const [previewImage, setPreviewImage] = useState<string | null>(
+    initialData?.image || null
+  );
+
+  // Update form data when initialData changes
+  useEffect(() => {
+    if (initialData) {
+      setFormData({
+        name: initialData.name || "",
+        description: initialData.description || "",
+        slug: initialData.slug || "",
+        image: initialData.image || "",
+        showOnHomepage: initialData.showOnHomepage || false,
+      });
+      setPreviewImage(initialData.image || null);
+    } else {
+      setFormData({
+        name: "",
+        description: "",
+        slug: "",
+        image: "",
+        showOnHomepage: false,
+      });
+      setPreviewImage(null);
+    }
+  }, [initialData]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.name || !formData.description || !formData.slug) return;
+    if (!formData.name || !formData.slug) return;
 
-    // Validate description length
-    if (formData.description.length < 10) {
+    // Validate description length if provided
+    if (formData.description && formData.description.length > 0 && formData.description.length < 10) {
       toast.error("Description must be at least 10 characters long");
       return;
     }
 
     try {
       setIsSubmitting(true);
-      await onSubmit(formData);
+      if (isEditMode) {
+        await onUpdate(formData);
+      } else {
+        await onCreate(formData);
+      }
     } catch (error) {
-      console.error("Error creating category:", error);
+      console.error(`Error ${isEditMode ? "updating" : "creating"} category:`, error);
       toast.error(
-        error instanceof Error ? error.message : "Failed to create category"
+        error instanceof Error ? error.message : `Failed to ${isEditMode ? "update" : "create"} category`
       );
     } finally {
       setIsSubmitting(false);
@@ -2716,7 +2917,9 @@ function CreateCategoryModal({
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
       <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4 overflow-y-auto max-h-[90vh]">
-        <h2 className="text-lg font-semibold mb-4">Create Category</h2>
+        <h2 className="text-lg font-semibold mb-4">
+          {isEditMode ? "Edit Category" : "Create Category"}
+        </h2>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
@@ -2890,7 +3093,13 @@ function CreateCategoryModal({
               Cancel
             </Button>
             <Button type="submit" variant="primary" disabled={isSubmitting}>
-              {isSubmitting ? "Creating..." : "Create Category"}
+              {isSubmitting
+                ? isEditMode
+                  ? "Updating..."
+                  : "Creating..."
+                : isEditMode
+                ? "Update Category"
+                : "Create Category"}
             </Button>
           </div>
         </form>
@@ -2899,19 +3108,29 @@ function CreateCategoryModal({
   );
 }
 
-// Subcategory Creation Modal Component
+// Subcategory Creation/Edit Modal Component
 function CreateSubcategoryModal({
   categories,
   selectedCategoryId,
+  initialData,
   onClose,
-  onSubmit,
+  onCreate,
+  onUpdate,
   onImageUpload,
   isUploading,
 }: {
   categories: any[];
   selectedCategoryId: string;
+  initialData?: any;
   onClose: () => void;
-  onSubmit: (data: {
+  onCreate: (data: {
+    name: string;
+    description: string;
+    parentCategoryId: string;
+    slug: string;
+    image?: string;
+  }) => void;
+  onUpdate: (data: {
     name: string;
     description: string;
     parentCategoryId: string;
@@ -2924,49 +3143,79 @@ function CreateSubcategoryModal({
   ) => Promise<string | null>;
   isUploading: boolean;
 }) {
+  const isEditMode = !!initialData;
   const [formData, setFormData] = useState({
-    name: "",
-    description: "",
-    parentCategoryId: selectedCategoryId || "",
-    slug: "",
-    image: "",
+    name: initialData?.name || "",
+    description: initialData?.description || "",
+    parentCategoryId: initialData?.parentCategory || selectedCategoryId || "",
+    slug: initialData?.slug || "",
+    image: initialData?.image || "",
   });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [previewImage, setPreviewImage] = useState<string | null>(
+    initialData?.image || null
+  );
 
-  // Update parentCategoryId when selectedCategoryId changes
+  // Update form data when initialData changes
   useEffect(() => {
-    if (selectedCategoryId) {
+    if (initialData) {
+      setFormData({
+        name: initialData.name || "",
+        description: initialData.description || "",
+        parentCategoryId:
+          initialData.parentCategory || selectedCategoryId || "",
+        slug: initialData.slug || "",
+        image: initialData.image || "",
+      });
+      setPreviewImage(initialData.image || null);
+    } else {
+      setFormData({
+        name: "",
+        description: "",
+        parentCategoryId: selectedCategoryId || "",
+        slug: "",
+        image: "",
+      });
+      setPreviewImage(null);
+    }
+  }, [initialData, selectedCategoryId]);
+
+  // Update parentCategoryId when selectedCategoryId changes (only in create mode)
+  useEffect(() => {
+    if (!isEditMode && selectedCategoryId) {
       setFormData((prev) => ({
         ...prev,
         parentCategoryId: selectedCategoryId,
       }));
     }
-  }, [selectedCategoryId]);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [previewImage, setPreviewImage] = useState<string | null>(null);
+  }, [selectedCategoryId, isEditMode]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (
       !formData.name ||
-      !formData.description ||
       !formData.parentCategoryId ||
       !formData.slug
     )
       return;
 
-    // Validate description length
-    if (formData.description.length < 10) {
+    // Validate description length if provided
+    if (formData.description && formData.description.length > 0 && formData.description.length < 10) {
       toast.error("Description must be at least 10 characters long");
       return;
     }
 
     try {
       setIsSubmitting(true);
-      await onSubmit(formData);
+      if (isEditMode) {
+        await onUpdate(formData);
+      } else {
+        await onCreate(formData);
+      }
     } catch (error) {
-      console.error("Error creating subcategory:", error);
+      console.error(`Error ${isEditMode ? "updating" : "creating"} subcategory:`, error);
       toast.error(
-        error instanceof Error ? error.message : "Failed to create subcategory"
+        error instanceof Error ? error.message : `Failed to ${isEditMode ? "update" : "create"} subcategory`
       );
     } finally {
       setIsSubmitting(false);
@@ -3007,7 +3256,9 @@ function CreateSubcategoryModal({
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
       <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4 overflow-y-auto max-h-[90vh]">
-        <h2 className="text-lg font-semibold mb-4">Create Sub-category</h2>
+        <h2 className="text-lg font-semibold mb-4">
+          {isEditMode ? "Edit Sub-category" : "Create Sub-category"}
+        </h2>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
@@ -3186,7 +3437,13 @@ function CreateSubcategoryModal({
               Cancel
             </Button>
             <Button type="submit" variant="primary" disabled={isSubmitting}>
-              {isSubmitting ? "Creating..." : "Create Sub-category"}
+              {isSubmitting
+                ? isEditMode
+                  ? "Updating..."
+                  : "Creating..."
+                : isEditMode
+                ? "Update Sub-category"
+                : "Create Sub-category"}
             </Button>
           </div>
         </form>

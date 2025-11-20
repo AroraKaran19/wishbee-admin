@@ -148,6 +148,8 @@ export default function InventoryAddProductPage() {
   });
   const [showCategoryModal, setShowCategoryModal] = useState(false);
   const [showSubcategoryModal, setShowSubcategoryModal] = useState(false);
+  const [editingCategory, setEditingCategory] = useState<any | null>(null);
+  const [editingSubcategory, setEditingSubcategory] = useState<any | null>(null);
   const [uploadingImages, setUploadingImages] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<{
     [key: string]: number;
@@ -755,12 +757,30 @@ export default function InventoryAddProductPage() {
     setValue("subCategoryId", option.value);
   };
 
+  // Handle category edit
+  const handleCategoryEdit = (option: DropdownOption) => {
+    const category = categories.find((cat) => cat._id === option.value);
+    if (category) {
+      setEditingCategory(category);
+      setShowCategoryModal(true);
+    }
+  };
+
   // Handle category delete
   const handleCategoryDelete = (option: DropdownOption) => {
     const category = categories.find((cat) => cat._id === option.value);
     if (category) {
       setItemToDelete({ type: "category", item: category });
       setShowDeleteConfirm(true);
+    }
+  };
+
+  // Handle subcategory edit
+  const handleSubcategoryEdit = (option: DropdownOption) => {
+    const subcategory = subcategories.find((sub) => sub._id === option.value);
+    if (subcategory) {
+      setEditingSubcategory(subcategory);
+      setShowSubcategoryModal(true);
     }
   };
 
@@ -820,7 +840,12 @@ export default function InventoryAddProductPage() {
     showOnHomepage: boolean;
   }) => {
     try {
-      const response = await categoryApi.create(data);
+      // Prepare data - description is optional if not provided
+      const categoryData = {
+        ...data,
+        description: data.description || "",
+      };
+      const response = await categoryApi.create(categoryData);
       const newCategory = response.data || response;
 
       // Update categories state with the new category
@@ -837,6 +862,39 @@ export default function InventoryAddProductPage() {
     }
   };
 
+  // Category update
+  const handleUpdateCategory = async (data: {
+    name: string;
+    description: string;
+    slug: string;
+    image?: string;
+    showOnHomepage: boolean;
+  }) => {
+    if (!editingCategory) return;
+
+    try {
+      const response = await categoryApi.update(editingCategory._id, data);
+      const updatedCategory = response.data || response;
+
+      // Update categories state
+      setCategories((prev) =>
+        prev.map((cat) =>
+          cat._id === editingCategory._id ? updatedCategory : cat
+        )
+      );
+      setShowCategoryModal(false);
+      setEditingCategory(null);
+      setSubmitError(null);
+      toast.success("Category updated successfully!");
+    } catch (error) {
+      console.error("Error updating category:", error);
+      const errorMessage =
+        error instanceof Error ? error.message : "Failed to update category";
+      setSubmitError(errorMessage);
+      toast.error(errorMessage);
+    }
+  };
+
   // Subcategory creation
   const handleCreateSubcategory = async (data: {
     name: string;
@@ -846,7 +904,12 @@ export default function InventoryAddProductPage() {
     image?: string;
   }) => {
     try {
-      const response = await subcategoryApi.create(data);
+      // Prepare data - description is optional if not provided
+      const subcategoryData = {
+        ...data,
+        description: data.description || "",
+      };
+      const response = await subcategoryApi.create(subcategoryData);
       const newSubcategory = response.data || response;
 
       // Update subcategories state with the new subcategory
@@ -858,6 +921,47 @@ export default function InventoryAddProductPage() {
       console.error("Error creating subcategory:", error);
       const errorMessage =
         error instanceof Error ? error.message : "Failed to create subcategory";
+      setSubmitError(errorMessage);
+      toast.error(errorMessage);
+    }
+  };
+
+  // Subcategory update
+  const handleUpdateSubcategory = async (data: {
+    name: string;
+    description: string;
+    parentCategoryId: string;
+    slug: string;
+    image?: string;
+  }) => {
+    if (!editingSubcategory) return;
+
+    try {
+      // Prepare data - description is optional if not provided
+      const subcategoryData = {
+        ...data,
+        description: data.description || "",
+      };
+      const response = await subcategoryApi.update(
+        editingSubcategory._id,
+        subcategoryData
+      );
+      const updatedSubcategory = response.data || response;
+
+      // Update subcategories state
+      setSubcategories((prev) =>
+        prev.map((sub) =>
+          sub._id === editingSubcategory._id ? updatedSubcategory : sub
+        )
+      );
+      setShowSubcategoryModal(false);
+      setEditingSubcategory(null);
+      setSubmitError(null);
+      toast.success("Sub-category updated successfully!");
+    } catch (error) {
+      console.error("Error updating subcategory:", error);
+      const errorMessage =
+        error instanceof Error ? error.message : "Failed to update subcategory";
       setSubmitError(errorMessage);
       toast.error(errorMessage);
     }
@@ -880,13 +984,13 @@ export default function InventoryAddProductPage() {
       errors.push("Product name must be less than 200 characters");
     }
 
-    // Description validation (matching API: required, min 10, max 2000 chars)
+    // Description validation
     if (!data.description?.trim()) {
       errors.push("Description is required");
     } else if (data.description.length < 10) {
       errors.push("Description must be at least 10 characters");
-    } else if (data.description.length > 2000) {
-      errors.push("Description must be less than 2000 characters");
+    } else if (data.description.length > 1000) {
+      errors.push("Description must be less than 1000 characters");
     }
 
     // Highlights validation (matching API: required, at least one)
@@ -1051,7 +1155,7 @@ export default function InventoryAddProductPage() {
         hsn: data.hsn?.trim() || undefined,
         name: data.name.trim(),
         type: "product" as const,
-        description: data.description.trim(),
+        description: data.description?.trim() || "",
         highlights: data.highlights,
         category: data.categoryId,
         subCategory: data.subCategoryId,
@@ -1399,8 +1503,12 @@ export default function InventoryAddProductPage() {
                         disabled={loadingCategories}
                         loading={loadingCategories}
                         onSelect={handleCategorySelect}
+                        onEdit={handleCategoryEdit}
                         onDelete={handleCategoryDelete}
-                        onAdd={() => setShowCategoryModal(true)}
+                        onAdd={() => {
+                          setEditingCategory(null);
+                          setShowCategoryModal(true);
+                        }}
                         showActions={true}
                         showAddButton={true}
                         addButtonText="New"
@@ -1427,8 +1535,12 @@ export default function InventoryAddProductPage() {
                         disabled={loadingSubcategories || !watch("categoryId")}
                         loading={loadingSubcategories}
                         onSelect={handleSubcategorySelect}
+                        onEdit={handleSubcategoryEdit}
                         onDelete={handleSubcategoryDelete}
-                        onAdd={() => setShowSubcategoryModal(true)}
+                        onAdd={() => {
+                          setEditingSubcategory(null);
+                          setShowSubcategoryModal(true);
+                        }}
                         showActions={true}
                         showAddButton={true}
                         addButtonText="New"
@@ -1438,11 +1550,11 @@ export default function InventoryAddProductPage() {
                         loadingMore={loadingSubcategories}
                       />
                     </div>
-                    {/* <div className="space-y-2 md:col-span-2">
+                    <div className="space-y-2 md:col-span-2">
                       <label className="text-sm font-medium text-gray-700">
                         Description *{" "}
                         <span className="text-gray-500 text-xs">
-                          (min 10 characters, max 2000)
+                          (min 10 characters, max 1000)
                         </span>
                       </label>
                       <textarea
@@ -1450,13 +1562,21 @@ export default function InventoryAddProductPage() {
                           watch("description") &&
                           watch("description").length > 0 &&
                           (watch("description").length < 10 ||
-                            watch("description").length > 2000)
+                            watch("description").length > 1000)
                             ? "border-red-300 focus:border-red-500"
                             : "border-gray-200 focus:border-gray-400"
                         }`}
-                        placeholder="Enter product description (minimum 10 characters, maximum 2000)"
+                        placeholder="Enter product description (minimum 10 characters, maximum 1000)"
                         {...register("description", {
                           required: "Description is required",
+                          minLength: {
+                            value: 10,
+                            message: "Description must be at least 10 characters long",
+                          },
+                          maxLength: {
+                            value: 1000,
+                            message: "Description must be less than 1000 characters",
+                          },
                         })}
                         rows={3}
                       />
@@ -1475,9 +1595,9 @@ export default function InventoryAddProductPage() {
                               </p>
                             )}
                           {watch("description") &&
-                            watch("description").length > 2000 && (
+                            watch("description").length > 1000 && (
                               <p className="text-red-500 text-xs">
-                                Description must be less than 2000 characters
+                                Description must be less than 1000 characters
                               </p>
                             )}
                         </div>
@@ -1486,7 +1606,7 @@ export default function InventoryAddProductPage() {
                             watch("description") &&
                             watch("description").length > 0 &&
                             (watch("description").length < 10 ||
-                              watch("description").length > 2000)
+                              watch("description").length > 1000)
                               ? "text-red-500"
                               : "text-gray-500"
                           }`}
@@ -1496,7 +1616,7 @@ export default function InventoryAddProductPage() {
                             : "0 characters"}
                         </span>
                       </div>
-                    </div> */}
+                    </div>
                     <div className="space-y-2 md:col-span-2">
                       <label className="text-sm font-medium text-gray-700">
                         Highlights *{" "}
@@ -2440,23 +2560,33 @@ export default function InventoryAddProductPage() {
           </CardContent>
         </Card>
 
-        {/* Category Creation Modal */}
+        {/* Category Creation/Edit Modal */}
         {showCategoryModal && (
           <CreateCategoryModal
-            onClose={() => setShowCategoryModal(false)}
-            onSubmit={handleCreateCategory}
+            initialData={editingCategory}
+            onClose={() => {
+              setShowCategoryModal(false);
+              setEditingCategory(null);
+            }}
+            onCreate={handleCreateCategory}
+            onUpdate={handleUpdateCategory}
             onImageUpload={handleCategoryImageUpload}
             isUploading={uploadingCategoryImage}
           />
         )}
 
-        {/* Subcategory Creation Modal */}
+        {/* Subcategory Creation/Edit Modal */}
         {showSubcategoryModal && (
           <CreateSubcategoryModal
             categories={categories}
             selectedCategoryId={watch("categoryId")}
-            onClose={() => setShowSubcategoryModal(false)}
-            onSubmit={handleCreateSubcategory}
+            initialData={editingSubcategory}
+            onClose={() => {
+              setShowSubcategoryModal(false);
+              setEditingSubcategory(null);
+            }}
+            onCreate={handleCreateSubcategory}
+            onUpdate={handleUpdateSubcategory}
             onImageUpload={handleCategoryImageUpload}
             isUploading={uploadingSubcategoryImage}
           />
@@ -2514,15 +2644,25 @@ export default function InventoryAddProductPage() {
   );
 }
 
-// Category Creation Modal Component
+// Category Creation/Edit Modal Component
 function CreateCategoryModal({
+  initialData,
   onClose,
-  onSubmit,
+  onCreate,
+  onUpdate,
   onImageUpload,
   isUploading,
 }: {
+  initialData?: any;
   onClose: () => void;
-  onSubmit: (data: {
+  onCreate: (data: {
+    name: string;
+    description: string;
+    slug: string;
+    image?: string;
+    showOnHomepage: boolean;
+  }) => void;
+  onUpdate: (data: {
     name: string;
     description: string;
     slug: string;
@@ -2535,33 +2675,63 @@ function CreateCategoryModal({
   ) => Promise<string | null>;
   isUploading: boolean;
 }) {
+  const isEditMode = !!initialData;
   const [formData, setFormData] = useState({
-    name: "",
-    description: "",
-    slug: "",
-    image: "",
-    showOnHomepage: false,
+    name: initialData?.name || "",
+    description: initialData?.description || "",
+    slug: initialData?.slug || "",
+    image: initialData?.image || "",
+    showOnHomepage: initialData?.showOnHomepage || false,
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [previewImage, setPreviewImage] = useState<string | null>(null);
+  const [previewImage, setPreviewImage] = useState<string | null>(
+    initialData?.image || null
+  );
+
+  // Update form data when initialData changes
+  useEffect(() => {
+    if (initialData) {
+      setFormData({
+        name: initialData.name || "",
+        description: initialData.description || "",
+        slug: initialData.slug || "",
+        image: initialData.image || "",
+        showOnHomepage: initialData.showOnHomepage || false,
+      });
+      setPreviewImage(initialData.image || null);
+    } else {
+      setFormData({
+        name: "",
+        description: "",
+        slug: "",
+        image: "",
+        showOnHomepage: false,
+      });
+      setPreviewImage(null);
+    }
+  }, [initialData]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.name || !formData.description || !formData.slug) return;
+    if (!formData.name || !formData.slug) return;
 
-    // Validate description length
-    if (formData.description.length < 10) {
+    // Validate description length if provided
+    if (formData.description && formData.description.length > 0 && formData.description.length < 10) {
       toast.error("Description must be at least 10 characters long");
       return;
     }
 
     try {
       setIsSubmitting(true);
-      await onSubmit(formData);
+      if (isEditMode) {
+        await onUpdate(formData);
+      } else {
+        await onCreate(formData);
+      }
     } catch (error) {
-      console.error("Error creating category:", error);
+      console.error(`Error ${isEditMode ? "updating" : "creating"} category:`, error);
       toast.error(
-        error instanceof Error ? error.message : "Failed to create category"
+        error instanceof Error ? error.message : `Failed to ${isEditMode ? "update" : "create"} category`
       );
     } finally {
       setIsSubmitting(false);
@@ -2602,7 +2772,9 @@ function CreateCategoryModal({
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
       <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4">
-        <h2 className="text-lg font-semibold mb-4">Create Category</h2>
+        <h2 className="text-lg font-semibold mb-4">
+          {isEditMode ? "Edit Category" : "Create Category"}
+        </h2>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
@@ -2776,7 +2948,13 @@ function CreateCategoryModal({
               Cancel
             </Button>
             <Button type="submit" variant="primary" disabled={isSubmitting}>
-              {isSubmitting ? "Creating..." : "Create Category"}
+              {isSubmitting
+                ? isEditMode
+                  ? "Updating..."
+                  : "Creating..."
+                : isEditMode
+                ? "Update Category"
+                : "Create Category"}
             </Button>
           </div>
         </form>
@@ -2785,19 +2963,29 @@ function CreateCategoryModal({
   );
 }
 
-// Subcategory Creation Modal Component
+// Subcategory Creation/Edit Modal Component
 function CreateSubcategoryModal({
   categories,
   selectedCategoryId,
+  initialData,
   onClose,
-  onSubmit,
+  onCreate,
+  onUpdate,
   onImageUpload,
   isUploading,
 }: {
   categories: any[];
   selectedCategoryId: string;
+  initialData?: any;
   onClose: () => void;
-  onSubmit: (data: {
+  onCreate: (data: {
+    name: string;
+    description: string;
+    parentCategoryId: string;
+    slug: string;
+    image?: string;
+  }) => void;
+  onUpdate: (data: {
     name: string;
     description: string;
     parentCategoryId: string;
@@ -2810,49 +2998,78 @@ function CreateSubcategoryModal({
   ) => Promise<string | null>;
   isUploading: boolean;
 }) {
+  const isEditMode = !!initialData;
   const [formData, setFormData] = useState({
-    name: "",
-    description: "",
-    parentCategoryId: selectedCategoryId || "",
-    slug: "",
-    image: "",
+    name: initialData?.name || "",
+    description: initialData?.description || "",
+    parentCategoryId: initialData?.parentCategory || selectedCategoryId || "",
+    slug: initialData?.slug || "",
+    image: initialData?.image || "",
   });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [previewImage, setPreviewImage] = useState<string | null>(
+    initialData?.image || null
+  );
 
-  // Update parentCategoryId when selectedCategoryId changes
+  // Update form data when initialData changes
   useEffect(() => {
-    if (selectedCategoryId) {
+    if (initialData) {
+      setFormData({
+        name: initialData.name || "",
+        description: initialData.description || "",
+        parentCategoryId: initialData.parentCategory || selectedCategoryId || "",
+        slug: initialData.slug || "",
+        image: initialData.image || "",
+      });
+      setPreviewImage(initialData.image || null);
+    } else {
+      setFormData({
+        name: "",
+        description: "",
+        parentCategoryId: selectedCategoryId || "",
+        slug: "",
+        image: "",
+      });
+      setPreviewImage(null);
+    }
+  }, [initialData, selectedCategoryId]);
+
+  // Update parentCategoryId when selectedCategoryId changes (only in create mode)
+  useEffect(() => {
+    if (!isEditMode && selectedCategoryId) {
       setFormData((prev) => ({
         ...prev,
         parentCategoryId: selectedCategoryId,
       }));
     }
-  }, [selectedCategoryId]);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [previewImage, setPreviewImage] = useState<string | null>(null);
+  }, [selectedCategoryId, isEditMode]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (
       !formData.name ||
-      !formData.description ||
       !formData.parentCategoryId ||
       !formData.slug
     )
       return;
 
-    // Validate description length
-    if (formData.description.length < 10) {
+    // Validate description length if provided
+    if (formData.description && formData.description.length > 0 && formData.description.length < 10) {
       toast.error("Description must be at least 10 characters long");
       return;
     }
 
     try {
       setIsSubmitting(true);
-      await onSubmit(formData);
+      if (isEditMode) {
+        await onUpdate(formData);
+      } else {
+        await onCreate(formData);
+      }
     } catch (error) {
-      console.error("Error creating subcategory:", error);
+      console.error(`Error ${isEditMode ? "updating" : "creating"} subcategory:`, error);
       toast.error(
-        error instanceof Error ? error.message : "Failed to create subcategory"
+        error instanceof Error ? error.message : `Failed to ${isEditMode ? "update" : "create"} subcategory`
       );
     } finally {
       setIsSubmitting(false);
@@ -2893,7 +3110,9 @@ function CreateSubcategoryModal({
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
       <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4">
-        <h2 className="text-lg font-semibold mb-4">Create Sub-category</h2>
+        <h2 className="text-lg font-semibold mb-4">
+          {isEditMode ? "Edit Sub-category" : "Create Sub-category"}
+        </h2>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
@@ -3072,7 +3291,13 @@ function CreateSubcategoryModal({
               Cancel
             </Button>
             <Button type="submit" variant="primary" disabled={isSubmitting}>
-              {isSubmitting ? "Creating..." : "Create Sub-category"}
+              {isSubmitting
+                ? isEditMode
+                  ? "Updating..."
+                  : "Creating..."
+                : isEditMode
+                ? "Update Sub-category"
+                : "Create Sub-category"}
             </Button>
           </div>
         </form>

@@ -56,7 +56,7 @@ export const mostSellingApi = {
 
     const response = await fetch(`${API_BASE_URL}/most-selling?${params.toString()}`, {
       method: 'GET',
-      headers: getAuthHeaders(),
+      headers: await getAuthHeaders(),
     });
 
     if (!response.ok) {

@@ -16,7 +16,7 @@ export const dashboardApi = {
     const response = await fetch(
       `${API_BASE_URL}/dashboard/inventory?${searchParams}`,
       {
-        headers: getAuthHeaders(),
+        headers: await getAuthHeaders(),
       }
     );
 
@@ -40,7 +40,7 @@ export const dashboardApi = {
     const response = await fetch(
       `${API_BASE_URL}/dashboard/low-stock?${searchParams}`,
       {
-        headers: getAuthHeaders(),
+        headers: await getAuthHeaders(),
       }
     );
 
@@ -66,7 +66,7 @@ export const dashboardApi = {
     const response = await fetch(
       `${API_BASE_URL}/dashboard/top-selling?${searchParams}`,
       {
-        headers: getAuthHeaders(),
+        headers: await getAuthHeaders(),
       }
     );
 
@@ -84,7 +84,7 @@ export const dashboardApi = {
   getStatistics: async () => {
     const response = await fetch(`${API_BASE_URL}/dashboard/statistics`, {
       method: 'GET',
-      headers: getAuthHeaders(),
+      headers: await getAuthHeaders(),
     });
 
     if (!response.ok) {

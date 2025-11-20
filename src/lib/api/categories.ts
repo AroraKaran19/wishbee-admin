@@ -14,7 +14,7 @@ export const categoryApi = {
   }) => {
     const response = await fetch(`${API_BASE_URL}/categories`, {
       method: 'POST',
-      headers: getAuthHeaders(),
+      headers: await getAuthHeaders(),
       body: JSON.stringify({
         ...data,
         isActive: data.isActive ?? true,
@@ -23,7 +23,9 @@ export const categoryApi = {
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+      // Handle nested error structure: error.error.message or error.message
+      const errorMessage = errorData.error?.message || errorData.message || `HTTP error! status: ${response.status}`;
+      throw new Error(errorMessage);
     }
 
     return response.json();
@@ -46,7 +48,9 @@ export const categoryApi = {
     
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+      // Handle nested error structure: error.error.message or error.message
+      const errorMessage = errorData.error?.message || errorData.message || `HTTP error! status: ${response.status}`;
+      throw new Error(errorMessage);
     }
 
     return response.json();
@@ -58,7 +62,9 @@ export const categoryApi = {
     
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+      // Handle nested error structure: error.error.message or error.message
+      const errorMessage = errorData.error?.message || errorData.message || `HTTP error! status: ${response.status}`;
+      throw new Error(errorMessage);
     }
 
     return response.json();
@@ -74,13 +80,15 @@ export const categoryApi = {
   }>) => {
     const response = await fetch(`${API_BASE_URL}/categories/${categoryId}`, {
       method: 'PUT',
-      headers: getAuthHeaders(),
+      headers: await getAuthHeaders(),
       body: JSON.stringify(data),
     });
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+      // Handle nested error structure: error.error.message or error.message
+      const errorMessage = errorData.error?.message || errorData.message || `HTTP error! status: ${response.status}`;
+      throw new Error(errorMessage);
     }
 
     return response.json();
@@ -90,12 +98,14 @@ export const categoryApi = {
   delete: async (categoryId: string) => {
     const response = await fetch(`${API_BASE_URL}/categories/${categoryId}`, {
       method: 'DELETE',
-      headers: getAuthHeaders(),
+      headers: await getAuthHeaders(),
     });
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+      // Handle nested error structure: error.error.message or error.message
+      const errorMessage = errorData.error?.message || errorData.message || `HTTP error! status: ${response.status}`;
+      throw new Error(errorMessage);
     }
 
     return response.json();
@@ -115,7 +125,7 @@ export const subcategoryApi = {
   }) => {
     const response = await fetch(`${API_BASE_URL}/categories/subcategories`, {
       method: 'POST',
-      headers: getAuthHeaders(),
+      headers: await getAuthHeaders(),
       body: JSON.stringify({
         ...data,
         isActive: data.isActive ?? true,
@@ -124,7 +134,9 @@ export const subcategoryApi = {
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+      // Handle nested error structure: error.error.message or error.message
+      const errorMessage = errorData.error?.message || errorData.message || `HTTP error! status: ${response.status}`;
+      throw new Error(errorMessage);
     }
 
     return response.json();
@@ -143,7 +155,9 @@ export const subcategoryApi = {
     
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+      // Handle nested error structure: error.error.message or error.message
+      const errorMessage = errorData.error?.message || errorData.message || `HTTP error! status: ${response.status}`;
+      throw new Error(errorMessage);
     }
 
     return response.json();
@@ -155,7 +169,9 @@ export const subcategoryApi = {
     
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+      // Handle nested error structure: error.error.message or error.message
+      const errorMessage = errorData.error?.message || errorData.message || `HTTP error! status: ${response.status}`;
+      throw new Error(errorMessage);
     }
 
     return response.json();
@@ -172,13 +188,15 @@ export const subcategoryApi = {
   }>) => {
     const response = await fetch(`${API_BASE_URL}/categories/subcategories/${subcategoryId}`, {
       method: 'PUT',
-      headers: getAuthHeaders(),
+      headers: await getAuthHeaders(),
       body: JSON.stringify(data),
     });
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+      // Handle nested error structure: error.error.message or error.message
+      const errorMessage = errorData.error?.message || errorData.message || `HTTP error! status: ${response.status}`;
+      throw new Error(errorMessage);
     }
 
     return response.json();
@@ -188,12 +206,14 @@ export const subcategoryApi = {
   delete: async (subcategoryId: string) => {
     const response = await fetch(`${API_BASE_URL}/categories/subcategories/${subcategoryId}`, {
       method: 'DELETE',
-      headers: getAuthHeaders(),
+      headers: await getAuthHeaders(),
     });
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+      // Handle nested error structure: error.error.message or error.message
+      const errorMessage = errorData.error?.message || errorData.message || `HTTP error! status: ${response.status}`;
+      throw new Error(errorMessage);
     }
 
     return response.json();

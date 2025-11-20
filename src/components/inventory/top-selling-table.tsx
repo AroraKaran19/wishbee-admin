@@ -3,7 +3,6 @@
 import React from 'react';
 import { DataTable } from '@/components/ui/data-table';
 import { Product, TableConfig } from '@/lib/types';
-import { Sparkles, TrendingUp } from 'lucide-react';
 import Link from 'next/link';
 
 interface TopSellingTableProps {
@@ -19,16 +18,6 @@ export function TopSellingTable({
   totalPages, 
   onPageChange 
 }: TopSellingTableProps) {
-
-  const handleBoostPromo = (item: Product) => {
-    // Navigate to product edit page
-    window.location.href = `/inventory/product/${item._id}/edit`;
-  };
-
-  const handleViewTrends = (item: Product) => {
-    // Navigate to product detail page
-    window.location.href = `/inventory/product/${item._id}`;
-  };
 
   const tableConfig: TableConfig<Product> = {
     columns: [
@@ -74,26 +63,6 @@ export function TopSellingTable({
             {value ?? 0} {record.weight?.unit || 'units'}
           </div>
         )
-      }
-    ],
-    actions: [
-      {
-        key: 'boost-promo',
-        label: 'Boost Promo',
-        icon: <Sparkles className="h-4 w-4" />,
-        onClick: (record) => handleBoostPromo(record),
-        variant: 'primary',
-        size: 'sm',
-        className: 'text-white'
-      },
-      {
-        key: 'view-trends',
-        label: 'View Trends',
-        icon: <TrendingUp className="h-4 w-4" />,
-        onClick: (record) => handleViewTrends(record),
-        variant: 'danger',
-        size: 'sm',
-        className: 'text-white'
       }
     ],
     pagination: {

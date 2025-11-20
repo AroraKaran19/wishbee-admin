@@ -51,7 +51,7 @@ export const enquiryApi = {
 
     const response = await fetch(`${API_BASE_URL}/enquiry/all?${params.toString()}`, {
       method: 'GET',
-      headers: getAuthHeaders(),
+      headers: await getAuthHeaders(),
     });
 
     if (!response.ok) {
@@ -69,7 +69,7 @@ export const enquiryApi = {
   getById: async (enquiryId: string): Promise<Enquiry> => {
     const response = await fetch(`${API_BASE_URL}/enquiry/${enquiryId}`, {
       method: 'GET',
-      headers: getAuthHeaders(),
+      headers: await getAuthHeaders(),
     });
 
     if (!response.ok) {
@@ -90,7 +90,7 @@ export const enquiryApi = {
   ): Promise<Enquiry> => {
     const response = await fetch(`${API_BASE_URL}/enquiry/${enquiryId}`, {
       method: 'PUT',
-      headers: getAuthHeaders(),
+      headers: await getAuthHeaders(),
       body: JSON.stringify({ status }),
     });
 
@@ -109,7 +109,7 @@ export const enquiryApi = {
   delete: async (enquiryId: string): Promise<void> => {
     const response = await fetch(`${API_BASE_URL}/enquiry/${enquiryId}`, {
       method: 'DELETE',
-      headers: getAuthHeaders(),
+      headers: await getAuthHeaders(),
     });
 
     if (!response.ok) {

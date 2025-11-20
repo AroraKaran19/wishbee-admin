@@ -67,7 +67,7 @@ export const orderApi = {
       `${API_BASE_URL}/orders/all?${params.toString()}`,
       {
         method: "GET",
-        headers: getAuthHeaders(),
+        headers: await getAuthHeaders(),
       }
     );
 
@@ -93,7 +93,7 @@ export const orderApi = {
       `${API_BASE_URL}/orders/analytics?${params.toString()}`,
       {
         method: "GET",
-        headers: getAuthHeaders(),
+        headers: await getAuthHeaders(),
       }
     );
 
@@ -117,7 +117,7 @@ export const orderApi = {
   }> => {
     const response = await fetch(`${API_BASE_URL}/orders/stats`, {
       method: "GET",
-      headers: getAuthHeaders(),
+      headers: await getAuthHeaders(),
     });
 
     if (!response.ok) {
@@ -135,7 +135,7 @@ export const orderApi = {
   getById: async (orderId: string): Promise<Order> => {
     const response = await fetch(`${API_BASE_URL}/orders/${orderId}`, {
       method: "GET",
-      headers: getAuthHeaders(),
+      headers: await getAuthHeaders(),
     });
 
     if (!response.ok) {
@@ -154,7 +154,7 @@ export const orderApi = {
   ): Promise<Order> => {
     const response = await fetch(`${API_BASE_URL}/orders/${orderId}/status`, {
       method: "PATCH",
-      headers: getAuthHeaders(),
+      headers: await getAuthHeaders(),
       body: JSON.stringify({ status, notes }),
     });
 
@@ -170,7 +170,7 @@ export const orderApi = {
   cancel: async (orderId: string, reason: string): Promise<Order> => {
     const response = await fetch(`${API_BASE_URL}/orders/${orderId}/cancel`, {
       method: "PATCH",
-      headers: getAuthHeaders(),
+      headers: await getAuthHeaders(),
       body: JSON.stringify({ reason }),
     });
 
