@@ -32,13 +32,22 @@ export interface Order {
     | "SHIPPED"
     | "DELIVERED"
     | "CANCELLED"
-    | "RETURNED";
+    | "RETURNED"
+    | "REFUNDED";
   payment: {
     method: "CARD" | "UPI" | "COD" | "NET_BANKING";
-    transactionId: string;
+    transactionId?: string;
     status: "PENDING" | "COMPLETED" | "FAILED";
     amount: number;
   };
+  invoiceNumber?: string;
+  updateHistory?: Array<{
+    status: "PENDING" | "PROCESSING" | "SHIPPED" | "DELIVERED" | "CANCELLED" | "RETURNED" | "REFUNDED";
+    updatedAt: Date;
+    updatedBy: "USER" | "ADMIN" | "SYSTEM";
+    reason?: string;
+    notes?: string;
+  }>;
   deliverySlot?: {
     date: Date;
     timeWindow: string;

@@ -2712,10 +2712,24 @@
   ```json
   {
     "status": "PROCESSING",
-    "notes": "string"
+    "notes": "string",
+    "payment": {
+      "method": "UPI",
+      "status": "COMPLETED",
+      "transactionId": "TXN123456"
+    }
   }
   ```
-- **Note**: Valid statuses are: "PENDING", "PROCESSING", "SHIPPED", "DELIVERED", "CANCELLED", "RETURNED"
+- **Note**: 
+  - Valid statuses are: "PENDING", "PROCESSING", "SHIPPED", "DELIVERED", "CANCELLED", "RETURNED", "REFUNDED"
+  - Status is case-insensitive (e.g., "Cancelled" will be normalized to "CANCELLED")
+  - Order cannot be changed once it has been CANCELLED or REFUNDED
+  - `payment` object is optional and allows updating payment information:
+    - `method`: "CARD", "UPI", "COD", "NET_BANKING" (optional)
+    - `status`: "PENDING", "COMPLETED", "FAILED" (optional)
+    - `transactionId`: string (optional, can be set to empty string to clear it)
+  - All payment fields are optional - you can update just the status, just payment info, or both together
+  - Payment changes are logged in the order's update history
 - **Response**: Updated order object
 
 ### Cancel Order
