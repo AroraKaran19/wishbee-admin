@@ -42,6 +42,9 @@ export function OrderPage() {
   const [period, setPeriod] = useState<OrderPeriod | "custom">("30days");
   const [startDate, setStartDate] = useState<string>("");
   const [endDate, setEndDate] = useState<string>("");
+  // Applied dates - only updated when submit button is clicked
+  const [appliedStartDate, setAppliedStartDate] = useState<string>("");
+  const [appliedEndDate, setAppliedEndDate] = useState<string>("");
   const [orders, setOrders] = useState<Order[]>([]);
   const [orderSummary, setOrderSummary] = useState<OrderSummary | null>(null);
   const [loading, setLoading] = useState(true);
@@ -80,13 +83,13 @@ export function OrderPage() {
       try {
         const filters: { period?: OrderPeriod; startDate?: string; endDate?: string } = {};
         
-        if (period === "custom" && startDate && endDate) {
-          filters.startDate = startDate;
-          filters.endDate = endDate;
+        if (period === "custom" && appliedStartDate && appliedEndDate) {
+          filters.startDate = appliedStartDate;
+          filters.endDate = appliedEndDate;
         } else if (period !== "custom") {
           filters.period = period;
         } else {
-          // Default to 7days if custom but no dates set yet
+          // Default to 7days if custom but no dates applied yet
           filters.period = "7days";
         }
         
@@ -100,7 +103,7 @@ export function OrderPage() {
     };
 
     fetchStats();
-  }, [period, startDate, endDate]);
+  }, [period, appliedStartDate, appliedEndDate]);
 
   // Validate date range
   const isDateRangeValid = (): boolean => {
@@ -127,15 +130,17 @@ export function OrderPage() {
       return;
     }
 
+    // Apply the dates - this will trigger the useEffects to fetch data
+    setAppliedStartDate(startDate);
+    setAppliedEndDate(endDate);
     setCurrentPage(1); // Reset to first page
-    // The useEffect will handle fetching with the new dates
   };
 
   // Fetch orders with pagination, search, and period/date filters
   useEffect(() => {
     const fetchOrders = async () => {
-      // Don't fetch for custom period until dates are set and valid
-      if (period === "custom" && (!startDate || !endDate || !isDateRangeValid())) {
+      // Don't fetch for custom period until dates are applied
+      if (period === "custom" && (!appliedStartDate || !appliedEndDate)) {
         return;
       }
 
@@ -150,9 +155,9 @@ export function OrderPage() {
         };
 
         // Add period or date range filters
-        if (period === "custom" && startDate && endDate) {
-          filters.startDate = startDate;
-          filters.endDate = endDate;
+        if (period === "custom" && appliedStartDate && appliedEndDate) {
+          filters.startDate = appliedStartDate;
+          filters.endDate = appliedEndDate;
         } else if (period !== "custom") {
           filters.period = period;
         }
@@ -174,7 +179,7 @@ export function OrderPage() {
     };
 
     fetchOrders();
-  }, [currentPage, debouncedSearchQuery, period, startDate, endDate]);
+  }, [currentPage, debouncedSearchQuery, period, appliedStartDate, appliedEndDate]);
 
   const handlePageChange = (page: number) => {
     if (page >= 1 && page <= totalPages) {
@@ -200,9 +205,9 @@ export function OrderPage() {
       };
 
       // Add period or date range filters
-      if (period === "custom" && startDate && endDate) {
-        filters.startDate = startDate;
-        filters.endDate = endDate;
+      if (period === "custom" && appliedStartDate && appliedEndDate) {
+        filters.startDate = appliedStartDate;
+        filters.endDate = appliedEndDate;
       } else if (period !== "custom") {
         filters.period = period;
       }
@@ -217,9 +222,9 @@ export function OrderPage() {
       
       // Fetch updated stats
       const statsFilters: { period?: OrderPeriod; startDate?: string; endDate?: string } = {};
-      if (period === "custom" && startDate && endDate) {
-        statsFilters.startDate = startDate;
-        statsFilters.endDate = endDate;
+      if (period === "custom" && appliedStartDate && appliedEndDate) {
+        statsFilters.startDate = appliedStartDate;
+        statsFilters.endDate = appliedEndDate;
       } else if (period !== "custom") {
         statsFilters.period = period;
       }
@@ -250,9 +255,9 @@ export function OrderPage() {
       };
 
       // Add period or date range filters
-      if (period === "custom" && startDate && endDate) {
-        filters.startDate = startDate;
-        filters.endDate = endDate;
+      if (period === "custom" && appliedStartDate && appliedEndDate) {
+        filters.startDate = appliedStartDate;
+        filters.endDate = appliedEndDate;
       } else if (period !== "custom") {
         filters.period = period;
       }
@@ -267,9 +272,9 @@ export function OrderPage() {
       
       // Fetch updated stats
       const statsFilters: { period?: OrderPeriod; startDate?: string; endDate?: string } = {};
-      if (period === "custom" && startDate && endDate) {
-        statsFilters.startDate = startDate;
-        statsFilters.endDate = endDate;
+      if (period === "custom" && appliedStartDate && appliedEndDate) {
+        statsFilters.startDate = appliedStartDate;
+        statsFilters.endDate = appliedEndDate;
       } else if (period !== "custom") {
         statsFilters.period = period;
       }
@@ -335,6 +340,9 @@ export function OrderPage() {
                   onClick={() => {
                     setPeriod(periodMap[periodKey]);
                     setCurrentPage(1); // Reset to first page when period changes
+                    // Clear applied dates when switching away from custom
+                    setAppliedStartDate("");
+                    setAppliedEndDate("");
                   }}
                   className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                     period === periodMap[periodKey]
@@ -349,6 +357,9 @@ export function OrderPage() {
                 onClick={() => {
                   setPeriod("custom");
                   setCurrentPage(1); // Reset to first page when switching to custom
+                  // Clear applied dates when switching to custom
+                  setAppliedStartDate("");
+                  setAppliedEndDate("");
                 }}
                 className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 ${
                   period === "custom"
@@ -367,8 +378,22 @@ export function OrderPage() {
                 <div className="mb-3">
                   <p className="text-sm font-medium text-gray-700">
                     Selected Range:{" "}
-                    {startDate && endDate ? (
-                      <span className={isDateRangeValid() ? "text-[#13aaff]" : "text-red-600"}>
+                    {appliedStartDate && appliedEndDate ? (
+                      <span className="text-[#13aaff]">
+                        {new Date(appliedStartDate).toLocaleDateString("en-IN", {
+                          year: "numeric",
+                          month: "short",
+                          day: "numeric",
+                        })}{" "}
+                        to{" "}
+                        {new Date(appliedEndDate).toLocaleDateString("en-IN", {
+                          year: "numeric",
+                          month: "short",
+                          day: "numeric",
+                        })}
+                      </span>
+                    ) : startDate && endDate ? (
+                      <span className={isDateRangeValid() ? "text-gray-600" : "text-red-600"}>
                         {new Date(startDate).toLocaleDateString("en-IN", {
                           year: "numeric",
                           month: "short",
@@ -380,6 +405,7 @@ export function OrderPage() {
                           month: "short",
                           day: "numeric",
                         })}
+                        {" "}(Not applied)
                       </span>
                     ) : (
                       <span className="text-gray-400">No dates selected</span>

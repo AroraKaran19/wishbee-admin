@@ -12,7 +12,7 @@ export function OrderSummaryCards({ summary }: OrderSummaryCardsProps) {
   if (!summary) {
     return (
       <div className="flex flex-wrap gap-6 justify-start">
-        <div className="bg-gray-100 rounded-lg pt-4 pb-2 w-1/5 animate-pulse">
+        <div className="bg-gray-100 rounded-lg pt-4 pb-2 w-[calc(33.333%-1rem)] min-w-[180px] animate-pulse">
           <div className="bg-gray-300 text-white px-3 py-2 rounded-tr-2xl inline-block mb-3">
             <span className="text-sm font-medium">Loading...</span>
           </div>
@@ -30,7 +30,7 @@ export function OrderSummaryCards({ summary }: OrderSummaryCardsProps) {
   return (
     <div className="flex flex-wrap gap-6 justify-start">
       {/* Total Orders Card */}
-      <div className="bg-[#d9f4ff] rounded-lg pt-4 pb-2 w-[calc(20%-1.2rem)] min-w-[180px]">
+      <div className="bg-[#d9f4ff] rounded-lg pt-4 pb-2 w-[calc(33.333%-1rem)] min-w-[180px]">
         <div className="bg-[#00b7fb] text-white px-3 py-2 rounded-tr-2xl inline-block mb-3">
           <span className="text-sm font-medium">Total Orders</span>
         </div>
@@ -45,19 +45,19 @@ export function OrderSummaryCards({ summary }: OrderSummaryCardsProps) {
       </div>
 
       {/* Total Received Card */}
-      <div className="bg-[#dbeed9] rounded-lg pt-4 pb-2 w-[calc(20%-1.2rem)] min-w-[180px]">
+      <div className="bg-[#dbeed9] rounded-lg pt-4 pb-2 w-[calc(33.333%-1rem)] min-w-[180px]">
         <div className="bg-[#0b8f00] text-white px-3 py-2 rounded-tr-2xl inline-block mb-3">
           <span className="text-sm font-medium">Total Received</span>
         </div>
         <div className="flex justify-between items-start px-4">
-          <div>
-            <div className="text-2xl font-semibold text-gray-900">
+          <div className="min-w-0 flex-1">
+            <div className="text-2xl font-semibold text-gray-900 break-words">
               {summary.totalReceived}
             </div>
             <div className="text-xs text-gray-600">Delivered</div>
           </div>
-          <div className="text-right">
-            <div className="text-2xl font-semibold text-gray-900">
+          <div className="text-right min-w-0 flex-1">
+            <div className="text-2xl font-semibold text-gray-900 break-words">
               {formatCurrency(summary.revenue)}
             </div>
             <div className="text-xs text-gray-600">Revenue</div>
@@ -66,19 +66,19 @@ export function OrderSummaryCards({ summary }: OrderSummaryCardsProps) {
       </div>
 
       {/* Refunded Card */}
-      <div className="bg-[#fce4e6] rounded-lg pt-4 pb-2 w-[calc(20%-1.2rem)] min-w-[180px]">
+      <div className="bg-[#fce4e6] rounded-lg pt-4 pb-2 w-[calc(33.333%-1rem)] min-w-[180px]">
         <div className="bg-[#dc2626] text-white px-3 py-2 rounded-tr-2xl inline-block mb-3">
           <span className="text-sm font-medium">Refunded</span>
         </div>
         <div className="flex justify-between items-start px-4">
-          <div>
-            <div className="text-2xl font-semibold text-gray-900">
+          <div className="min-w-0 flex-1">
+            <div className="text-2xl font-semibold text-gray-900 break-words">
               {summary.totalReturned}
             </div>
             <div className="text-xs text-gray-600">Refunded Orders</div>
           </div>
-          <div className="text-right">
-            <div className="text-2xl font-semibold text-gray-900">
+          <div className="text-right min-w-0 flex-1">
+            <div className="text-2xl font-semibold text-gray-900 break-words">
               {formatCurrency(summary.returnAmount)}
             </div>
             <div className="text-xs text-gray-600">Refund Amount</div>
@@ -87,19 +87,19 @@ export function OrderSummaryCards({ summary }: OrderSummaryCardsProps) {
       </div>
 
       {/* On the way Card */}
-      <div className="bg-[#fff4e6] rounded-lg pt-4 pb-2 w-[calc(20%-1.2rem)] min-w-[180px]">
+      <div className="bg-[#fff4e6] rounded-lg pt-4 pb-2 w-[calc(33.333%-1rem)] min-w-[180px]">
         <div className="bg-[#ff9800] text-white px-3 py-2 rounded-tr-2xl inline-block mb-3">
           <span className="text-sm font-medium">On the way</span>
         </div>
         <div className="flex justify-between items-start px-4">
-          <div>
-            <div className="text-2xl font-semibold text-gray-900">
+          <div className="min-w-0 flex-1">
+            <div className="text-2xl font-semibold text-gray-900 break-words">
               {summary.onTheWay}
             </div>
             <div className="text-xs text-gray-600">In Transit</div>
           </div>
-          <div className="text-right">
-            <div className="text-2xl font-semibold text-gray-900">
+          <div className="text-right min-w-0 flex-1">
+            <div className="text-2xl font-semibold text-gray-900 break-words">
               {formatCurrency(summary.onTheWayCost)}
             </div>
             <div className="text-xs text-gray-600">Value</div>
@@ -109,7 +109,7 @@ export function OrderSummaryCards({ summary }: OrderSummaryCardsProps) {
 
       {/* Total Pending Card */}
       {summary.totalPending !== undefined && (
-        <div className="bg-[#e6f3ff] rounded-lg pt-4 pb-2 w-[calc(20%-1.2rem)] min-w-[180px]">
+        <div className="bg-[#e6f3ff] rounded-lg pt-4 pb-2 w-[calc(33.333%-1rem)] min-w-[180px]">
           <div className="bg-[#2196f3] text-white px-3 py-2 rounded-tr-2xl inline-block mb-3">
             <span className="text-sm font-medium">Pending</span>
           </div>
@@ -126,7 +126,7 @@ export function OrderSummaryCards({ summary }: OrderSummaryCardsProps) {
 
       {/* Total Cancelled Card */}
       {summary.totalCancelled !== undefined && (
-        <div className="bg-[#fce4e6] rounded-lg pt-4 pb-2 w-[calc(20%-1.2rem)] min-w-[180px]">
+        <div className="bg-[#fce4e6] rounded-lg pt-4 pb-2 w-[calc(33.333%-1rem)] min-w-[180px]">
           <div className="bg-[#dc2626] text-white px-3 py-2 rounded-tr-2xl inline-block mb-3">
             <span className="text-sm font-medium">Cancelled</span>
           </div>
@@ -143,7 +143,7 @@ export function OrderSummaryCards({ summary }: OrderSummaryCardsProps) {
 
       {/* Total Delivered Card */}
       {summary.totalDelivered !== undefined && (
-        <div className="bg-[#dbeed9] rounded-lg pt-4 pb-2 w-[calc(20%-1.2rem)] min-w-[180px]">
+        <div className="bg-[#dbeed9] rounded-lg pt-4 pb-2 w-[calc(33.333%-1rem)] min-w-[180px]">
           <div className="bg-[#0b8f00] text-white px-3 py-2 rounded-tr-2xl inline-block mb-3">
             <span className="text-sm font-medium">Delivered</span>
           </div>
@@ -164,7 +164,7 @@ export function OrderSummaryCards({ summary }: OrderSummaryCardsProps) {
         summary.totalCardOrders !== undefined) && (
         <>
           {summary.totalUPIOrders !== undefined && (
-            <div className="bg-[#e8f5e9] rounded-lg pt-4 pb-2 w-[calc(20%-1.2rem)] min-w-[180px]">
+            <div className="bg-[#e8f5e9] rounded-lg pt-4 pb-2 w-[calc(33.333%-1rem)] min-w-[180px]">
               <div className="bg-[#4caf50] text-white px-3 py-2 rounded-tr-2xl inline-block mb-3">
                 <span className="text-sm font-medium">UPI Orders</span>
               </div>
@@ -180,7 +180,7 @@ export function OrderSummaryCards({ summary }: OrderSummaryCardsProps) {
           )}
 
           {summary.totalCODOrders !== undefined && (
-            <div className="bg-[#fff3e0] rounded-lg pt-4 pb-2 w-[calc(20%-1.2rem)] min-w-[180px]">
+            <div className="bg-[#fff3e0] rounded-lg pt-4 pb-2 w-[calc(33.333%-1rem)] min-w-[180px]">
               <div className="bg-[#ff9800] text-white px-3 py-2 rounded-tr-2xl inline-block mb-3">
                 <span className="text-sm font-medium">COD Orders</span>
               </div>
@@ -196,7 +196,7 @@ export function OrderSummaryCards({ summary }: OrderSummaryCardsProps) {
           )}
 
           {summary.totalCardOrders !== undefined && (
-            <div className="bg-[#e3f2fd] rounded-lg pt-4 pb-2 w-[calc(20%-1.2rem)] min-w-[180px]">
+            <div className="bg-[#e3f2fd] rounded-lg pt-4 pb-2 w-[calc(33.333%-1rem)] min-w-[180px]">
               <div className="bg-[#2196f3] text-white px-3 py-2 rounded-tr-2xl inline-block mb-3">
                 <span className="text-sm font-medium">Card Orders</span>
               </div>
