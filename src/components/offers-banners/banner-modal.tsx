@@ -364,6 +364,7 @@ export function BannerModal({
               <option value="offers">Offers Banner (Desktop)</option>
               <option value="hero-mob">Hero Banner (Mobile)</option>
               <option value="offers-mob">Offers Banner (Mobile)</option>
+              <option value="authentication">Authentication Banner</option>
             </select>
             {banner && (
               <p className="mt-1 text-xs text-gray-500">

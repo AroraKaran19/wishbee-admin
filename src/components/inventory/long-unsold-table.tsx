@@ -84,9 +84,9 @@ export function LongUnsoldTable({
         key: 'stock',
         title: 'Stock Qty',
         align: 'center',
-        render: (value, record) => (
+        render: (value) => (
           <div className="text-sm text-gray-900">
-            {value} {record.weight?.unit || 'units'}
+            {value ?? 0} units
           </div>
         )
       },

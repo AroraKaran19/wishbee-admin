@@ -83,7 +83,7 @@ export const productApi = {
       value: string;
     }[];
     category: string;
-    subCategory: string;
+    subCategory?: string;
     images: string[];
     status: "ACTIVE" | "OUT_OF_STOCK" | "DISCONTINUED";
     isOrganic: boolean;

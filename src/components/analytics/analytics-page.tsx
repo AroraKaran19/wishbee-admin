@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { ArrowUp, ArrowDown, Loader2, Calendar } from "lucide-react";
+import { ArrowUp, ArrowDown, Loader2, Calendar, Search } from "lucide-react";
 import {
   AreaChart,
   Area,
@@ -33,6 +33,7 @@ const COLORS = [
 
 // Map UI period labels to API period values
 const periodMap: Record<string, AnalyticsPeriod> = {
+  "today": "today",
   "7days": "7days",
   "30days": "30days",
   "6months": "6months",
@@ -43,6 +44,7 @@ const periodMap: Record<string, AnalyticsPeriod> = {
 // Map API period to UI display label
 const getPeriodLabel = (period: string): string => {
   const labels: Record<string, string> = {
+    "today": "Today",
     "7days": "Last 7 Days",
     "30days": "Last 30 Days",
     "6months": "Last 6 Months",
@@ -60,7 +62,7 @@ export function AnalyticsPage() {
   const [startDate, setStartDate] = useState<string>("");
   const [endDate, setEndDate] = useState<string>("");
 
-  // Set default date range (last 30 days)
+  // Set default date range (last 30 days) when custom is first selected
   useEffect(() => {
     if (period === "custom" && !startDate && !endDate) {
       const today = new Date();
@@ -72,22 +74,15 @@ export function AnalyticsPage() {
     }
   }, [period, startDate, endDate]);
 
-  // Fetch analytics data
+  // Fetch analytics data - only for non-custom periods or initial custom load
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);
         setError(null);
 
-        // If custom range is selected, use dates only; otherwise use period only
-        if (period === "custom" && startDate && endDate) {
-          const data = await analyticsApi.getPage(
-            undefined,
-            startDate,
-            endDate
-          );
-          setAnalyticsData(data);
-        } else if (period !== "custom") {
+        // Only fetch for non-custom periods (custom will use submit button)
+        if (period !== "custom") {
           const data = await analyticsApi.getPage(period as AnalyticsPeriod);
           setAnalyticsData(data);
         }
@@ -102,11 +97,53 @@ export function AnalyticsPage() {
       }
     };
 
-    // Only fetch if we have valid data (period or custom dates)
-    if (period !== "custom" || (startDate && endDate)) {
+    // Only fetch for non-custom periods
+    if (period !== "custom") {
       fetchData();
     }
-  }, [period, startDate, endDate]);
+  }, [period]);
+
+  // Validate date range
+  const isDateRangeValid = (): boolean => {
+    if (!startDate || !endDate) return false;
+    
+    // Create date objects at midnight UTC to avoid timezone issues
+    const start = new Date(startDate + "T00:00:00.000Z");
+    const end = new Date(endDate + "T00:00:00.000Z");
+    
+    // Start date must be before end date (not equal, not after)
+    return start < end;
+  };
+
+  // Handle custom date range submit
+  const handleCustomRangeSubmit = async () => {
+    if (!startDate || !endDate) {
+      toast.error("Please select both start and end dates");
+      return;
+    }
+
+    // Validate date range
+    if (!isDateRangeValid()) {
+      toast.error("Start date must be before end date");
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setError(null);
+
+      const data = await analyticsApi.getPage(undefined, startDate, endDate);
+      setAnalyticsData(data);
+    } catch (err) {
+      console.error("Error fetching analytics:", err);
+      const errorMessage =
+        err instanceof Error ? err.message : "Failed to load analytics data";
+      setError(errorMessage);
+      toast.error(errorMessage);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Transform trend data for chart
   const getChartData = () => {
@@ -152,7 +189,13 @@ export function AnalyticsPage() {
       const date = new Date(item.date);
       // Format date based on period
       let dateLabel = "";
-      if (period === "7days") {
+      if (period === "today") {
+        // For today, show hour format (e.g., "12 AM", "1 PM")
+        dateLabel = date.toLocaleTimeString("en-US", {
+          hour: "numeric",
+          hour12: true,
+        });
+      } else if (period === "7days") {
         dateLabel = date.toLocaleDateString("en-US", { weekday: "short" });
       } else if (period === "30days") {
         dateLabel = date.toLocaleDateString("en-US", {
@@ -348,7 +391,7 @@ export function AnalyticsPage() {
               <p className="text-sm font-medium text-gray-700">
                 Selected Range:{" "}
                 {startDate && endDate ? (
-                  <span className="text-[#13aaff]">
+                  <span className={isDateRangeValid() ? "text-[#13aaff]" : "text-red-600"}>
                     {new Date(startDate).toLocaleDateString("en-IN", {
                       year: "numeric",
                       month: "short",
@@ -365,13 +408,37 @@ export function AnalyticsPage() {
                   <span className="text-gray-500">Please select dates</span>
                 )}
               </p>
+              {startDate && endDate && !isDateRangeValid() && (
+                <p className="text-sm text-red-600 mt-1">
+                  ⚠️ Start date must be before end date
+                </p>
+              )}
             </div>
-            <DateRangePicker
-              startDate={startDate}
-              endDate={endDate}
-              onStartDateChange={setStartDate}
-              onEndDateChange={setEndDate}
-            />
+            <div className="space-y-3">
+              <DateRangePicker
+                startDate={startDate}
+                endDate={endDate}
+                onStartDateChange={setStartDate}
+                onEndDateChange={setEndDate}
+              />
+              <button
+                onClick={handleCustomRangeSubmit}
+                disabled={!startDate || !endDate || !isDateRangeValid() || loading}
+                className="w-full sm:w-auto px-4 py-2 bg-[#13aaff] text-white rounded-lg text-sm font-medium hover:bg-[#0f8fd6] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              >
+                {loading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Loading...
+                  </>
+                ) : (
+                  <>
+                    <Search className="w-4 h-4" />
+                    Apply Date Range
+                  </>
+                )}
+              </button>
+            </div>
           </div>
         )}
       </div>

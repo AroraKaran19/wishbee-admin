@@ -23,6 +23,42 @@ export interface CustomerResponse {
   };
 }
 
+export interface CustomerDetailsFilters {
+  status?: string;
+  search?: string;
+  page?: number;
+  limit?: number;
+  sortBy?: string;
+  sortOrder?: "asc" | "desc";
+  period?: "today" | "currentDate" | "7days" | "30days" | "lastMonth" | "6months" | "12months" | "all-time";
+  startDate?: string;
+  endDate?: string;
+}
+
+export interface CustomerOrderStatistics {
+  totalOrders: number;
+  totalSpend: number;
+  totalDelivered: number;
+  totalPending: number;
+  totalCancelled: number;
+  totalReturned: number;
+  totalUPIOrders: number;
+  totalCODOrders: number;
+  totalCardOrders: number;
+}
+
+export interface CustomerDetailsResponse {
+  customer: any; // Raw API customer data
+  orders: any[]; // Raw API orders
+  orderStatistics: CustomerOrderStatistics;
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    pages: number;
+  };
+}
+
 export const customerApi = {
   // Get all customers (Admin)
   getAll: async (filters: CustomerFilters = {}): Promise<CustomerResponse> => {
@@ -78,6 +114,47 @@ export const customerApi = {
   getByIdAsCustomer: async (userId: string): Promise<Customer> => {
     const apiUser = await customerApi.getById(userId);
     return convertApiCustomerToUICustomer(apiUser);
+  },
+
+  // Get comprehensive customer details (Admin)
+  getComprehensiveDetails: async (
+    userId: string,
+    filters: CustomerDetailsFilters = {}
+  ): Promise<CustomerDetailsResponse> => {
+    const params = new URLSearchParams();
+
+    if (filters.status) params.append("status", filters.status);
+    if (filters.search) params.append("search", filters.search);
+    if (filters.page) params.append("page", filters.page.toString());
+    if (filters.limit) params.append("limit", filters.limit.toString());
+    if (filters.sortBy) params.append("sortBy", filters.sortBy);
+    if (filters.sortOrder) params.append("sortOrder", filters.sortOrder);
+
+    // If custom dates are provided, use them instead of period
+    if (filters.startDate && filters.endDate) {
+      params.append("startDate", filters.startDate);
+      params.append("endDate", filters.endDate);
+    } else if (filters.period) {
+      params.append("period", filters.period);
+    }
+
+    const response = await fetch(
+      `${API_BASE_URL}/users/${userId}/details?${params.toString()}`,
+      {
+        method: "GET",
+        headers: await getAuthHeaders(),
+      }
+    );
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(
+        errorData.message || `Failed to fetch customer details: ${response.statusText}`
+      );
+    }
+
+    const result = await response.json();
+    return result.data;
   },
 
   // Update customer (Admin)
@@ -301,6 +378,16 @@ export const convertApiCustomerToUICustomer = (apiUser: any): Customer => {
     return user.lastOrderDate || user.lastOrder || undefined;
   };
 
+  // Get last order ID from orders array (most recent order)
+  // According to API docs: "Orders are automatically added to this array when created (latest order appears first)"
+  const getLastOrderId = (user: any): string | null => {
+    if (user.orders && Array.isArray(user.orders) && user.orders.length > 0) {
+      // Return the first order ID in the array (latest order appears first)
+      return user.orders[0];
+    }
+    return null;
+  };
+
   return {
     id: apiUser._id,
     name: getName(apiUser),
@@ -310,6 +397,7 @@ export const convertApiCustomerToUICustomer = (apiUser: any): Customer => {
     totalSpend: totalSpend,
     loyaltyTier: mapLoyaltyTier(apiUser.loyaltyTier),
     lastOrder: formatDate(getLastOrderDate(apiUser)),
+    lastOrderId: getLastOrderId(apiUser),
     status: getStatus(apiUser.isActive),
     registrationDate: formatDate(apiUser.createdAt),
     totalOrders: totalOrders,

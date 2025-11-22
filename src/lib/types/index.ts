@@ -133,6 +133,7 @@ export interface Customer {
   totalSpend: number;
   loyaltyTier: "Bronze" | "Silver" | "Gold" | "Platinum";
   lastOrder: string;
+  lastOrderId?: string | null;
   status: "Active" | "Inactive" | "Suspended";
   registrationDate: string;
   totalOrders: number;
@@ -159,7 +160,9 @@ export interface Order {
   orderId: string;
   amount: number;
   customer: string;
-  status: "Delivered" | "Pending" | "Processing" | "Shipped" | "Cancelled";
+  customerFirstName?: string;
+  customerLastName?: string;
+  status: "Delivered" | "Pending" | "Processing" | "Shipped" | "Cancelled" | "Refunded" | "Returned";
   payment: "UPI" | "COD" | "Card" | "Net Banking";
   deliveryDate: string;
   orderDate: string;
@@ -214,6 +217,13 @@ export interface OrderSummary {
   revenue: number;
   returnAmount: number;
   onTheWayCost: number;
+  totalCancelled?: number;
+  totalDelivered?: number;
+  totalPending?: number;
+  totalUPIOrders?: number;
+  totalCODOrders?: number;
+  totalCardOrders?: number;
+  period?: string;
   trends: {
     totalOrders: { value: number; percentage: number };
     totalReceived: { value: number; percentage: number };

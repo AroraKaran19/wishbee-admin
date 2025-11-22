@@ -3,7 +3,7 @@ import { getAuthHeaders } from '@/lib/utils/auth';
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_BACKEND_URL || 'https://wishbee-web.vercel.app/api';
 
-export type AnalyticsPeriod = '7days' | '30days' | '6months' | '12months' | 'all-time';
+export type AnalyticsPeriod = 'today' | '7days' | '30days' | '6months' | '12months' | 'all-time';
 
 export interface KeyMetric {
   count?: number;

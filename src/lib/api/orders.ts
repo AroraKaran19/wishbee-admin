@@ -25,6 +25,8 @@ export interface OrderAnalytics {
   }>;
 }
 
+export type OrderPeriod = 'today' | 'currentDate' | '7days' | '30days' | 'lastMonth' | '6months' | '12months' | 'all-time';
+
 export interface OrderFilters {
   status?: string;
   userId?: string;
@@ -33,6 +35,9 @@ export interface OrderFilters {
   sortBy?: string;
   sortOrder?: "asc" | "desc";
   search?: string;
+  period?: OrderPeriod;
+  startDate?: string;
+  endDate?: string;
 }
 
 export interface OrderResponse {
@@ -62,6 +67,14 @@ export const orderApi = {
     if (filters.sortBy) params.append("sortBy", filters.sortBy);
     if (filters.sortOrder) params.append("sortOrder", filters.sortOrder);
     if (filters.search) params.append("search", filters.search);
+
+    // If custom dates are provided, use them instead of period
+    if (filters.startDate && filters.endDate) {
+      params.append("startDate", filters.startDate);
+      params.append("endDate", filters.endDate);
+    } else if (filters.period) {
+      params.append("period", filters.period);
+    }
 
     const response = await fetch(
       `${API_BASE_URL}/orders/all?${params.toString()}`,
@@ -108,14 +121,36 @@ export const orderApi = {
   },
 
   // Get order statistics (Dashboard)
-  getStats: async (): Promise<{
+  getStats: async (filters?: {
+    period?: "today" | "currentDate" | "7days" | "30days" | "lastMonth" | "6months" | "12months" | "all-time";
+    startDate?: string;
+    endDate?: string;
+  }): Promise<{
     totalOrders: number;
     totalReceived: { count: number; revenue: number };
     totalReturned: { count: number; revenue: number };
     onTheWay: { count: number; cost: number };
+    totalCancelled: number;
+    totalDelivered: number;
+    totalPending: number;
+    totalUPIOrders: number;
+    totalCODOrders: number;
+    totalCardOrders: number;
     period: string;
   }> => {
-    const response = await fetch(`${API_BASE_URL}/orders/stats`, {
+    const params = new URLSearchParams();
+
+    // If custom dates are provided, use them instead of period
+    if (filters?.startDate && filters?.endDate) {
+      params.append("startDate", filters.startDate);
+      params.append("endDate", filters.endDate);
+    } else if (filters?.period) {
+      params.append("period", filters.period);
+    }
+    // If no filters provided, API will use default "7days"
+
+    const url = `${API_BASE_URL}/orders/stats${params.toString() ? `?${params.toString()}` : ""}`;
+    const response = await fetch(url, {
       method: "GET",
       headers: await getAuthHeaders(),
     });
@@ -227,15 +262,21 @@ export const convertApiOrderToUIOrder = (apiOrder: any): Order => {
     orderId: apiOrder.refId,
     amount: apiOrder.totalAmount,
     customer: apiOrder.user?.phoneNumber || apiOrder.user?.name || "Unknown",
+    customerFirstName: apiOrder.user?.firstName,
+    customerLastName: apiOrder.user?.lastName,
     status:
       apiOrder.status === "DELIVERED"
         ? "Delivered"
         : apiOrder.status === "CANCELLED"
         ? "Cancelled"
+        : apiOrder.status === "REFUNDED"
+        ? "Refunded"
         : apiOrder.status === "PROCESSING"
         ? "Processing"
         : apiOrder.status === "SHIPPED"
         ? "Shipped"
+        : apiOrder.status === "RETURNED"
+        ? "Returned"
         : "Pending",
     payment:
       apiOrder.payment?.method === "CARD"
@@ -359,6 +400,12 @@ export const convertStatsToOrderSummary = (stats: {
   totalReceived: { count: number; revenue: number };
   totalReturned: { count: number; revenue: number };
   onTheWay: { count: number; cost: number };
+  totalCancelled?: number;
+  totalDelivered?: number;
+  totalPending?: number;
+  totalUPIOrders?: number;
+  totalCODOrders?: number;
+  totalCardOrders?: number;
   period: string;
 }): OrderSummary => {
   return {
@@ -369,6 +416,13 @@ export const convertStatsToOrderSummary = (stats: {
     revenue: stats.totalReceived.revenue,
     returnAmount: stats.totalReturned.revenue,
     onTheWayCost: stats.onTheWay.cost,
+    totalCancelled: stats.totalCancelled,
+    totalDelivered: stats.totalDelivered,
+    totalPending: stats.totalPending,
+    totalUPIOrders: stats.totalUPIOrders,
+    totalCODOrders: stats.totalCODOrders,
+    totalCardOrders: stats.totalCardOrders,
+    period: stats.period,
     trends: {
       totalOrders: { value: stats.totalOrders, percentage: 0 },
       totalReceived: {

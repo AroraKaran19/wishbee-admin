@@ -24,6 +24,7 @@ export function OffersBannersPage() {
   const [offersBanners, setOffersBanners] = useState<Banner[]>([]);
   const [heroMobBanners, setHeroMobBanners] = useState<Banner[]>([]);
   const [offersMobBanners, setOffersMobBanners] = useState<Banner[]>([]);
+  const [authenticationBanners, setAuthenticationBanners] = useState<Banner[]>([]);
   const [loading, setLoading] = useState(true);
   const [isBannerModalOpen, setIsBannerModalOpen] = useState(false);
   const [editingBanner, setEditingBanner] = useState<Banner | null>(null);
@@ -65,7 +66,7 @@ export function OffersBannersPage() {
   // const startIndex = (currentPage - 1) * itemsPerPage;
   // const currentCoupons = coupons.slice(startIndex, startIndex + itemsPerPage);
 
-  // Fetch all banners from API (all 4 types)
+  // Fetch all banners from API (all 5 types)
   const fetchBanners = async () => {
     try {
       setLoading(true);
@@ -79,6 +80,7 @@ export function OffersBannersPage() {
             offers: 1,
             "hero-mob": 2,
             "offers-mob": 3,
+            authentication: 4,
           };
           return typeOrder[a.type] - typeOrder[b.type];
         }
@@ -88,10 +90,12 @@ export function OffersBannersPage() {
       const offers = sortedBanners.filter((b) => b.type === "offers");
       const heroMob = sortedBanners.filter((b) => b.type === "hero-mob");
       const offersMob = sortedBanners.filter((b) => b.type === "offers-mob");
+      const authentication = sortedBanners.filter((b) => b.type === "authentication");
       setHeroBanners(hero);
       setOffersBanners(offers);
       setHeroMobBanners(heroMob);
       setOffersMobBanners(offersMob);
+      setAuthenticationBanners(authentication);
     } catch (error) {
       console.error("Error fetching banners:", error);
       toast.error("Failed to load banners");
@@ -564,6 +568,39 @@ export function OffersBannersPage() {
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {renderBannerRows(offersMobBanners, setOffersMobBanners)}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* Authentication Banners Section */}
+        <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-[#d9f4ff] border-b border-blue-200">
+                <tr>
+                  <th className="px-6 py-3 text-center text-sm font-semibold text-gray-900 w-12">
+                    Drag
+                  </th>
+                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">
+                    Authentication Banners
+                  </th>
+                  <th className="px-6 py-3 text-center text-sm font-semibold text-gray-900">
+                    Status
+                  </th>
+                  <th className="px-6 py-3 text-center text-sm font-semibold text-gray-900">
+                    Created
+                  </th>
+                  <th className="px-6 py-3 text-center text-sm font-semibold text-gray-900">
+                    Updated
+                  </th>
+                  <th className="px-6 py-3 text-center text-sm font-semibold text-gray-900">
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {renderBannerRows(authenticationBanners, setAuthenticationBanners)}
               </tbody>
             </table>
           </div>

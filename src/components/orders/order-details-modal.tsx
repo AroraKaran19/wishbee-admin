@@ -73,6 +73,8 @@ export function OrderDetailsModal({ orderId, isOpen, onClose }: OrderDetailsModa
       case 'CANCELLED':
       case 'CANCELED':
         return 'text-red-600 bg-red-50';
+      case 'REFUNDED':
+        return 'text-red-600 bg-red-50';
       case 'RETURNED':
         return 'text-orange-600 bg-orange-50';
       default:
@@ -89,6 +91,7 @@ export function OrderDetailsModal({ orderId, isOpen, onClose }: OrderDetailsModa
       'DELIVERED': 'Delivered',
       'CANCELLED': 'Cancelled',
       'CANCELED': 'Cancelled',
+      'REFUNDED': 'Refunded',
       'RETURNED': 'Returned',
     };
     return statusMap[status.toUpperCase()] || status;
@@ -153,7 +156,17 @@ export function OrderDetailsModal({ orderId, isOpen, onClose }: OrderDetailsModa
               {/* Customer Info */}
               <div className="bg-gray-50 p-4 rounded-lg">
                 <h3 className="text-lg font-semibold text-gray-900 mb-3">Customer Information</h3>
-                <p className="text-gray-700">Phone: {order.customer}</p>
+                <div className="space-y-2 text-gray-700">
+                  {(order.customerFirstName || order.customerLastName) && (
+                    <p>
+                      <span className="font-medium">Name:</span>{" "}
+                      {[order.customerFirstName, order.customerLastName].filter(Boolean).join(" ") || "N/A"}
+                    </p>
+                  )}
+                  <p>
+                    <span className="font-medium">Phone:</span> {order.customer}
+                  </p>
+                </div>
               </div>
 
               {/* Order Items */}

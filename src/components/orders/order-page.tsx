@@ -4,21 +4,62 @@ import React, { useState, useEffect } from 'react';
 import { SearchBar } from '@/components/ui/search-bar';
 import { OrderTable } from './order-table';
 import { OrderSummaryCards } from './order-summary-cards';
-import { orderApi, convertApiOrderToUIOrder, convertStatsToOrderSummary } from '@/lib/api/orders';
+import { orderApi, convertApiOrderToUIOrder, convertStatsToOrderSummary, OrderPeriod } from '@/lib/api/orders';
 import { Order, OrderSummary } from '@/lib/types';
-import { Upload } from 'lucide-react';
+import { Upload, Calendar } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { DateRangePicker } from '@/components/ui/date-range-picker';
+
+// Map UI period labels to API period values
+const periodMap: Record<string, OrderPeriod> = {
+  "today": "today",
+  "7days": "7days",
+  "30days": "30days",
+  "6months": "6months",
+  "12months": "12months",
+  "all-time": "all-time",
+};
+
+// Map API period to UI display label
+const getPeriodLabel = (period: string): string => {
+  const labels: Record<string, string> = {
+    "today": "Today",
+    "currentDate": "Today",
+    "7days": "Last 7 Days",
+    "30days": "Last 30 Days",
+    "lastMonth": "Last 30 Days",
+    "6months": "Last 6 Months",
+    "12months": "Last 12 Months",
+    "all-time": "All Time",
+  };
+  return labels[period] || period;
+};
 
 export function OrderPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
+  const [period, setPeriod] = useState<OrderPeriod | "custom">("30days");
+  const [startDate, setStartDate] = useState<string>("");
+  const [endDate, setEndDate] = useState<string>("");
   const [orders, setOrders] = useState<Order[]>([]);
   const [orderSummary, setOrderSummary] = useState<OrderSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [totalPages, setTotalPages] = useState(1);
   const itemsPerPage = 10;
+
+  // Set default date range (last 30 days) when custom is first selected
+  useEffect(() => {
+    if (period === "custom" && !startDate && !endDate) {
+      const today = new Date();
+      const thirtyDaysAgo = new Date(today);
+      thirtyDaysAgo.setDate(today.getDate() - 30);
+
+      setEndDate(today.toISOString().split("T")[0]);
+      setStartDate(thirtyDaysAgo.toISOString().split("T")[0]);
+    }
+  }, [period, startDate, endDate]);
 
   // Debounce search query - update debouncedSearchQuery after 500ms of no typing
   useEffect(() => {
@@ -33,11 +74,23 @@ export function OrderPage() {
     };
   }, [searchQuery]);
 
-  // Fetch order stats (summary cards) - only once on mount
+  // Fetch order stats (summary cards) - update when period changes
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const stats = await orderApi.getStats();
+        const filters: { period?: OrderPeriod; startDate?: string; endDate?: string } = {};
+        
+        if (period === "custom" && startDate && endDate) {
+          filters.startDate = startDate;
+          filters.endDate = endDate;
+        } else if (period !== "custom") {
+          filters.period = period;
+        } else {
+          // Default to 7days if custom but no dates set yet
+          filters.period = "7days";
+        }
+        
+        const stats = await orderApi.getStats(filters);
         const summary = convertStatsToOrderSummary(stats);
         setOrderSummary(summary);
       } catch (err) {
@@ -47,21 +100,65 @@ export function OrderPage() {
     };
 
     fetchStats();
-  }, []);
+  }, [period, startDate, endDate]);
 
-  // Fetch orders with pagination and search
+  // Validate date range
+  const isDateRangeValid = (): boolean => {
+    if (!startDate || !endDate) return false;
+    
+    // Create date objects at midnight UTC to avoid timezone issues
+    const start = new Date(startDate + "T00:00:00.000Z");
+    const end = new Date(endDate + "T00:00:00.000Z");
+    
+    // Start date must be before end date (not equal, not after)
+    return start < end;
+  };
+
+  // Handle custom date range submit
+  const handleCustomRangeSubmit = async () => {
+    if (!startDate || !endDate) {
+      toast.error("Please select both start and end dates");
+      return;
+    }
+
+    // Validate date range
+    if (!isDateRangeValid()) {
+      toast.error("Start date must be before end date");
+      return;
+    }
+
+    setCurrentPage(1); // Reset to first page
+    // The useEffect will handle fetching with the new dates
+  };
+
+  // Fetch orders with pagination, search, and period/date filters
   useEffect(() => {
     const fetchOrders = async () => {
+      // Don't fetch for custom period until dates are set and valid
+      if (period === "custom" && (!startDate || !endDate || !isDateRangeValid())) {
+        return;
+      }
+
       try {
         setLoading(true);
         setError(null);
         
-        // Fetch orders with pagination and debounced search
-        const orderResponse = await orderApi.getAll({
+        const filters: any = {
           page: currentPage,
           limit: itemsPerPage,
           search: debouncedSearchQuery || undefined,
-        });
+        };
+
+        // Add period or date range filters
+        if (period === "custom" && startDate && endDate) {
+          filters.startDate = startDate;
+          filters.endDate = endDate;
+        } else if (period !== "custom") {
+          filters.period = period;
+        }
+        
+        // Fetch orders with pagination, search, and period/date filters
+        const orderResponse = await orderApi.getAll(filters);
         
         // Convert API orders to UI format
         const uiOrders = orderResponse.orders.map(convertApiOrderToUIOrder);
@@ -77,7 +174,7 @@ export function OrderPage() {
     };
 
     fetchOrders();
-  }, [currentPage, debouncedSearchQuery]);
+  }, [currentPage, debouncedSearchQuery, period, startDate, endDate]);
 
   const handlePageChange = (page: number) => {
     if (page >= 1 && page <= totalPages) {
@@ -96,12 +193,22 @@ export function OrderPage() {
       setLoading(true);
       setError(null);
       
-      // Fetch updated orders
-      const orderResponse = await orderApi.getAll({
+      const filters: any = {
         page: currentPage,
         limit: itemsPerPage,
         search: debouncedSearchQuery || undefined,
-      });
+      };
+
+      // Add period or date range filters
+      if (period === "custom" && startDate && endDate) {
+        filters.startDate = startDate;
+        filters.endDate = endDate;
+      } else if (period !== "custom") {
+        filters.period = period;
+      }
+      
+      // Fetch updated orders
+      const orderResponse = await orderApi.getAll(filters);
       
       // Convert API orders to UI format
       const uiOrders = orderResponse.orders.map(convertApiOrderToUIOrder);
@@ -109,7 +216,14 @@ export function OrderPage() {
       setTotalPages(orderResponse.pagination.pages);
       
       // Fetch updated stats
-      const stats = await orderApi.getStats();
+      const statsFilters: { period?: OrderPeriod; startDate?: string; endDate?: string } = {};
+      if (period === "custom" && startDate && endDate) {
+        statsFilters.startDate = startDate;
+        statsFilters.endDate = endDate;
+      } else if (period !== "custom") {
+        statsFilters.period = period;
+      }
+      const stats = await orderApi.getStats(statsFilters);
       const summary = convertStatsToOrderSummary(stats);
       setOrderSummary(summary);
       
@@ -129,12 +243,22 @@ export function OrderPage() {
       await orderApi.delete(orderId);
       toast.success('Order deleted successfully');
       
-      // Refetch orders and stats after deletion
-      const orderResponse = await orderApi.getAll({
+      const filters: any = {
         page: currentPage,
         limit: itemsPerPage,
         search: debouncedSearchQuery || undefined,
-      });
+      };
+
+      // Add period or date range filters
+      if (period === "custom" && startDate && endDate) {
+        filters.startDate = startDate;
+        filters.endDate = endDate;
+      } else if (period !== "custom") {
+        filters.period = period;
+      }
+      
+      // Refetch orders and stats after deletion
+      const orderResponse = await orderApi.getAll(filters);
       
       // Convert API orders to UI format
       const uiOrders = orderResponse.orders.map(convertApiOrderToUIOrder);
@@ -142,7 +266,14 @@ export function OrderPage() {
       setTotalPages(orderResponse.pagination.pages);
       
       // Fetch updated stats
-      const stats = await orderApi.getStats();
+      const statsFilters: { period?: OrderPeriod; startDate?: string; endDate?: string } = {};
+      if (period === "custom" && startDate && endDate) {
+        statsFilters.startDate = startDate;
+        statsFilters.endDate = endDate;
+      } else if (period !== "custom") {
+        statsFilters.period = period;
+      }
+      const stats = await orderApi.getStats(statsFilters);
       const summary = convertStatsToOrderSummary(stats);
       setOrderSummary(summary);
       
@@ -194,6 +325,96 @@ export function OrderPage() {
       </div>
 
       <div className="flex-1 min-h-0 flex flex-col">
+        {/* Period Selector */}
+        <div className="flex-shrink-0 mb-4">
+          <div className="space-y-4">
+            <div className="flex gap-2 flex-wrap">
+              {Object.keys(periodMap).map((periodKey) => (
+                <button
+                  key={periodKey}
+                  onClick={() => {
+                    setPeriod(periodMap[periodKey]);
+                    setCurrentPage(1); // Reset to first page when period changes
+                  }}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    period === periodMap[periodKey]
+                      ? "bg-[#13aaff] text-white"
+                      : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                  }`}
+                >
+                  {getPeriodLabel(periodKey)}
+                </button>
+              ))}
+              <button
+                onClick={() => {
+                  setPeriod("custom");
+                  setCurrentPage(1); // Reset to first page when switching to custom
+                }}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 ${
+                  period === "custom"
+                    ? "bg-[#13aaff] text-white"
+                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                }`}
+              >
+                <Calendar className="w-4 h-4" />
+                Custom Range
+              </button>
+            </div>
+
+            {/* Custom Date Range Picker */}
+            {period === "custom" && (
+              <div className="bg-white border border-gray-200 rounded-lg p-4">
+                <div className="mb-3">
+                  <p className="text-sm font-medium text-gray-700">
+                    Selected Range:{" "}
+                    {startDate && endDate ? (
+                      <span className={isDateRangeValid() ? "text-[#13aaff]" : "text-red-600"}>
+                        {new Date(startDate).toLocaleDateString("en-IN", {
+                          year: "numeric",
+                          month: "short",
+                          day: "numeric",
+                        })}{" "}
+                        to{" "}
+                        {new Date(endDate).toLocaleDateString("en-IN", {
+                          year: "numeric",
+                          month: "short",
+                          day: "numeric",
+                        })}
+                      </span>
+                    ) : (
+                      <span className="text-gray-400">No dates selected</span>
+                    )}
+                  </p>
+                  {startDate && endDate && !isDateRangeValid() && (
+                    <p className="text-sm text-red-600 mt-1">
+                      Start date must be before end date
+                    </p>
+                  )}
+                </div>
+                <div className="flex gap-4 items-end">
+                  <DateRangePicker
+                    startDate={startDate}
+                    endDate={endDate}
+                    onStartDateChange={setStartDate}
+                    onEndDateChange={setEndDate}
+                  />
+                  <button
+                    onClick={handleCustomRangeSubmit}
+                    disabled={!startDate || !endDate || !isDateRangeValid()}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                      !startDate || !endDate || !isDateRangeValid()
+                        ? "bg-gray-200 text-gray-400 cursor-not-allowed"
+                        : "bg-[#13aaff] text-white hover:bg-[#0d8fd9]"
+                    }`}
+                  >
+                    Apply Date Range
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
         <div className="flex-shrink-0 mb-4">
           <SearchBar
             placeholder="Search by: Order ID, Customer Name, Product"

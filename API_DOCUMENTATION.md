@@ -417,7 +417,7 @@
   - `role` (string, default: "CUSTOMER") - Filter by user role
   - `isActive` (boolean) - Filter by active status
   - `search` (string) - Search in firstName, lastName, phoneNumber, email
-  - `sortBy` (string, default: "createdAt") - Field to sort by
+  - `sortBy` (string, default: "createdAt") - Field to sort by. Valid values: "createdAt", "updatedAt", "firstName", "lastName", "totalSpend", or any other user field
   - `sortOrder` (string, default: "desc") - "asc" or "desc"
 - **Response**:
   ```json
@@ -452,6 +452,7 @@
             }
           ],
           "orders": ["string"],
+          "totalSpend": 1234.56,
           "createdAt": "2024-01-01T00:00:00.000Z",
           "updatedAt": "2024-01-01T00:00:00.000Z"
         }
@@ -471,6 +472,9 @@
   - Sensitive fields like `refreshTokens` and `permissions` are excluded
   - Supports search across firstName, lastName, phoneNumber, and email
   - Results are paginated and sortable
+  - **Sorting by `totalSpend`**: When `sortBy=totalSpend`, users are sorted by their total spending amount. Use `sortOrder=asc` for ascending (lowest spend first) or `sortOrder=desc` for descending (highest spend first)
+  - `orders`: Array of order IDs belonging to the user. Orders are automatically added to this array when created (latest order appears first). Defaults to empty array `[]` if user has no orders
+  - `totalSpend`: Total amount spent by the user across all orders (sum of all order `totalAmount` values). Defaults to `0` if user has no orders
 
 ### Get User by ID (Admin)
 
@@ -515,6 +519,169 @@
   - Returns user in protected format (sensitive fields excluded)
   - Includes default address if available
   - Returns 404 if user not found
+
+### Get Comprehensive Customer Details (Admin)
+
+- **API**: `GET /api/users/:userId/details`
+- **Access**: Admin
+- **Parameters**:
+  - `userId` (string) - Customer ID
+- **Query Parameters**:
+  - `status` (string, optional) - Filter orders by status
+  - `search` (string, optional) - Search in order reference ID, product names
+  - `page` (number, default: 1) - Page number for orders
+  - `limit` (number, default: 10) - Items per page for orders
+  - `sortBy` (string, default: "createdAt") - Field to sort orders by
+  - `sortOrder` (string, default: "desc") - "asc" or "desc"
+  - `period` (string, optional) - Time period: "today", "currentDate", "7days", "30days", "lastMonth", "6months", "12months", "all-time"
+  - `startDate` (string, ISO date, optional) - Custom start date (overrides period if provided with endDate)
+  - `endDate` (string, ISO date, optional) - Custom end date (overrides period if provided with startDate)
+- **Note**:
+  - Returns comprehensive customer information including:
+    - Customer basic details (name, email, phone, addresses, loyalty info, etc.)
+    - Order history with period-wise filtering (similar to orders API)
+    - Order statistics (total orders, total spend, counts by status and payment method)
+  - **Period Filtering**:
+    - If both `startDate` and `endDate` are provided, they override the `period` parameter
+    - Date format should be ISO date strings (YYYY-MM-DD)
+    - Start date must be before end date
+    - Orders are filtered by `createdAt` field based on the specified period or date range
+    - Valid periods:
+      - `"today"` or `"currentDate"`: Today's orders
+      - `"7days"`: Last 7 days
+      - `"30days"` or `"lastMonth"`: Last 30 days
+      - `"6months"`: Last 6 months
+      - `"12months"`: Last 12 months
+      - `"all-time"`: All orders from the beginning
+  - Order statistics are calculated for **all orders** of the customer (not filtered by period)
+  - Order history is paginated and can be filtered by period, status, and search term
+  - The `user` field in each order is populated with user details (firstName, lastName, phoneNumber, email, role) instead of just the user ID
+- **Response**:
+  ```json
+  {
+    "success": true,
+    "data": {
+      "customer": {
+        "_id": "string",
+        "email": "string",
+        "photo": "string",
+        "gender": "MALE",
+        "firstName": "string",
+        "lastName": "string",
+        "phoneNumber": "string",
+        "role": "CUSTOMER",
+        "isActive": true,
+        "gstNumber": "string",
+        "storeName": "string",
+        "loyaltyTier": "BRONZE",
+        "loyaltyPoints": 100,
+        "addresses": [
+          {
+            "type": "HOME",
+            "addressLine": "string",
+            "landmark": "string",
+            "city": "string",
+            "state": "string",
+            "postalCode": "string",
+            "country": "string",
+            "isDefault": true
+          }
+        ],
+        "orders": ["string"],
+        "createdAt": "2024-01-01T00:00:00.000Z",
+        "updatedAt": "2024-01-01T00:00:00.000Z"
+      },
+      "orders": [
+        {
+          "_id": "string",
+          "refId": "string",
+          "user": {
+            "_id": "string",
+            "firstName": "string",
+            "lastName": "string",
+            "phoneNumber": "string",
+            "email": "string",
+            "role": "CUSTOMER"
+          },
+          "items": [
+            {
+              "product": {
+                "_id": "string",
+                "name": "string",
+                "description": "string",
+                "images": ["string"],
+                "category": "string",
+                "subCategory": "string",
+                "mrp": 100,
+                "gst": 5,
+                "hsn": "string",
+                "slug": "string"
+              },
+              "productType": "product",
+              "quantity": 2,
+              "priceAtPurchase": 90,
+              "discountApplied": 10
+            }
+          ],
+          "totalAmount": 180,
+          "originalAmount": 200,
+          "shippingAddress": {
+            "type": "HOME",
+            "addressLine": "string",
+            "city": "string",
+            "state": "string",
+            "postalCode": "string",
+            "country": "string"
+          },
+          "billingAddress": {
+            "type": "HOME",
+            "addressLine": "string",
+            "city": "string",
+            "state": "string",
+            "postalCode": "string",
+            "country": "string"
+          },
+          "status": "DELIVERED",
+          "payment": {
+            "method": "UPI",
+            "transactionId": "string",
+            "status": "COMPLETED",
+            "amount": 180
+          },
+          "orderNotes": "string",
+          "updateHistory": [
+            {
+              "status": "PENDING",
+              "updatedAt": "2024-01-01T00:00:00.000Z",
+              "updatedBy": "SYSTEM",
+              "reason": "Order created"
+            }
+          ],
+          "createdAt": "2024-01-01T00:00:00.000Z",
+          "updatedAt": "2024-01-01T00:00:00.000Z"
+        }
+      ],
+      "orderStatistics": {
+        "totalOrders": 50,
+        "totalSpend": 50000,
+        "totalDelivered": 45,
+        "totalPending": 2,
+        "totalCancelled": 1,
+        "totalReturned": 2,
+        "totalUPIOrders": 30,
+        "totalCODOrders": 15,
+        "totalCardOrders": 5
+      },
+      "pagination": {
+        "page": 1,
+        "limit": 10,
+        "total": 50,
+        "pages": 5
+      }
+    },
+    "message": "Customer details retrieved successfully"
+  }
+  ```
 
 ### Update User (Admin)
 
@@ -1164,6 +1331,9 @@
     "isB2B": false
   }
   ```
+- **Note**:
+  - `subCategory` is optional - products can be created without a subcategory
+  - `category` is required for products with status other than "DISCONTINUED"
 - **Response**: Created product object
 
 ### Update Product
@@ -1171,6 +1341,9 @@
 - **API**: `PUT /api/products/:id`
 - **Access**: Admin
 - **Request**: Any product fields to update
+- **Note**:
+  - `subCategory` is optional - can be set to null to remove subcategory from product
+  - `category` is required for products with status other than "DISCONTINUED"
 - **Response**: Updated product object
 
 ### Delete Product
@@ -1345,6 +1518,13 @@
     "message": "Category deleted successfully"
   }
   ```
+- **Note**:
+  - Categories can be deleted even if they have associated products
+  - When a category is deleted:
+    - All products with this category will have their `category` field set to `null`
+    - All subcategories with this category as parent will be **deleted** (cascading deletion)
+    - For each deleted subcategory, products referencing it will have their `subCategory` field set to `null`
+    - Category image will be deleted from S3
 
 ### Delete Subcategory
 
@@ -1358,6 +1538,11 @@
     "message": "Subcategory deleted successfully"
   }
   ```
+- **Note**:
+  - Subcategories can be deleted even if they have associated products
+  - When a subcategory is deleted:
+    - All products with this subcategory will have their `subCategory` field set to `null`
+    - Subcategory image will be deleted from S3
 
 ---
 
@@ -2188,7 +2373,7 @@
 - **API**: `GET /api/analytics/page`
 - **Access**: Admin
 - **Query Parameters**:
-  - `period` (string, default: "30days") - Time period: "7days", "30days", "6months", "12months", "all-time"
+  - `period` (string, default: "30days") - Time period: "today", "7days", "30days", "6months", "12months", "all-time"
   - `startDate` (string, ISO date, optional) - Custom start date (overrides period if provided)
   - `endDate` (string, ISO date, optional) - Custom end date (overrides period if provided)
 - **Note**:
@@ -2196,6 +2381,13 @@
   - Date format should be ISO date strings (YYYY-MM-DD)
   - Start date must be before end date
   - When custom dates are provided, the period label will show the date range (e.g., "2025-10-21 to 2025-11-20")
+  - Valid periods:
+    - `"today"`: Today's data only
+    - `"7days"`: Last 7 days
+    - `"30days"`: Last 30 days
+    - `"6months"`: Last 6 months
+    - `"12months"`: Last 12 months
+    - `"all-time"`: All time data
 - **Response**:
   ```json
   {
@@ -2264,8 +2456,8 @@
   - **Sales by Category**: Top 20 categories with sales amounts and percentages
   - **Summary**: Aggregated summary of key metrics
   - All growth percentages are rounded to 2 decimal places
-  - Period labels are human-readable (e.g., "Last 30 Days", "Last 6 Months")
-  - Valid periods: "7days", "30days", "6months", "12months", "all-time"
+  - Period labels are human-readable (e.g., "Today", "Last 30 Days", "Last 6 Months")
+  - Valid periods: "today", "7days", "30days", "6months", "12months", "all-time"
 
 ### Get New Customers
 
@@ -2526,6 +2718,9 @@
   - For online payments, a Razorpay order is created first
   - `shippingAddress`, `billingAddress`, and `payment` are required fields
   - `orderNotes` and `deliverySlot` are optional
+  - **Order is automatically added to the user's `orders` array** (latest order appears first in the array)
+  - Product stock is automatically decremented based on order items
+  - User's cart is automatically cleared after successful order creation
 - **Response**:
   ```json
   {
@@ -2682,6 +2877,9 @@
   - `limit` (number, default: 10)
   - `sortBy` (string, default: "createdAt")
   - `sortOrder` (string, default: "desc")
+  - `period` (string, optional) - Time period: "today", "currentDate", "7days", "30days", "lastMonth", "6months", "12months", "all-time"
+  - `startDate` (string, ISO date, optional) - Custom start date (overrides period if provided with endDate)
+  - `endDate` (string, ISO date, optional) - Custom end date (overrides period if provided with startDate)
 - **Note**:
   - The `search` parameter performs case-insensitive search across:
     - Order ID (MongoDB `_id`)
@@ -2690,6 +2888,18 @@
     - Customer phone number
     - Product names in order items
     - Combo names in order items
+  - **Period Filtering**:
+    - If both `startDate` and `endDate` are provided, they override the `period` parameter
+    - Date format should be ISO date strings (YYYY-MM-DD)
+    - Start date must be before end date
+    - Orders are filtered by `createdAt` field based on the specified period or date range
+    - Valid periods:
+      - `"today"` or `"currentDate"`: Today's orders
+      - `"7days"`: Last 7 days
+      - `"30days"` or `"lastMonth"`: Last 30 days
+      - `"6months"`: Last 6 months
+      - `"12months"`: Last 12 months
+      - `"all-time"`: All orders from the beginning
 - **Response**: Same as user orders response
 
 ### Get Order by ID
@@ -2826,6 +3036,23 @@
 
 - **API**: `GET /api/orders/stats`
 - **Access**: Admin
+- **Query Parameters**:
+  - `period` (string, optional, default: "7days") - Time period: "today", "currentDate", "7days", "30days", "lastMonth", "6months", "12months", "all-time"
+  - `startDate` (string, ISO date, optional) - Custom start date (overrides period if provided with endDate)
+  - `endDate` (string, ISO date, optional) - Custom end date (overrides period if provided with startDate)
+- **Note**:
+  - If both `startDate` and `endDate` are provided, they override the `period` parameter
+  - Date format should be ISO date strings (YYYY-MM-DD)
+  - Start date must be before end date
+  - When custom dates are provided, the period label will show the date range (e.g., "2025-11-01 to 2025-11-21")
+  - Orders are filtered by `createdAt` field based on the specified period or date range
+  - Valid periods:
+    - `"today"` or `"currentDate"`: Today's orders
+    - `"7days"`: Last 7 days (default)
+    - `"30days"` or `"lastMonth"`: Last 30 days
+    - `"6months"`: Last 6 months
+    - `"12months"`: Last 12 months
+    - `"all-time"`: All orders from the beginning
 - **Response**:
   ```json
   {
@@ -2844,17 +3071,30 @@
         "count": 0,
         "cost": 0
       },
-      "period": "Last Seven Days"
+      "totalCancelled": 1,
+      "totalDelivered": 0,
+      "totalPending": 1,
+      "totalUPIOrders": 1,
+      "totalCODOrders": 1,
+      "totalCardOrders": 0,
+      "period": "Last 7 Days"
     },
     "message": "Order statistics retrieved successfully"
   }
   ```
 - **Note**:
-  - Returns order statistics for the last 7 days
-  - `totalOrders`: Total count of all orders in last 7 days
+  - Returns order statistics for the specified time period
+  - `totalOrders`: Total count of all orders in the specified period
   - `totalReceived`: Count and revenue of DELIVERED orders
-  - `totalReturned`: Count and revenue of RETURNED orders
+  - `totalReturned`: Count and revenue of RETURNED and REFUNDED orders (includes both statuses)
   - `onTheWay`: Count and cost (total amount) of PROCESSING or SHIPPED orders
+  - `totalCancelled`: Count of orders with status "CANCELLED"
+  - `totalDelivered`: Count of orders with status "DELIVERED"
+  - `totalPending`: Count of orders with status "PENDING"
+  - `totalUPIOrders`: Count of orders with payment method "UPI"
+  - `totalCODOrders`: Count of orders with payment method "COD"
+  - `totalCardOrders`: Count of orders with payment method "CARD"
+  - `period`: Human-readable label for the time period (e.g., "Today", "Last 7 Days", "2025-11-01 to 2025-11-21")
 
 ---
 
@@ -2976,7 +3216,7 @@
 - **API**: `GET /api/banners/active`
 - **Access**: Public
 - **Query Parameters**:
-  - `type` (string, optional) - Filter by type: "hero", "offers", "hero-mob", or "offers-mob"
+  - `type` (string, optional) - Filter by type: "hero", "offers", "hero-mob", "offers-mob", or "authentication"
 - **Response**:
   ```json
   {
@@ -3000,14 +3240,14 @@
 - **Note**:
   - Returns only active banners, sorted by type and order (ascending)
   - If `type` is provided, only returns banners of that type
-  - Valid types: "hero" (desktop hero), "offers" (desktop offers), "hero-mob" (mobile hero), "offers-mob" (mobile offers)
+  - Valid types: "hero" (desktop hero), "offers" (desktop offers), "hero-mob" (mobile hero), "offers-mob" (mobile offers), "authentication" (authentication page banners)
 
 ### Get All Banners (Admin)
 
 - **API**: `GET /api/banners`
 - **Access**: Admin
 - **Query Parameters**:
-  - `type` (string, optional) - Filter by type: "hero", "offers", "hero-mob", or "offers-mob"
+  - `type` (string, optional) - Filter by type: "hero", "offers", "hero-mob", "offers-mob", or "authentication"
 - **Response**: Same as active banners, but includes inactive banners too
 - **Note**: Banners are sorted by type, then by order (ascending)
 
@@ -3028,7 +3268,7 @@
   ```
 - **Note**:
   - `imageUrl` is required (use presigned URL to upload, then save the URL here)
-  - `type` is required and must be one of: "hero", "offers", "hero-mob", "offers-mob"
+  - `type` is required and must be one of: "hero", "offers", "hero-mob", "offers-mob", "authentication"
   - `order` is optional - if not provided, will be set to highest order + 1 for the specified type
   - `isActive` defaults to true
   - `link` and `title` are optional
@@ -3056,7 +3296,7 @@
   ```
 - **Note**:
   - All fields are optional, but at least one field must be provided
-  - `type` must be one of: "hero", "offers", "hero-mob", "offers-mob" if provided
+  - `type` must be one of: "hero", "offers", "hero-mob", "offers-mob", "authentication" if provided
   - **Order uniqueness**: When updating order or type, the new order must be unique within the target type
 - **Response**: Updated banner object
 
@@ -3135,24 +3375,6 @@
           }
         ]
       },
-      "topSellingProducts": [
-        {
-          "productId": "string",
-          "productName": "Product Name",
-          "soldQuantity": 150,
-          "revenue": 13500,
-          "remainingQuantity": 50
-        }
-      ],
-      "leastSellingProducts": [
-        {
-          "productId": "string",
-          "productName": "Product Name",
-          "soldQuantity": 2,
-          "daysSinceLastOrder": 15,
-          "currentStock": 100
-        }
-      ],
       "shortToExpiryProducts": [
         {
           "productId": "string",
@@ -3171,19 +3393,86 @@
     - Sales amount and growth percentage compared to previous period
     - Chart data grouped by selected period type (daily, weekly, monthly, etc.)
     - Period label is human-readable (e.g., "This Month", "This Year")
-  - **Top Selling Products**:
-    - Top 20 products by sold quantity (last 30 days)
-    - Includes sold quantity, revenue, and remaining stock
-  - **Least Selling Products**:
-    - Products with low or zero sales (sold quantity < 5)
-    - Includes days since last order (null if never sold)
-    - Sorted by days since last order (most recent first)
   - **Short to Expiry Products**:
     - Products expiring in the next 30 days
     - Includes expiry date, days left, and current stock
     - Sorted by expiry date (earliest first)
+  - **Top Selling Products**: Available via separate endpoint `/api/most-selling/top-products` with period filtering
+  - **Least Selling Products**: Available via separate endpoint `/api/most-selling/least-products` with period filtering
   - All revenue calculations include DELIVERED orders and PROCESSING/SHIPPED orders with COMPLETED payment
   - Growth percentage is rounded to 2 decimal places
+
+### Get Top Selling Products (Admin)
+
+- **API**: `GET /api/most-selling/top-products`
+- **Access**: Admin
+- **Query Parameters**:
+  - `period` (string, optional, default: "30days") - Time period: "7days", "30days", "6months", "12months", "all-time"
+  - `startDate` (string, ISO date, optional) - Custom start date (overrides period if provided)
+  - `endDate` (string, ISO date, optional) - Custom end date (overrides period if provided)
+  - `limit` (number, optional, default: 20, max: 100) - Number of products to return
+- **Note**:
+  - If both `startDate` and `endDate` are provided, they override the `period` parameter
+  - Date format should be ISO date strings (YYYY-MM-DD)
+  - Start date must be before end date
+  - Returns products sorted by sold quantity (highest first)
+  - **Only includes products with sold quantity > 5 units** to avoid overlap with least selling products
+  - Only includes products from orders with status "DELIVERED" or ("PROCESSING"/"SHIPPED" with "COMPLETED" payment)
+  - Excludes cancelled and refunded orders
+- **Response**:
+  ```json
+  {
+    "success": true,
+    "data": [
+      {
+        "productId": "string",
+        "productName": "Product Name",
+        "soldQuantity": 150,
+        "revenue": 13500,
+        "remainingQuantity": 50
+      }
+    ],
+    "message": "Top selling products retrieved successfully"
+  }
+  ```
+
+### Get Least Selling Products (Admin)
+
+- **API**: `GET /api/most-selling/least-products`
+- **Access**: Admin
+- **Query Parameters**:
+  - `period` (string, optional, default: "30days") - Time period: "7days", "30days", "6months", "12months", "all-time"
+  - `startDate` (string, ISO date, optional) - Custom start date (overrides period if provided)
+  - `endDate` (string, ISO date, optional) - Custom end date (overrides period if provided)
+  - `limit` (number, optional, default: 20, max: 100) - Number of products to return
+  - `maxSoldQuantity` (number, optional, default: 5) - Maximum sold quantity to filter (products with sold quantity <= this value)
+- **Note**:
+  - If both `startDate` and `endDate` are provided, they override the `period` parameter
+  - Date format should be ISO date strings (YYYY-MM-DD)
+  - Start date must be before end date
+  - Returns products with low or zero sales (sold quantity <= maxSoldQuantity, default: 5)
+  - **Only includes products with sold quantity ≤ 5 units** to avoid overlap with top selling products
+  - Sorted by days since last order (most recent first), then by sold quantity
+  - Products that were never sold have `daysSinceLastOrder: null`
+  - Only includes active products (status != "DISCONTINUED")
+  - Only includes products from orders with status "DELIVERED" or ("PROCESSING"/"SHIPPED" with "COMPLETED" payment)
+  - Excludes cancelled and refunded orders
+- **Response**:
+  ```json
+  {
+    "success": true,
+    "data": [
+      {
+        "productId": "string",
+        "productName": "Product Name",
+        "soldQuantity": 2,
+        "daysSinceLastOrder": 15,
+        "currentStock": 100
+      }
+    ],
+    "message": "Least selling products retrieved successfully"
+  }
+  ```
 
 ---
 

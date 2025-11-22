@@ -5,6 +5,7 @@ import { DataTable } from '@/components/ui/data-table';
 import { Customer, TableConfig } from '@/lib/types';
 import { Edit, Trash2 } from 'lucide-react';
 import { CustomerEditModal } from './customer-edit-modal';
+import { CustomerDetailsModal } from './customer-details-modal';
 import { customerApi } from '@/lib/api/customers';
 import toast from 'react-hot-toast';
 
@@ -25,6 +26,8 @@ export function CustomerTable({
 }: CustomerTableProps) {
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(null);
+  const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const handleEdit = (customer: Customer) => {
@@ -35,6 +38,16 @@ export function CustomerTable({
   const handleCloseModal = () => {
     setIsEditModalOpen(false);
     setSelectedCustomer(null);
+  };
+
+  const handleNameClick = (customer: Customer) => {
+    setSelectedCustomerId(customer.id);
+    setIsDetailsModalOpen(true);
+  };
+
+  const handleCloseDetailsModal = () => {
+    setIsDetailsModalOpen(false);
+    setSelectedCustomerId(null);
   };
 
   const handleDelete = async (customer: Customer) => {
@@ -70,9 +83,7 @@ export function CustomerTable({
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-IN', {
       style: 'currency',
-      currency: 'INR',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
+      currency: 'INR'
     }).format(amount);
   };
 
@@ -82,10 +93,13 @@ export function CustomerTable({
         key: 'name',
         title: 'Name',
         align: 'center',
-        render: (value) => (
-          <div className="text-sm text-gray-900">
+        render: (value, record) => (
+          <button
+            onClick={() => handleNameClick(record)}
+            className="text-sm text-blue-600 hover:text-blue-800 hover:underline font-medium transition-colors"
+          >
             {value}
-          </div>
+          </button>
         )
       },
       {
@@ -182,6 +196,13 @@ export function CustomerTable({
         isOpen={isEditModalOpen}
         onClose={handleCloseModal}
         onCustomerUpdate={onCustomerUpdate}
+      />
+
+      {/* Customer Details Modal */}
+      <CustomerDetailsModal
+        customerId={selectedCustomerId}
+        isOpen={isDetailsModalOpen}
+        onClose={handleCloseDetailsModal}
       />
     </div>
   );

@@ -75,9 +75,7 @@ export function OrderTable({
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-IN', {
       style: 'currency',
-      currency: 'INR',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
+      currency: 'INR'
     }).format(amount);
   };
 
@@ -126,11 +124,21 @@ export function OrderTable({
         key: 'customer',
         title: 'Customer',
         align: 'center',
-        render: (value) => (
-          <div className="text-sm text-gray-900">
-            {value}
-          </div>
-        )
+        render: (value, record) => {
+          const customerName = [record.customerFirstName, record.customerLastName].filter(Boolean).join(" ");
+          return (
+            <div className="text-sm text-gray-900">
+              {customerName ? (
+                <div className="font-medium">
+                  {customerName}
+                </div>
+              ) : null}
+              <div className={`text-xs ${customerName ? 'text-gray-600' : 'text-gray-900'}`}>
+                {value || "N/A"}
+              </div>
+            </div>
+          );
+        }
       },
       {
         key: 'status',
@@ -143,6 +151,8 @@ export function OrderTable({
             value === 'Processing' ? 'text-yellow-600' :
             value === 'Shipped' ? 'text-purple-600' :
             value === 'Cancelled' ? 'text-red-600' :
+            value === 'Refunded' ? 'text-red-600' :
+            value === 'Returned' ? 'text-orange-600' :
             'text-gray-600'
           }`}>
             {value}
@@ -160,8 +170,8 @@ export function OrderTable({
         )
       },
       {
-        key: 'deliveryDate',
-        title: 'Delivery Date',
+        key: 'orderDate',
+        title: 'Receiving Date',
         align: 'center',
         render: (value) => (
           <div className="text-sm text-gray-900">

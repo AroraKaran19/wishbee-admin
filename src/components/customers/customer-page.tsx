@@ -11,6 +11,8 @@ export function CustomerPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
+  const [sortBy, setSortBy] = useState<string>('createdAt');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -30,18 +32,20 @@ export function CustomerPage() {
     };
   }, [searchQuery]);
 
-  // Fetch customers with pagination and search
+  // Fetch customers with pagination, search, and sorting
   useEffect(() => {
     const fetchCustomers = async () => {
       try {
         setLoading(true);
         setError(null);
         
-        // Fetch customers with pagination and debounced search
+        // Fetch customers with pagination, search, and sorting
         const customerResponse = await customerApi.getAll({
           page: currentPage,
           limit: itemsPerPage,
           search: debouncedSearchQuery || undefined,
+          sortBy: sortBy,
+          sortOrder: sortOrder,
         });
         
         // Convert API users to UI format
@@ -58,7 +62,7 @@ export function CustomerPage() {
     };
 
     fetchCustomers();
-  }, [currentPage, debouncedSearchQuery]);
+  }, [currentPage, debouncedSearchQuery, sortBy, sortOrder]);
 
   const handlePageChange = (page: number) => {
     if (page >= 1 && page <= totalPages) {
@@ -81,6 +85,8 @@ export function CustomerPage() {
         page: currentPage,
         limit: itemsPerPage,
         search: debouncedSearchQuery || undefined,
+        sortBy: sortBy,
+        sortOrder: sortOrder,
       });
       
       const uiCustomers = customerResponse.users.map(convertApiCustomerToUICustomer);
@@ -130,7 +136,7 @@ export function CustomerPage() {
       </div>
 
       <div className="flex-1 min-h-0 flex flex-col">
-        <div className="flex-shrink-0 mb-4">
+        <div className="flex-shrink-0 mb-4 space-y-4">
           <SearchBar
             placeholder="Search by: Name, Phone, Email, Customer ID"
             onSearch={handleSearch}
@@ -146,6 +152,34 @@ export function CustomerPage() {
               }
             ]}
           />
+          
+          {/* Sorting Controls */}
+          <div className="flex gap-2 items-center">
+            <label className="text-sm text-gray-600 font-medium">Sort by:</label>
+            <select
+              value={sortBy}
+              onChange={(e) => {
+                setSortBy(e.target.value);
+                setCurrentPage(1); // Reset to first page when sorting changes
+              }}
+              className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm bg-white"
+            >
+              <option value="createdAt">Registration Date</option>
+              <option value="updatedAt">Last Updated</option>
+              <option value="totalSpend">Total Spend</option>
+            </select>
+            <select
+              value={sortOrder}
+              onChange={(e) => {
+                setSortOrder(e.target.value as 'asc' | 'desc');
+                setCurrentPage(1); // Reset to first page when sort order changes
+              }}
+              className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm bg-white"
+            >
+              <option value="desc">Descending</option>
+              <option value="asc">Ascending</option>
+            </select>
+          </div>
         </div>
         
         <div className="flex-1 min-h-0">

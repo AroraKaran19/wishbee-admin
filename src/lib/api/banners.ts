@@ -3,7 +3,7 @@ import { getAuthHeaders } from '@/lib/utils/auth';
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_BACKEND_URL || 'https://wishbee-web.vercel.app/api';
 
-export type BannerType = "hero" | "offers" | "hero-mob" | "offers-mob";
+export type BannerType = "hero" | "offers" | "hero-mob" | "offers-mob" | "authentication";
 
 export interface Banner {
   _id: string;

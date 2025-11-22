@@ -16,7 +16,7 @@ export function LowQuantityPage() {
   const [items, setItems] = useState<LowStockItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [threshold, setThreshold] = useState(100);
+  const [threshold, setThreshold] = useState(10);
 
   useEffect(() => {
     const loadLowStock = async () => {

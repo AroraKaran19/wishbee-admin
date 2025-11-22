@@ -38,9 +38,9 @@ export function TopSellingTable({
         key: 'soldQuantity',
         title: 'Sold Quantity (Last 30 Days)',
         align: 'center',
-        render: (value, record) => (
+        render: (value) => (
           <div className="text-sm text-gray-900">
-            {value ? value.toLocaleString() : 0} {record.weight?.unit || 'units'}
+            {value ? value.toLocaleString() : 0} units
           </div>
         )
       },
@@ -58,9 +58,9 @@ export function TopSellingTable({
         key: 'stock',
         title: 'Remaining Stock',
         align: 'center',
-        render: (value, record) => (
+        render: (value) => (
           <div className="text-sm text-gray-900">
-            {value ?? 0} {record.weight?.unit || 'units'}
+            {value ?? 0} units
           </div>
         )
       }

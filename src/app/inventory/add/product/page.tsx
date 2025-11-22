@@ -23,6 +23,7 @@ import {
   Search,
   Plus,
   X,
+  Edit,
 } from "lucide-react";
 import { Product, Category, Discount } from "@/lib/types";
 import { productApi, getPresignedUrl, deleteImage } from "@/lib/api/products";
@@ -46,7 +47,7 @@ type ProductFormData = Omit<
   | "discount"
 > & {
   categoryId: string;
-  subCategoryId: string;
+  subCategoryId?: string; // Optional per API documentation
   expiry?: string; // Form uses string for date input
   discount: {
     type: "percentage" | "fixed";
@@ -118,6 +119,7 @@ export default function InventoryAddProductPage() {
 
   const [highlightKeyInput, setHighlightKeyInput] = useState("");
   const [highlightValueInput, setHighlightValueInput] = useState("");
+  const [editingHighlightIndex, setEditingHighlightIndex] = useState<number | null>(null);
   const [keywordInput, setKeywordInput] = useState("");
   const [newCollection, setNewCollection] = useState({
     quantity: 0,
@@ -129,6 +131,7 @@ export default function InventoryAddProductPage() {
     quantity_end: 0,
     price: 0,
   });
+  const [editingPricingRangeIndex, setEditingPricingRangeIndex] = useState<number | null>(null);
 
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitSuccess, setSubmitSuccess] = useState(false);
@@ -372,16 +375,41 @@ export default function InventoryAddProductPage() {
 
   const addHighlight = () => {
     if (highlightKeyInput.trim() && highlightValueInput.trim()) {
-      setValue("highlights", [
-        ...highlights,
-        {
+      if (editingHighlightIndex !== null) {
+        // Update existing highlight
+        const updatedHighlights = [...highlights];
+        updatedHighlights[editingHighlightIndex] = {
           key: highlightKeyInput.trim(),
           value: highlightValueInput.trim(),
-        },
-      ]);
+        };
+        setValue("highlights", updatedHighlights);
+        setEditingHighlightIndex(null);
+      } else {
+        // Add new highlight
+        setValue("highlights", [
+          ...highlights,
+          {
+            key: highlightKeyInput.trim(),
+            value: highlightValueInput.trim(),
+          },
+        ]);
+      }
       setHighlightKeyInput("");
       setHighlightValueInput("");
     }
+  };
+
+  const editHighlight = (index: number) => {
+    const highlight = highlights[index];
+    setHighlightKeyInput(highlight.key);
+    setHighlightValueInput(highlight.value);
+    setEditingHighlightIndex(index);
+  };
+
+  const cancelEditHighlight = () => {
+    setHighlightKeyInput("");
+    setHighlightValueInput("");
+    setEditingHighlightIndex(null);
   };
 
   const addKeyword = () => {
@@ -422,12 +450,37 @@ export default function InventoryAddProductPage() {
       newPricingRange.price > 0
     ) {
       const currentPricingRange = watch("pricing_range") || [];
-      setValue("pricing_range", [
-        ...currentPricingRange,
-        { ...newPricingRange },
-      ]);
+      if (editingPricingRangeIndex !== null) {
+        // Update existing pricing range
+        const updatedRanges = [...currentPricingRange];
+        updatedRanges[editingPricingRangeIndex] = { ...newPricingRange };
+        setValue("pricing_range", updatedRanges);
+        setEditingPricingRangeIndex(null);
+      } else {
+        // Add new pricing range
+        setValue("pricing_range", [
+          ...currentPricingRange,
+          { ...newPricingRange },
+        ]);
+      }
       setNewPricingRange({ quantity_start: 0, quantity_end: 0, price: 0 });
     }
+  };
+
+  const editPricingRange = (index: number) => {
+    const currentPricingRange = watch("pricing_range") || [];
+    const range = currentPricingRange[index];
+    setNewPricingRange({
+      quantity_start: range.quantity_start,
+      quantity_end: range.quantity_end,
+      price: range.price,
+    });
+    setEditingPricingRangeIndex(index);
+  };
+
+  const cancelEditPricingRange = () => {
+    setNewPricingRange({ quantity_start: 0, quantity_end: 0, price: 0 });
+    setEditingPricingRangeIndex(null);
   };
 
   const removePricingRange = (index: number) => {
@@ -1006,13 +1059,11 @@ export default function InventoryAddProductPage() {
       });
     }
 
-    // Category and subcategory validation (matching API: required)
+    // Category validation (matching API: required)
     if (!data.categoryId?.trim()) {
       errors.push("Category is required");
     }
-    if (!data.subCategoryId?.trim()) {
-      errors.push("Sub-category is required");
-    }
+    // Subcategory is optional per API documentation
 
     // Images validation (matching API: required, at least one)
     if (!data.images || data.images.length === 0) {
@@ -1150,7 +1201,39 @@ export default function InventoryAddProductPage() {
       }
 
       // Prepare data for backend - matching API documentation exactly
-      const productData = {
+      const productData: {
+        sku: string;
+        hsn?: string;
+        name: string;
+        type: "product";
+        description: string;
+        highlights: { key: string; value: string; }[];
+        category: string;
+        subCategory?: string;
+        images: string[];
+        status: "ACTIVE" | "OUT_OF_STOCK" | "DISCONTINUED";
+        isOrganic: boolean;
+        mrp: number;
+        gst?: number;
+        pricing_range: { quantity_start: number; quantity_end: number; price: number; }[];
+        discount?: { type: "percentage" | "fixed"; value: number; startDate?: Date; endDate?: Date; isActive: boolean; };
+        stock: number;
+        weight: { value: number; unit: string; };
+        minimumOrderQuantity?: number;
+        maximumOrderQuantity?: number;
+        productCollections?: { quantity: number; price: number; unit?: string; }[];
+        alertExpiry?: number;
+        expiry?: Date;
+        metaTitle?: string;
+        metaDescription?: string;
+        metaKeywords?: string[];
+        slug?: string;
+        isB2B: boolean;
+        dotd: boolean;
+        pfy: boolean;
+        reviewsCount: number;
+        totalRating: number;
+      } = {
         sku: data.sku.trim(),
         hsn: data.hsn?.trim() || undefined,
         name: data.name.trim(),
@@ -1158,7 +1241,7 @@ export default function InventoryAddProductPage() {
         description: data.description?.trim() || "",
         highlights: data.highlights,
         category: data.categoryId,
-        subCategory: data.subCategoryId,
+        ...(data.subCategoryId?.trim() && { subCategory: data.subCategoryId.trim() }),
         images: data.images,
         status: data.status,
         isOrganic: data.isOrganic,
@@ -1520,7 +1603,7 @@ export default function InventoryAddProductPage() {
                     </div>
                     <div className="space-y-2">
                       <label className="text-sm font-medium text-gray-700">
-                        Sub-category *
+                        Sub-category <span className="text-gray-500 text-xs">(Optional)</span>
                       </label>
                       <ActionDropdown
                         options={subcategoryOptions}
@@ -1648,32 +1731,66 @@ export default function InventoryAddProductPage() {
                             }
                             className="text-xs md:text-sm"
                           />
-                          <Button
-                            type="button"
-                            variant="secondary"
-                            onClick={addHighlight}
-                            icon={<Plus className="w-4 h-4" />}
-                            className="w-full sm:w-auto text-xs md:text-sm"
-                          >
-                            Add
-                          </Button>
+                          <div className="flex gap-2">
+                            <Button
+                              type="button"
+                              variant="secondary"
+                              onClick={addHighlight}
+                              icon={<Plus className="w-4 h-4" />}
+                              className={`flex-1 text-xs md:text-sm font-medium transition-all ${
+                                editingHighlightIndex !== null
+                                  ? "bg-blue-600 text-white hover:bg-blue-700"
+                                  : ""
+                              }`}
+                            >
+                              {editingHighlightIndex !== null ? "Update Highlight" : "Add Highlight"}
+                            </Button>
+                            {editingHighlightIndex !== null && (
+                              <Button
+                                type="button"
+                                variant="secondary"
+                                onClick={cancelEditHighlight}
+                                className="text-xs md:text-sm font-medium bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-300"
+                              >
+                                Cancel
+                              </Button>
+                            )}
+                          </div>
                         </div>
                         {highlights.length > 0 && (
                           <div className="flex flex-wrap gap-2">
                             {highlights.map((highlight, index) => (
-                              <span
+                              <div
                                 key={index}
-                                className="inline-flex items-center gap-1 px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full"
+                                className={`inline-flex items-center gap-2 px-3 py-2 rounded-lg border transition-all ${
+                                  editingHighlightIndex === index
+                                    ? "bg-blue-50 border-blue-300 shadow-md ring-2 ring-blue-200"
+                                    : "bg-blue-50 border-blue-200 hover:border-blue-300 hover:shadow-sm"
+                                }`}
                               >
-                                <strong>{highlight.key}:</strong>{" "}
-                                {highlight.value}
-                                <button
-                                  type="button"
-                                  onClick={() => removeHighlight(index)}
-                                >
-                                  <X className="w-3 h-3" />
-                                </button>
-                              </span>
+                                <span className="text-xs font-medium text-blue-900">
+                                  <strong>{highlight.key}:</strong>{" "}
+                                  {highlight.value}
+                                </span>
+                                <div className="flex items-center gap-1 ml-1">
+                                  <button
+                                    type="button"
+                                    onClick={() => editHighlight(index)}
+                                    className="p-1 rounded hover:bg-blue-200 text-blue-700 hover:text-blue-900 transition-colors"
+                                    title="Edit highlight"
+                                  >
+                                    <Edit className="w-3.5 h-3.5" />
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => removeHighlight(index)}
+                                    className="p-1 rounded hover:bg-red-100 text-red-600 hover:text-red-700 transition-colors"
+                                    title="Remove highlight"
+                                  >
+                                    <X className="w-3.5 h-3.5" />
+                                  </button>
+                                </div>
+                              </div>
                             ))}
                           </div>
                         )}
@@ -1972,15 +2089,31 @@ export default function InventoryAddProductPage() {
                         <label className="text-xs md:text-sm font-medium text-gray-700">
                           Action
                         </label>
-                        <Button
-                          type="button"
-                          variant="secondary"
-                          onClick={addPricingRange}
-                          icon={<Plus className="w-4 h-4" />}
-                          className="w-full text-xs md:text-sm"
-                        >
-                          Add Range
-                        </Button>
+                        <div className="flex gap-2">
+                          <Button
+                            type="button"
+                            variant="secondary"
+                            onClick={addPricingRange}
+                            icon={<Plus className="w-4 h-4" />}
+                            className={`flex-1 text-xs md:text-sm font-medium transition-all ${
+                              editingPricingRangeIndex !== null
+                                ? "bg-blue-600 text-white hover:bg-blue-700"
+                                : ""
+                            }`}
+                          >
+                            {editingPricingRangeIndex !== null ? "Update Range" : "Add Range"}
+                          </Button>
+                          {editingPricingRangeIndex !== null && (
+                            <Button
+                              type="button"
+                              variant="secondary"
+                              onClick={cancelEditPricingRange}
+                              className="text-xs md:text-sm font-medium bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-300"
+                            >
+                              Cancel
+                            </Button>
+                          )}
+                        </div>
                       </div>
                     </div>
 
@@ -1995,30 +2128,62 @@ export default function InventoryAddProductPage() {
                             {watch("pricing_range").map((range, index) => (
                               <div
                                 key={index}
-                                className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4 p-3 bg-gray-50 rounded-lg border border-gray-200"
+                                className={`flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4 p-4 rounded-lg border transition-all ${
+                                  editingPricingRangeIndex === index
+                                    ? "bg-blue-50 border-blue-300 shadow-md ring-2 ring-blue-200"
+                                    : "bg-white border-gray-200 hover:border-gray-300 hover:shadow-sm"
+                                }`}
                               >
-                                <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 sm:gap-4">
-                                  <div>
-                                    <label className="text-xs text-gray-500">
-                                      Quantity: {range.quantity_start} -{" "}
-                                      {range.quantity_end}
-                                    </label>
+                                <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
+                                  <div className="flex items-center gap-2">
+                                    <Package className="w-4 h-4 text-gray-400" />
+                                    <div>
+                                      <p className="text-xs font-medium text-gray-700">
+                                        Quantity Range
+                                      </p>
+                                      <p className="text-sm font-semibold text-gray-900">
+                                        {range.quantity_start} - {range.quantity_end}
+                                      </p>
+                                    </div>
                                   </div>
-                                  <div>
-                                    <label className="text-xs text-gray-500">
-                                      Price: ₹{range.price}
-                                    </label>
+                                  <div className="flex items-center gap-2">
+                                    <IndianRupee className="w-4 h-4 text-gray-400" />
+                                    <div>
+                                      <p className="text-xs font-medium text-gray-700">
+                                        Price
+                                      </p>
+                                      <p className="text-sm font-semibold text-gray-900">
+                                        ₹{range.price}
+                                      </p>
+                                    </div>
                                   </div>
                                 </div>
-                                <Button
-                                  type="button"
-                                  variant="secondary"
-                                  onClick={() => removePricingRange(index)}
-                                  icon={<X className="w-4 h-4" />}
-                                  className="px-2 py-1 w-full sm:w-auto text-xs"
-                                >
-                                  Remove
-                                </Button>
+                                <div className="flex gap-2 w-full sm:w-auto">
+                                  <Button
+                                    type="button"
+                                    variant="secondary"
+                                    onClick={() => editPricingRange(index)}
+                                    icon={<Edit className="w-4 h-4" />}
+                                    className={`px-3 py-2 text-xs font-medium transition-all ${
+                                      editingPricingRangeIndex === index
+                                        ? "bg-blue-600 text-white hover:bg-blue-700"
+                                        : "bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200"
+                                    }`}
+                                    title="Edit pricing range"
+                                  >
+                                    {editingPricingRangeIndex === index ? "Editing..." : "Edit"}
+                                  </Button>
+                                  <Button
+                                    type="button"
+                                    variant="secondary"
+                                    onClick={() => removePricingRange(index)}
+                                    icon={<X className="w-4 h-4" />}
+                                    className="px-3 py-2 text-xs font-medium bg-red-50 text-red-700 hover:bg-red-100 border border-red-200 transition-all"
+                                    title="Remove pricing range"
+                                  >
+                                    Remove
+                                  </Button>
+                                </div>
                               </div>
                             ))}
                           </div>
@@ -2263,6 +2428,7 @@ export default function InventoryAddProductPage() {
                 </div>
 
                 {/* Collection Information */}
+                {false && (
                 <div className="space-y-4">
                   <h3 className="text-base md:text-lg font-medium text-gray-900">
                     Collection Information
@@ -2430,6 +2596,7 @@ export default function InventoryAddProductPage() {
                     )}
                   </div>
                 </div>
+                )}
 
                 {/* SEO Information */}
                 <div className="space-y-4">

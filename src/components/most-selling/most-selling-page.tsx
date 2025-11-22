@@ -64,7 +64,28 @@ interface ShortExpiryProduct {
 }
 
 export function MostSellingPage() {
-  const [period, setPeriod] = useState<MostSellingPeriod | "custom">("30days");
+  // Separate period states for each section
+  const [salePerformancePeriod, setSalePerformancePeriod] = useState<
+    MostSellingPeriod | "custom"
+  >("30days");
+  const [topProductsPeriod, setTopProductsPeriod] = useState<
+    MostSellingPeriod | "custom"
+  >("30days");
+  const [leastProductsPeriod, setLeastProductsPeriod] = useState<
+    MostSellingPeriod | "custom"
+  >("30days");
+
+  // Separate date ranges for each section
+  const [salePerformanceStartDate, setSalePerformanceStartDate] =
+    useState<string>("");
+  const [salePerformanceEndDate, setSalePerformanceEndDate] =
+    useState<string>("");
+  const [topProductsStartDate, setTopProductsStartDate] = useState<string>("");
+  const [topProductsEndDate, setTopProductsEndDate] = useState<string>("");
+  const [leastProductsStartDate, setLeastProductsStartDate] =
+    useState<string>("");
+  const [leastProductsEndDate, setLeastProductsEndDate] = useState<string>("");
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [salePerformance, setSalePerformance] = useState<any>(null);
@@ -77,117 +98,112 @@ export function MostSellingPage() {
   const [shortExpiryProducts, setShortExpiryProducts] = useState<
     ShortExpiryProduct[]
   >([]);
-  const [startDate, setStartDate] = useState<string>("");
-  const [endDate, setEndDate] = useState<string>("");
   const itemsPerPage = 10;
   const [topSellingPage, setTopSellingPage] = useState(1);
   const [leastSellingPage, setLeastSellingPage] = useState(1);
   const [shortExpiryPage, setShortExpiryPage] = useState(1);
 
-  // Set default date range (last 30 days) for custom period
+  // Set default date ranges (last 30 days) for custom periods
   useEffect(() => {
-    if (period === "custom" && !startDate && !endDate) {
-      const today = new Date();
-      const thirtyDaysAgo = new Date(today);
-      thirtyDaysAgo.setDate(today.getDate() - 30);
-      setEndDate(today.toISOString().split("T")[0]);
-      setStartDate(thirtyDaysAgo.toISOString().split("T")[0]);
-    }
-  }, [period, startDate, endDate]);
+    const setDefaultDates = (
+      period: MostSellingPeriod | "custom",
+      startDate: string,
+      endDate: string,
+      setStart: (val: string) => void,
+      setEnd: (val: string) => void
+    ) => {
+      if (period === "custom" && !startDate && !endDate) {
+        const today = new Date();
+        const thirtyDaysAgo = new Date(today);
+        thirtyDaysAgo.setDate(today.getDate() - 30);
+        setEnd(today.toISOString().split("T")[0]);
+        setStart(thirtyDaysAgo.toISOString().split("T")[0]);
+      }
+    };
 
-  // Fetch data from API
+    setDefaultDates(
+      salePerformancePeriod,
+      salePerformanceStartDate,
+      salePerformanceEndDate,
+      setSalePerformanceStartDate,
+      setSalePerformanceEndDate
+    );
+    setDefaultDates(
+      topProductsPeriod,
+      topProductsStartDate,
+      topProductsEndDate,
+      setTopProductsStartDate,
+      setTopProductsEndDate
+    );
+    setDefaultDates(
+      leastProductsPeriod,
+      leastProductsStartDate,
+      leastProductsEndDate,
+      setLeastProductsStartDate,
+      setLeastProductsEndDate
+    );
+  }, [
+    salePerformancePeriod,
+    salePerformanceStartDate,
+    salePerformanceEndDate,
+    topProductsPeriod,
+    topProductsStartDate,
+    topProductsEndDate,
+    leastProductsPeriod,
+    leastProductsStartDate,
+    leastProductsEndDate,
+  ]);
+
+  // Validate date range helper
+  const isDateRangeValid = (startDate: string, endDate: string): boolean => {
+    if (!startDate || !endDate) return false;
+
+    // Create date objects at midnight UTC to avoid timezone issues
+    const start = new Date(startDate + "T00:00:00.000Z");
+    const end = new Date(endDate + "T00:00:00.000Z");
+
+    // Start date must be before end date (not equal, not after)
+    return start < end;
+  };
+
+  // Fetch Sale Performance data
   useEffect(() => {
-    const fetchData = async () => {
+    const fetchSalePerformance = async () => {
+      // Don't auto-fetch for custom period - user must click submit
+      if (salePerformancePeriod === "custom") {
+        return;
+      }
+
       try {
         setLoading(true);
         setError(null);
 
-        // If custom range is selected, use dates only; otherwise use period only
-        if (period === "custom" && startDate && endDate) {
-          const data = await mostSellingApi.getPage(
-            undefined,
-            startDate,
-            endDate
-          );
-          setSalePerformance(data.salePerformance);
-          setTopSellingProducts(
-            data.topSellingProducts.map((product) => ({
-              id: product.productId,
-              productName: product.productName,
-              soldQuantity: product.soldQuantity,
-              revenue: product.revenue,
-              remainingQuantity: product.remainingQuantity,
-            }))
-          );
-          setLeastSellingProducts(
-            data.leastSellingProducts.map((product) => ({
-              id: product.productId,
-              productName: product.productName,
-              soldQuantity: product.soldQuantity,
-              daysSinceLastOrder: product.daysSinceLastOrder,
-              currentStock: product.currentStock,
-            }))
-          );
-          setShortExpiryProducts(
-            data.shortToExpiryProducts.map((product) => ({
-              id: product.productId,
-              productName: product.productName,
-              expiryDate: new Date(product.expiryDate).toLocaleDateString(
-                "en-US",
-                {
-                  day: "numeric",
-                  month: "short",
-                  year: "numeric",
-                }
-              ),
-              daysLeft: product.daysLeft,
-              currentStock: product.currentStock,
-            }))
-          );
-        } else if (period !== "custom") {
-          const data = await mostSellingApi.getPage(period as MostSellingPeriod);
-          setSalePerformance(data.salePerformance);
-          setTopSellingProducts(
-            data.topSellingProducts.map((product) => ({
-              id: product.productId,
-              productName: product.productName,
-              soldQuantity: product.soldQuantity,
-              revenue: product.revenue,
-              remainingQuantity: product.remainingQuantity,
-            }))
-          );
-          setLeastSellingProducts(
-            data.leastSellingProducts.map((product) => ({
-              id: product.productId,
-              productName: product.productName,
-              soldQuantity: product.soldQuantity,
-              daysSinceLastOrder: product.daysSinceLastOrder,
-              currentStock: product.currentStock,
-            }))
-          );
-          setShortExpiryProducts(
-            data.shortToExpiryProducts.map((product) => ({
-              id: product.productId,
-              productName: product.productName,
-              expiryDate: new Date(product.expiryDate).toLocaleDateString(
-                "en-US",
-                {
-                  day: "numeric",
-                  month: "short",
-                  year: "numeric",
-                }
-              ),
-              daysLeft: product.daysLeft,
-              currentStock: product.currentStock,
-            }))
-          );
-        }
+        const apiPeriod = salePerformancePeriod as MostSellingPeriod;
+        const pageData = await mostSellingApi.getPage(apiPeriod);
+
+        setSalePerformance(pageData.salePerformance);
+        setShortExpiryProducts(
+          pageData.shortToExpiryProducts.map((product) => ({
+            id: product.productId,
+            productName: product.productName,
+            expiryDate: new Date(product.expiryDate).toLocaleDateString(
+              "en-US",
+              {
+                day: "numeric",
+                month: "short",
+                year: "numeric",
+              }
+            ),
+            daysLeft: product.daysLeft,
+            currentStock: product.currentStock,
+          }))
+        );
       } catch (err) {
-        console.error("Error fetching most selling data:", err);
+        console.error("Error fetching sale performance:", err);
         const errorMessage =
           err instanceof Error
             ? err.message
-            : "Failed to load most selling data";
+            : "Failed to load sale performance data";
         setError(errorMessage);
         toast.error(errorMessage);
       } finally {
@@ -195,11 +211,225 @@ export function MostSellingPage() {
       }
     };
 
-    // Only fetch if we have valid data (period or custom dates)
-    if (period !== "custom" || (startDate && endDate)) {
-      fetchData();
+    if (salePerformancePeriod !== "custom") {
+      fetchSalePerformance();
     }
-  }, [period, startDate, endDate]);
+  }, [salePerformancePeriod]);
+
+  // Fetch Top Selling Products
+  useEffect(() => {
+    const fetchTopProducts = async () => {
+      // Don't auto-fetch for custom period - user must click submit
+      if (topProductsPeriod === "custom") {
+        return;
+      }
+
+      try {
+        setError(null);
+
+        const apiPeriod = topProductsPeriod as MostSellingPeriod;
+        const topProducts = await mostSellingApi.getTopProducts(
+          apiPeriod,
+          undefined,
+          undefined,
+          100
+        );
+
+        setTopSellingProducts(
+          topProducts.map((product) => ({
+            id: product.productId,
+            productName: product.productName,
+            soldQuantity: product.soldQuantity,
+            revenue: product.revenue,
+            remainingQuantity: product.remainingQuantity,
+          }))
+        );
+      } catch (err) {
+        console.error("Error fetching top products:", err);
+        const errorMessage =
+          err instanceof Error ? err.message : "Failed to load top products";
+        setError(errorMessage);
+        toast.error(errorMessage);
+      }
+    };
+
+    if (topProductsPeriod !== "custom") {
+      fetchTopProducts();
+    }
+  }, [topProductsPeriod]);
+
+  // Fetch Least Selling Products
+  useEffect(() => {
+    const fetchLeastProducts = async () => {
+      // Don't auto-fetch for custom period - user must click submit
+      if (leastProductsPeriod === "custom") {
+        return;
+      }
+
+      try {
+        setError(null);
+
+        const apiPeriod = leastProductsPeriod as MostSellingPeriod;
+        const leastProducts = await mostSellingApi.getLeastProducts(
+          apiPeriod,
+          undefined,
+          undefined,
+          100,
+          5
+        );
+
+        setLeastSellingProducts(
+          leastProducts.map((product) => ({
+            id: product.productId,
+            productName: product.productName,
+            soldQuantity: product.soldQuantity,
+            daysSinceLastOrder: product.daysSinceLastOrder,
+            currentStock: product.currentStock,
+          }))
+        );
+      } catch (err) {
+        console.error("Error fetching least products:", err);
+        const errorMessage =
+          err instanceof Error ? err.message : "Failed to load least products";
+        setError(errorMessage);
+        toast.error(errorMessage);
+      }
+    };
+
+    if (leastProductsPeriod !== "custom") {
+      fetchLeastProducts();
+    }
+  }, [leastProductsPeriod]);
+
+  // Handle custom date range submit for Sale Performance
+  const handleSalePerformanceCustomRangeSubmit = async () => {
+    if (!salePerformanceStartDate || !salePerformanceEndDate) {
+      toast.error("Please select both start and end dates");
+      return;
+    }
+
+    if (!isDateRangeValid(salePerformanceStartDate, salePerformanceEndDate)) {
+      toast.error("Start date must be before end date");
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setError(null);
+
+      const pageData = await mostSellingApi.getPage(
+        undefined,
+        salePerformanceStartDate,
+        salePerformanceEndDate
+      );
+
+      setSalePerformance(pageData.salePerformance);
+      setShortExpiryProducts(
+        pageData.shortToExpiryProducts.map((product) => ({
+          id: product.productId,
+          productName: product.productName,
+          expiryDate: new Date(product.expiryDate).toLocaleDateString("en-US", {
+            day: "numeric",
+            month: "short",
+            year: "numeric",
+          }),
+          daysLeft: product.daysLeft,
+          currentStock: product.currentStock,
+        }))
+      );
+    } catch (err) {
+      console.error("Error fetching sale performance:", err);
+      const errorMessage =
+        err instanceof Error
+          ? err.message
+          : "Failed to load sale performance data";
+      setError(errorMessage);
+      toast.error(errorMessage);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Handle custom date range submit for Top Products
+  const handleTopProductsCustomRangeSubmit = async () => {
+    if (!topProductsStartDate || !topProductsEndDate) {
+      toast.error("Please select both start and end dates");
+      return;
+    }
+
+    if (!isDateRangeValid(topProductsStartDate, topProductsEndDate)) {
+      toast.error("Start date must be before end date");
+      return;
+    }
+
+    try {
+      setError(null);
+
+      const topProducts = await mostSellingApi.getTopProducts(
+        undefined,
+        topProductsStartDate,
+        topProductsEndDate,
+        100
+      );
+
+      setTopSellingProducts(
+        topProducts.map((product) => ({
+          id: product.productId,
+          productName: product.productName,
+          soldQuantity: product.soldQuantity,
+          revenue: product.revenue,
+          remainingQuantity: product.remainingQuantity,
+        }))
+      );
+    } catch (err) {
+      console.error("Error fetching top products:", err);
+      const errorMessage =
+        err instanceof Error ? err.message : "Failed to load top products";
+      setError(errorMessage);
+      toast.error(errorMessage);
+    }
+  };
+
+  // Handle custom date range submit for Least Products
+  const handleLeastProductsCustomRangeSubmit = async () => {
+    if (!leastProductsStartDate || !leastProductsEndDate) {
+      toast.error("Please select both start and end dates");
+      return;
+    }
+
+    if (!isDateRangeValid(leastProductsStartDate, leastProductsEndDate)) {
+      toast.error("Start date must be before end date");
+      return;
+    }
+
+    try {
+      setError(null);
+
+      const leastProducts = await mostSellingApi.getLeastProducts(
+        undefined,
+        leastProductsStartDate,
+        leastProductsEndDate,
+        100,
+        5
+      );
+
+      setLeastSellingProducts(
+        leastProducts.map((product) => ({
+          id: product.productId,
+          productName: product.productName,
+          soldQuantity: product.soldQuantity,
+          daysSinceLastOrder: product.daysSinceLastOrder,
+          currentStock: product.currentStock,
+        }))
+      );
+    } catch (err) {
+      console.error("Error fetching least products:", err);
+      const errorMessage =
+        err instanceof Error ? err.message : "Failed to load least products";
+      setError(errorMessage);
+      toast.error(errorMessage);
+    }
+  };
 
   // Transform chart data for display
   const getChartData = () => {
@@ -209,9 +439,13 @@ export function MostSellingPage() {
 
     // For custom range, calculate the number of days
     let customRangeDays = 0;
-    if (period === "custom" && startDate && endDate) {
-      const start = new Date(startDate);
-      const end = new Date(endDate);
+    if (
+      salePerformancePeriod === "custom" &&
+      salePerformanceStartDate &&
+      salePerformanceEndDate
+    ) {
+      const start = new Date(salePerformanceStartDate);
+      const end = new Date(salePerformanceEndDate);
       customRangeDays = Math.ceil(
         (end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)
       );
@@ -220,7 +454,8 @@ export function MostSellingPage() {
     // For all-time or custom, check if dates span multiple months/years
     let dateFormat: "day" | "month" | "year-month" = "day";
     if (
-      (period === "all-time" || period === "custom") &&
+      (salePerformancePeriod === "all-time" ||
+        salePerformancePeriod === "custom") &&
       chartData.length > 0
     ) {
       const dates = chartData.map((item: any) => new Date(item.date));
@@ -230,7 +465,7 @@ export function MostSellingPage() {
       const uniqueYears = new Set(dates.map((d: Date) => d.getFullYear()));
 
       // For custom ranges less than 90 days, always show day
-      if (period === "custom" && customRangeDays <= 90) {
+      if (salePerformancePeriod === "custom" && customRangeDays <= 90) {
         dateFormat = "day";
       } else if (uniqueYears.size > 1) {
         dateFormat = "year-month";
@@ -243,35 +478,35 @@ export function MostSellingPage() {
 
     return chartData.map((point: any) => {
       const date = new Date(point.date);
-      
+
       // Check if date is valid
       if (isNaN(date.getTime())) {
-        console.warn('Invalid date:', point.date);
+        console.warn("Invalid date:", point.date);
         return {
-          date: point.date || 'Unknown',
+          date: point.date || "Unknown",
           dateValue: date,
-          fullDate: point.date || 'Unknown',
+          fullDate: point.date || "Unknown",
           value: point.sales || 0,
         };
       }
-      
+
       // Format date based on period
       let dateLabel = "";
-      if (period === "7days") {
+      if (salePerformancePeriod === "7days") {
         dateLabel = date.toLocaleDateString("en-US", { weekday: "short" });
-      } else if (period === "30days") {
+      } else if (salePerformancePeriod === "30days") {
         dateLabel = date.toLocaleDateString("en-US", {
           month: "short",
           day: "numeric",
         });
-      } else if (period === "6months") {
+      } else if (salePerformancePeriod === "6months") {
         dateLabel = date.toLocaleDateString("en-US", { month: "short" });
-      } else if (period === "12months") {
+      } else if (salePerformancePeriod === "12months") {
         dateLabel = date.toLocaleDateString("en-US", {
           month: "short",
           year: "numeric",
         });
-      } else if (period === "custom") {
+      } else if (salePerformancePeriod === "custom") {
         // For custom ranges, always show day when range is <= 90 days
         if (customRangeDays <= 90) {
           dateLabel = date.toLocaleDateString("en-US", {
@@ -291,7 +526,7 @@ export function MostSellingPage() {
             month: "short",
           });
         }
-      } else if (period === "all-time") {
+      } else if (salePerformancePeriod === "all-time") {
         // Smart formatting based on date span
         if (dateFormat === "day") {
           dateLabel = date.toLocaleDateString("en-US", {
@@ -327,33 +562,147 @@ export function MostSellingPage() {
     if (data.length === 0) return 0;
 
     // For 7 days: show every day (interval 0)
-    if (period === "7days") return 0;
-    
+    if (salePerformancePeriod === "7days") return 0;
+
     // For 30 days: show approximately 6 dates evenly spaced
-    if (period === "30days") {
+    if (salePerformancePeriod === "30days") {
       return Math.max(0, Math.floor((data.length - 1) / 5));
     }
-    
+
     // For 6 months: show approximately 6 dates
-    if (period === "6months") {
+    if (salePerformancePeriod === "6months") {
       return Math.max(0, Math.floor((data.length - 1) / 5));
     }
-    
+
     // For 12 months: show approximately 6 dates
-    if (period === "12months") {
+    if (salePerformancePeriod === "12months") {
       return Math.max(0, Math.floor((data.length - 1) / 5));
     }
-    
+
     // For all-time or custom: show approximately 8 dates
-    if (period === "all-time" || period === "custom") {
+    if (
+      salePerformancePeriod === "all-time" ||
+      salePerformancePeriod === "custom"
+    ) {
       return Math.max(0, Math.floor((data.length - 1) / 7));
     }
-    
+
     return 0;
   };
 
   const salesData = getChartData();
   const dataKey = "date";
+
+  // Helper function to render period selector
+  const renderPeriodSelector = (
+    currentPeriod: MostSellingPeriod | "custom",
+    setPeriod: (period: MostSellingPeriod | "custom") => void,
+    startDate: string,
+    endDate: string,
+    setStartDate: (date: string) => void,
+    setEndDate: (date: string) => void,
+    onSubmit: () => void
+  ) => (
+    <div className="space-y-4">
+      <div className="flex gap-2 flex-wrap">
+        {Object.keys(periodMap).map((periodKey) => (
+          <button
+            key={periodKey}
+            onClick={() => {
+              setPeriod(periodMap[periodKey]);
+            }}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+              currentPeriod === periodMap[periodKey]
+                ? "bg-[#13aaff] text-white"
+                : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+            }`}
+          >
+            {getPeriodLabel(periodKey)}
+          </button>
+        ))}
+        <button
+          onClick={() => {
+            setPeriod("custom");
+            if (!startDate || !endDate) {
+              const today = new Date();
+              const thirtyDaysAgo = new Date();
+              thirtyDaysAgo.setDate(today.getDate() - 30);
+              setEndDate(today.toISOString().split("T")[0]);
+              setStartDate(thirtyDaysAgo.toISOString().split("T")[0]);
+            }
+          }}
+          className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 ${
+            currentPeriod === "custom"
+              ? "bg-[#13aaff] text-white"
+              : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+          }`}
+        >
+          <Calendar className="w-4 h-4" />
+          Custom Range
+        </button>
+      </div>
+
+      {/* Custom Date Range Picker */}
+      {currentPeriod === "custom" && (
+        <div className="bg-white border border-gray-200 rounded-lg p-4">
+          <div className="mb-3">
+            <p className="text-sm font-medium text-gray-700">
+              Selected Range:{" "}
+              {startDate && endDate ? (
+                <span
+                  className={
+                    isDateRangeValid(startDate, endDate)
+                      ? "text-[#13aaff]"
+                      : "text-red-600"
+                  }
+                >
+                  {new Date(startDate).toLocaleDateString("en-IN", {
+                    year: "numeric",
+                    month: "short",
+                    day: "numeric",
+                  })}{" "}
+                  to{" "}
+                  {new Date(endDate).toLocaleDateString("en-IN", {
+                    year: "numeric",
+                    month: "short",
+                    day: "numeric",
+                  })}
+                </span>
+              ) : (
+                <span className="text-gray-400">No dates selected</span>
+              )}
+            </p>
+            {startDate && endDate && !isDateRangeValid(startDate, endDate) && (
+              <p className="text-sm text-red-600 mt-1">
+                Start date must be before end date
+              </p>
+            )}
+          </div>
+          <div className="flex gap-4 items-end">
+            <DateRangePicker
+              startDate={startDate}
+              endDate={endDate}
+              onStartDateChange={setStartDate}
+              onEndDateChange={setEndDate}
+            />
+            <button
+              onClick={onSubmit}
+              disabled={
+                !startDate || !endDate || !isDateRangeValid(startDate, endDate)
+              }
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                !startDate || !endDate || !isDateRangeValid(startDate, endDate)
+                  ? "bg-gray-200 text-gray-400 cursor-not-allowed"
+                  : "bg-[#13aaff] text-white hover:bg-[#0d8fd9]"
+              }`}
+            >
+              Apply Date Range
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
 
   // Pagination calculations
   const topSellingTotalPages = Math.ceil(
@@ -382,7 +731,6 @@ export function MostSellingPage() {
     shortExpiryStartIndex,
     shortExpiryStartIndex + itemsPerPage
   );
-
 
   const topSellingTableConfig: TableConfig<TopSellingProduct> = {
     columns: [
@@ -442,7 +790,13 @@ export function MostSellingPage() {
         title: "Days Since Last Order",
         align: "center",
         render: (value) => (
-          <span>{value === null ? "Never sold" : `${value} days`}</span>
+          <span>
+            {value === null
+              ? "Never sold"
+              : value === 0
+              ? "Today"
+              : `${value} days`}
+          </span>
         ),
       },
       {
@@ -552,80 +906,24 @@ export function MostSellingPage() {
         </p>
       </div>
 
-      {/* Period Selector */}
-      <div className="space-y-4">
-        <div className="flex gap-2 flex-wrap">
-          {Object.keys(periodMap).map((periodKey) => (
-            <button
-              key={periodKey}
-              onClick={() => {
-                setPeriod(periodMap[periodKey]);
-                setStartDate("");
-                setEndDate("");
-              }}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                period === periodMap[periodKey]
-                  ? "bg-[#13aaff] text-white"
-                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-              }`}
-            >
-              {getPeriodLabel(periodKey)}
-            </button>
-          ))}
-          <button
-            onClick={() => {
-              setPeriod("custom");
-              // Set default custom range to last 30 days if not already set
-              if (!startDate || !endDate) {
-                const today = new Date();
-                const thirtyDaysAgo = new Date();
-                thirtyDaysAgo.setDate(today.getDate() - 30);
-                setEndDate(today.toISOString().split("T")[0]);
-                setStartDate(thirtyDaysAgo.toISOString().split("T")[0]);
-              }
-            }}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 ${
-              period === "custom"
-                ? "bg-[#13aaff] text-white"
-                : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-            }`}
-          >
-            <Calendar className="w-4 h-4" />
-            Custom Range
-          </button>
-        </div>
-
-        {/* Custom Date Range Picker */}
-        {period === "custom" && (
-          <div className="bg-white border border-gray-200 rounded-lg p-4">
-            <p className="text-sm text-blue-600 font-medium mb-3">
-              {startDate && endDate
-                ? `${new Date(startDate).toLocaleDateString("en-US", {
-                    month: "short",
-                    day: "numeric",
-                    year: "numeric",
-                  })} to ${new Date(endDate).toLocaleDateString("en-US", {
-                    month: "short",
-                    day: "numeric",
-                    year: "numeric",
-                  })}`
-                : "Please select dates"}
-            </p>
-            <DateRangePicker
-              startDate={startDate}
-              endDate={endDate}
-              onStartDateChange={setStartDate}
-              onEndDateChange={setEndDate}
-            />
-          </div>
-        )}
-      </div>
-
       {/* Sale Performance Over The Time */}
       <div>
         <h2 className="text-lg font-semibold text-gray-900 mb-4">
           Sale Performance Over The Time
         </h2>
+
+        {/* Period Selector for Sale Performance */}
+        <div className="mb-4">
+          {renderPeriodSelector(
+            salePerformancePeriod,
+            setSalePerformancePeriod,
+            salePerformanceStartDate,
+            salePerformanceEndDate,
+            setSalePerformanceStartDate,
+            setSalePerformanceEndDate,
+            handleSalePerformanceCustomRangeSubmit
+          )}
+        </div>
         <div className="bg-white rounded-lg border border-gray-200 p-6">
           <div className="flex items-center justify-between mb-6 flex-wrap gap-4">
             <div>
@@ -675,23 +973,23 @@ export function MostSellingPage() {
                     stroke="#6b7280"
                     interval={getXAxisInterval()}
                     angle={
-                      period === "30days" ||
-                      period === "7days" ||
-                      period === "custom"
+                      salePerformancePeriod === "30days" ||
+                      salePerformancePeriod === "7days" ||
+                      salePerformancePeriod === "custom"
                         ? -30
                         : 0
                     }
                     textAnchor={
-                      period === "30days" ||
-                      period === "7days" ||
-                      period === "custom"
+                      salePerformancePeriod === "30days" ||
+                      salePerformancePeriod === "7days" ||
+                      salePerformancePeriod === "custom"
                         ? "end"
                         : "middle"
                     }
                     height={
-                      period === "30days" ||
-                      period === "7days" ||
-                      period === "custom"
+                      salePerformancePeriod === "30days" ||
+                      salePerformancePeriod === "7days" ||
+                      salePerformancePeriod === "custom"
                         ? 70
                         : 50
                     }
@@ -714,17 +1012,18 @@ export function MostSellingPage() {
                         return (
                           <div className="bg-gray-900 text-white rounded-lg p-3 shadow-lg">
                             <p className="text-sm font-semibold mb-1">
-                              {period === "custom" ||
-                              period === "all-time" ||
-                              period === "12months" ||
-                              period === "6months" ||
-                              period === "30days" ||
-                              period === "7days"
+                              {salePerformancePeriod === "custom" ||
+                              salePerformancePeriod === "all-time" ||
+                              salePerformancePeriod === "12months" ||
+                              salePerformancePeriod === "6months" ||
+                              salePerformancePeriod === "30days" ||
+                              salePerformancePeriod === "7days"
                                 ? data.fullDate
                                 : data.date}
                             </p>
                             <p className="text-sm">
-                              Sales: ₹{data.value?.toLocaleString("en-IN") || "0"}
+                              Sales: ₹
+                              {data.value?.toLocaleString("en-IN") || "0"}
                             </p>
                           </div>
                         );
@@ -754,10 +1053,16 @@ export function MostSellingPage() {
 
       {/* Top Selling Product */}
       <div className="">
-        <div className="py-3 flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-gray-900">
-            Top Selling Product
-          </h2>
+        <div className="py-3 flex items-center justify-between mb-2">
+          <div>
+            <h2 className="text-lg font-semibold text-gray-900">
+              Top Selling Product
+            </h2>
+            <p className="text-sm text-gray-500 mt-1">
+              Products with sold quantity &gt; 5 units, sorted by sold quantity
+              (highest first), showing top 100 products
+            </p>
+          </div>
           <Button
             onClick={() => handleExportCSV("Top Selling")}
             variant="danger"
@@ -767,6 +1072,19 @@ export function MostSellingPage() {
             <Upload className="w-4 h-4" />
             Export CSV
           </Button>
+        </div>
+
+        {/* Period Selector for Top Selling Products */}
+        <div className="mb-4">
+          {renderPeriodSelector(
+            topProductsPeriod,
+            setTopProductsPeriod,
+            topProductsStartDate,
+            topProductsEndDate,
+            setTopProductsStartDate,
+            setTopProductsEndDate,
+            handleTopProductsCustomRangeSubmit
+          )}
         </div>
         <div>
           {paginatedTopSelling.length > 0 ? (
@@ -784,10 +1102,16 @@ export function MostSellingPage() {
 
       {/* Least Selling Product */}
       <div className="">
-        <div className="py-3 flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-gray-900">
-            Least Selling Product
-          </h2>
+        <div className="py-3 flex items-center justify-between mb-2">
+          <div>
+            <h2 className="text-lg font-semibold text-gray-900">
+              Least Selling Product
+            </h2>
+            <p className="text-sm text-gray-500 mt-1">
+              Products with sold quantity ≤ 5 units, sorted by days since last
+              order (most recent first), showing top 100 products
+            </p>
+          </div>
           <Button
             onClick={() => handleExportCSV("Least Selling")}
             variant="danger"
@@ -797,6 +1121,19 @@ export function MostSellingPage() {
             <Upload className="w-4 h-4" />
             Export CSV
           </Button>
+        </div>
+
+        {/* Period Selector for Least Selling Products */}
+        <div className="mb-4">
+          {renderPeriodSelector(
+            leastProductsPeriod,
+            setLeastProductsPeriod,
+            leastProductsStartDate,
+            leastProductsEndDate,
+            setLeastProductsStartDate,
+            setLeastProductsEndDate,
+            handleLeastProductsCustomRangeSubmit
+          )}
         </div>
         <div>
           {paginatedLeastSelling.length > 0 ? (
