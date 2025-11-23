@@ -26,6 +26,7 @@ export function InventoryTable({
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [productToDelete, setProductToDelete] = useState<Product | null>(null);
+  const [togglingId, setTogglingId] = useState<string | null>(null);
 
   const handleDeleteClick = (item: Product) => {
     setProductToDelete(item);
@@ -55,6 +56,31 @@ export function InventoryTable({
       setProductToDelete(null);
     } finally {
       setDeletingId(null);
+    }
+  };
+
+  const handleToggleEssential = async (product: Product) => {
+    if (!product._id) return;
+
+    try {
+      setTogglingId(product._id);
+      await productApi.update(product._id, {
+        isEssential: !product.isEssential,
+      });
+      toast.success(
+        `Product ${!product.isEssential ? "marked as" : "removed from"} essential`
+      );
+      // Refresh the page to update the list
+      window.location.reload();
+    } catch (error) {
+      console.error("Error toggling essential status:", error);
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Failed to update essential status"
+      );
+    } finally {
+      setTogglingId(null);
     }
   };
   const tableConfig: TableConfig<Product> = {
@@ -129,6 +155,37 @@ export function InventoryTable({
               : "Discontinued"}
           </span>
         ),
+      },
+      {
+        key: "isEssential",
+        title: "Essential",
+        align: "center",
+        render: (value, record) => {
+          const isEssential = record.isEssential ?? false;
+          const isDisabled = togglingId === record._id;
+          return (
+            <label className="relative inline-flex items-center cursor-pointer">
+              <input
+                type="checkbox"
+                checked={isEssential}
+                onChange={() => handleToggleEssential(record)}
+                disabled={isDisabled}
+                className="sr-only"
+              />
+              <div
+                className={`relative w-11 h-6 rounded-full transition-colors ${
+                  isEssential ? "bg-blue-600" : "bg-gray-200"
+                } ${isDisabled ? "opacity-50 cursor-not-allowed" : ""}`}
+              >
+                <div
+                  className={`absolute top-[2px] left-[2px] bg-white border border-gray-300 rounded-full h-5 w-5 transition-transform ${
+                    isEssential ? "translate-x-5" : "translate-x-0"
+                  }`}
+                ></div>
+              </div>
+            </label>
+          );
+        },
       },
     ],
     actions: [

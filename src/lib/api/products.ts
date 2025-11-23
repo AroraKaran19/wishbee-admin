@@ -121,6 +121,7 @@ export const productApi = {
     isB2B: boolean;
     dotd: boolean;
     pfy: boolean;
+    isEssential: boolean;
     reviewsCount: number;
     totalRating: number;
   }) => {
@@ -247,6 +248,7 @@ export const productApi = {
       isB2B: boolean;
       dotd: boolean;
       pfy: boolean;
+      isEssential: boolean;
       reviewsCount: number;
       totalRating: number;
     }>

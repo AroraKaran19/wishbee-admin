@@ -1105,6 +1105,9 @@
           "metaKeywords": ["string"],
           "slug": "string",
           "isB2B": false,
+          "dotd": false,
+          "pfy": false,
+          "isEssential": false,
           "createdAt": "2024-01-01T00:00:00.000Z",
           "updatedAt": "2024-01-01T00:00:00.000Z"
         }
@@ -1150,6 +1153,16 @@
   - `page` (number, default: 1)
   - `limit` (number, default: 10)
 - **Response**: Same as products list response
+
+### Get Essential Products
+
+- **API**: `GET /api/products/essential`
+- **Access**: Public
+- **Query Parameters**:
+  - `page` (number, default: 1)
+  - `limit` (number, default: 10)
+- **Response**: Same as products list response
+- **Note**: Returns only products where `isEssential: true` and `status: "ACTIVE"`
 
 ### Get Out of Stock Products
 
@@ -1255,6 +1268,9 @@
           "metaKeywords": ["string"],
           "slug": "string",
           "isB2B": false,
+          "dotd": false,
+          "pfy": false,
+          "isEssential": false,
           "lastSoldAt": "2024-01-01T00:00:00.000Z",
           "createdAt": "2024-01-01T00:00:00.000Z",
           "updatedAt": "2024-01-01T00:00:00.000Z"
@@ -1328,12 +1344,16 @@
     "metaDescription": "string",
     "metaKeywords": ["string"],
     "slug": "string",
-    "isB2B": false
+    "isB2B": false,
+    "dotd": false,
+    "pfy": false,
+    "isEssential": false
   }
   ```
 - **Note**:
   - `subCategory` is optional - products can be created without a subcategory
   - `category` is required for products with status other than "DISCONTINUED"
+  - `dotd`, `pfy`, and `isEssential` are boolean fields (default: false)
 - **Response**: Created product object
 
 ### Update Product
@@ -2090,6 +2110,9 @@
         "metaKeywords": ["string"],
         "slug": "string",
         "isB2B": false,
+        "dotd": false,
+        "pfy": false,
+        "isEssential": false,
         "soldQuantity": 150,
         "revenue": 13500,
         "createdAt": "2024-01-01T00:00:00.000Z",
@@ -2248,6 +2271,9 @@
             "metaKeywords": ["string"],
             "slug": "string",
             "isB2B": false,
+            "dotd": false,
+            "pfy": false,
+            "isEssential": false,
             "createdAt": "2024-01-01T00:00:00.000Z",
             "updatedAt": "2024-01-01T00:00:00.000Z"
           }

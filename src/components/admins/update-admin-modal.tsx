@@ -10,12 +10,10 @@ import {
   EyeOff,
   Loader2,
   Check,
-  X,
-  Image as ImageIcon,
 } from "lucide-react";
 import toast from "react-hot-toast";
-import Image from "next/image";
-import { getPresignedUrl, deleteImage } from "@/lib/api/products";
+// import Image from "next/image";
+// import { getPresignedUrl, deleteImage } from "@/lib/api/products";
 
 interface Admin {
   _id: string;
@@ -55,8 +53,8 @@ export function UpdateAdminModal({
     isActive: true,
   });
   const [showPassword, setShowPassword] = useState(false);
-  const [uploadingPhoto, setUploadingPhoto] = useState(false);
-  const [isDragging, setIsDragging] = useState(false);
+  // const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  // const [isDragging, setIsDragging] = useState(false);
 
   // Load admin data when modal opens
   useEffect(() => {
@@ -130,7 +128,7 @@ export function UpdateAdminModal({
         email: formData.email,
         firstName: formData.firstName || undefined,
         lastName: formData.lastName || undefined,
-        photo: formData.photo || undefined,
+        // photo: formData.photo || undefined,
         gender: formData.gender,
         isActive: formData.isActive,
       };
@@ -166,142 +164,142 @@ export function UpdateAdminModal({
     onClose();
   };
 
-  // Image upload handlers
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (!uploadingPhoto) {
-      setIsDragging(true);
-    }
-  };
+  // Image upload handlers - COMMENTED OUT
+  // const handleDragOver = (e: React.DragEvent) => {
+  //   e.preventDefault();
+  //   e.stopPropagation();
+  //   if (!uploadingPhoto) {
+  //     setIsDragging(true);
+  //   }
+  // };
 
-  const handleDragEnter = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (!uploadingPhoto) {
-      setIsDragging(true);
-    }
-  };
+  // const handleDragEnter = (e: React.DragEvent) => {
+  //   e.preventDefault();
+  //   e.stopPropagation();
+  //   if (!uploadingPhoto) {
+  //     setIsDragging(true);
+  //   }
+  // };
 
-  const handleDragLeave = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDragging(false);
-  };
+  // const handleDragLeave = (e: React.DragEvent) => {
+  //   e.preventDefault();
+  //   e.stopPropagation();
+  //   setIsDragging(false);
+  // };
 
-  const handleDrop = async (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDragging(false);
+  // const handleDrop = async (e: React.DragEvent) => {
+  //   e.preventDefault();
+  //   e.stopPropagation();
+  //   setIsDragging(false);
 
-    if (uploadingPhoto) return;
+  //   if (uploadingPhoto) return;
 
-    const files = e.dataTransfer.files;
-    if (files && files.length > 0) {
-      await handleFileUpload(files[0]);
-    }
-  };
+  //   const files = e.dataTransfer.files;
+  //   if (files && files.length > 0) {
+  //     await handleFileUpload(files[0]);
+  //   }
+  // };
 
-  const handleFileInput = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (files && files.length > 0) {
-      await handleFileUpload(files[0]);
-      // Reset the input value to allow selecting the same file again
-      e.target.value = "";
-    }
-  };
+  // const handleFileInput = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  //   const files = e.target.files;
+  //   if (files && files.length > 0) {
+  //     await handleFileUpload(files[0]);
+  //     // Reset the input value to allow selecting the same file again
+  //     e.target.value = "";
+  //   }
+  // };
 
-  const handleFileUpload = async (file: File) => {
-    if (!file.type.startsWith("image/")) {
-      toast.error("Please select a valid image file");
-      return;
-    }
+  // const handleFileUpload = async (file: File) => {
+  //   if (!file.type.startsWith("image/")) {
+  //     toast.error("Please select a valid image file");
+  //     return;
+  //   }
 
-    try {
-      setUploadingPhoto(true);
+  //   try {
+  //     setUploadingPhoto(true);
 
-      // Generate file name
-      const fileId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-      const fileExtension = file.name.split(".").pop();
-      const fileName = `${fileId}.${fileExtension}`;
-      const folder = `profiles/images`;
+  //     // Generate file name
+  //     const fileId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+  //     const fileExtension = file.name.split(".").pop();
+  //     const fileName = `${fileId}.${fileExtension}`;
+  //     const folder = `profiles/images`;
 
-      // Get presigned URL from backend
-      const presignedData = await getPresignedUrl(fileName, file.type, folder);
+  //     // Get presigned URL from backend
+  //     const presignedData = await getPresignedUrl(fileName, file.type, folder);
 
-      if (!presignedData || !presignedData.presignedUrl) {
-        throw new Error("Failed to get presigned URL from server");
-      }
+  //     if (!presignedData || !presignedData.presignedUrl) {
+  //       throw new Error("Failed to get presigned URL from server");
+  //     }
 
-      const { presignedUrl, imageUrl } = presignedData;
+  //     const { presignedUrl, imageUrl } = presignedData;
 
-      // Upload file to S3 using presigned URL
-      const uploadResponse = await fetch(presignedUrl, {
-        method: "PUT",
-        body: file,
-        headers: {
-          "Content-Type": file.type,
-        },
-      });
+  //     // Upload file to S3 using presigned URL
+  //     const uploadResponse = await fetch(presignedUrl, {
+  //       method: "PUT",
+  //       body: file,
+  //       headers: {
+  //         "Content-Type": file.type,
+  //       },
+  //     });
 
-      if (!uploadResponse.ok) {
-        throw new Error("Failed to upload image to S3");
-      }
+  //     if (!uploadResponse.ok) {
+  //       throw new Error("Failed to upload image to S3");
+  //     }
 
-      // Delete old photo if exists
-      if (formData.photo) {
-        try {
-          const url = new URL(formData.photo);
-          const pathParts = url.pathname.split("/");
-          const wishbeeIndex = pathParts.findIndex(
-            (part) => part === "wishbee"
-          );
-          if (wishbeeIndex !== -1) {
-            const s3Key = pathParts.slice(wishbeeIndex).join("/");
-            await deleteImage(s3Key);
-          }
-        } catch (error) {
-          console.error("Error deleting old photo:", error);
-          // Continue even if deletion fails
-        }
-      }
+  //     // Delete old photo if exists
+  //     if (formData.photo) {
+  //       try {
+  //         const url = new URL(formData.photo);
+  //         const pathParts = url.pathname.split("/");
+  //         const wishbeeIndex = pathParts.findIndex(
+  //           (part) => part === "wishbee"
+  //         );
+  //         if (wishbeeIndex !== -1) {
+  //           const s3Key = pathParts.slice(wishbeeIndex).join("/");
+  //           await deleteImage(s3Key);
+  //         }
+  //       } catch (error) {
+  //         console.error("Error deleting old photo:", error);
+  //         // Continue even if deletion fails
+  //       }
+  //     }
 
-      // Update form data with new photo URL
-      setFormData({ ...formData, photo: imageUrl });
-      toast.success("Photo uploaded successfully!");
-    } catch (error) {
-      console.error("Error uploading photo:", error);
-      toast.error(
-        error instanceof Error ? error.message : "Failed to upload photo"
-      );
-    } finally {
-      setUploadingPhoto(false);
-    }
-  };
+  //     // Update form data with new photo URL
+  //     setFormData({ ...formData, photo: imageUrl });
+  //     toast.success("Photo uploaded successfully!");
+  //   } catch (error) {
+  //     console.error("Error uploading photo:", error);
+  //     toast.error(
+  //       error instanceof Error ? error.message : "Failed to upload photo"
+  //     );
+  //   } finally {
+  //     setUploadingPhoto(false);
+  //   }
+  // };
 
-  const removePhoto = async () => {
-    if (!formData.photo) return;
+  // const removePhoto = async () => {
+  //   if (!formData.photo) return;
 
-    try {
-      // Delete from S3
-      const url = new URL(formData.photo);
-      const pathParts = url.pathname.split("/");
-      const wishbeeIndex = pathParts.findIndex((part) => part === "wishbee");
-      if (wishbeeIndex !== -1) {
-        const s3Key = pathParts.slice(wishbeeIndex).join("/");
-        await deleteImage(s3Key);
-      }
+  //   try {
+  //     // Delete from S3
+  //     const url = new URL(formData.photo);
+  //     const pathParts = url.pathname.split("/");
+  //     const wishbeeIndex = pathParts.findIndex((part) => part === "wishbee");
+  //     if (wishbeeIndex !== -1) {
+  //       const s3Key = pathParts.slice(wishbeeIndex).join("/");
+  //       await deleteImage(s3Key);
+  //     }
 
-      // Update form data
-      setFormData({ ...formData, photo: "" });
-      toast.success("Photo removed successfully!");
-    } catch (error) {
-      console.error("Error removing photo:", error);
-      toast.error("Failed to remove photo from server");
-      // Still remove from UI even if deletion fails
-      setFormData({ ...formData, photo: "" });
-    }
-  };
+  //     // Update form data
+  //     setFormData({ ...formData, photo: "" });
+  //     toast.success("Photo removed successfully!");
+  //   } catch (error) {
+  //     console.error("Error removing photo:", error);
+  //     toast.error("Failed to remove photo from server");
+  //     // Still remove from UI even if deletion fails
+  //     setFormData({ ...formData, photo: "" });
+  //   }
+  // };
 
   if (!admin) return null;
 
@@ -383,11 +381,11 @@ export function UpdateAdminModal({
             </div>
           </div>
 
-          <div>
+          {/* Profile Photo Section - COMMENTED OUT */}
+          {/* <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Profile Photo
             </label>
-            {/* Image Upload Area */}
             <div
               className={`flex items-center justify-center gap-4 rounded-xl border border-dashed ${
                 isDragging ? "border-blue-400 bg-blue-50/30" : "border-gray-400"
@@ -465,7 +463,7 @@ export function UpdateAdminModal({
                 disabled={uploadingPhoto}
               />
             </div>
-          </div>
+          </div> */}
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">

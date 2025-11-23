@@ -66,6 +66,7 @@ export interface Product {
   // showcase
   dotd: boolean;
   pfy: boolean;
+  isEssential: boolean;
 
   createdAt?: Date;
   updatedAt?: Date;
