@@ -110,6 +110,7 @@ export default function InventoryAddProductPage() {
       isB2B: true,
       dotd: false,
       pfy: false,
+      isEssential: false,
     },
   });
 
@@ -1231,6 +1232,7 @@ export default function InventoryAddProductPage() {
         isB2B: boolean;
         dotd: boolean;
         pfy: boolean;
+        isEssential: boolean;
         reviewsCount: number;
         totalRating: number;
       } = {
@@ -1293,6 +1295,7 @@ export default function InventoryAddProductPage() {
         isB2B: data.isB2B,
         dotd: data.dotd,
         pfy: data.pfy,
+        isEssential: data.isEssential,
         reviewsCount: 0,
         totalRating: 0,
       };
