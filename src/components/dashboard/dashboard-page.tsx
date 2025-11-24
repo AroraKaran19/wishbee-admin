@@ -156,92 +156,123 @@ export function DashboardPage() {
 
       {/* Performance Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white rounded-lg border border-gray-200 p-4 md:p-6">
-          <div className="text-xs md:text-sm text-gray-500 mb-2">
-            TODAY&apos;S SALE
-          </div>
-          <div className="text-xl md:text-2xl font-bold text-gray-900 mb-2">
-            ₹{stats.performanceSummary.todaySales.toLocaleString("en-IN")}
-          </div>
-          <div
-            className={`flex items-center text-xs md:text-sm ${
-              stats.growthMetrics.todaySalesGrowth >= 0
-                ? "text-green-600"
-                : "text-red-600"
-            }`}
-          >
-            {stats.growthMetrics.todaySalesGrowth >= 0 ? (
-              <ArrowUp className="w-4 h-4 mr-1" />
-            ) : (
-              <ArrowDown className="w-4 h-4 mr-1" />
-            )}
-            {Math.abs(stats.growthMetrics.todaySalesGrowth).toFixed(1)}%
-          </div>
-        </div>
-        <div className="bg-white rounded-lg border border-gray-200 p-4 md:p-6">
-          <div className="text-xs md:text-sm text-gray-500 mb-2">
-            TOTAL SALE
-          </div>
-          <div className="text-xl md:text-2xl font-bold text-gray-900 mb-2">
-            ₹{stats.performanceSummary.totalSales.toLocaleString("en-IN")}
-          </div>
-          <div
-            className={`flex items-center text-xs md:text-sm ${
-              stats.growthMetrics.totalSalesGrowth >= 0
-                ? "text-green-600"
-                : "text-red-600"
-            }`}
-          >
-            {stats.growthMetrics.totalSalesGrowth >= 0 ? (
-              <ArrowUp className="w-4 h-4 mr-1" />
-            ) : (
-              <ArrowDown className="w-4 h-4 mr-1" />
-            )}
-            {Math.abs(stats.growthMetrics.totalSalesGrowth).toFixed(1)}%
+        {/* Today's Sale Card */}
+        <div className="bg-[#d9f4ff] rounded-lg shadow-sm">
+          <div className="space-y-1">
+            <div className="inline-block px-2 pt-2 pb-1 rounded-tr-2xl mr-6 mt-3 bg-[#00b7fb]">
+              <h3 className="text-sm font-medium text-white">TODAY&apos;S SALE</h3>
+            </div>
+            <div className="text-xl md:text-2xl font-semibold text-gray-900 mt-3 px-3">
+              ₹{stats.performanceSummary.todaySales.toLocaleString("en-IN")}
+            </div>
+            <div className="flex items-center justify-end text-sm px-3 pb-2">
+              <span className="flex items-center">
+                <span
+                  className={`font-semibold ${
+                    stats.growthMetrics.todaySalesGrowth >= 0
+                      ? "text-green-600"
+                      : "text-red-600"
+                  }`}
+                >
+                  {Math.abs(stats.growthMetrics.todaySalesGrowth).toFixed(1)}%
+                </span>
+                {stats.growthMetrics.todaySalesGrowth >= 0 ? (
+                  <ArrowUp className="w-4 h-4 ml-1 text-green-600" />
+                ) : (
+                  <ArrowDown className="w-4 h-4 ml-1 text-red-600" />
+                )}
+              </span>
+            </div>
           </div>
         </div>
-        <div className="bg-white rounded-lg border border-gray-200 p-4 md:p-6">
-          <div className="text-xs md:text-sm text-gray-500 mb-2">
-            TOTAL ORDERS
-          </div>
-          <div className="text-xl md:text-2xl font-bold text-gray-900 mb-2">
-            {stats.performanceSummary.totalOrders.toLocaleString("en-IN")}
-          </div>
-          <div
-            className={`flex items-center text-xs md:text-sm ${
-              stats.growthMetrics.totalOrdersGrowth >= 0
-                ? "text-green-600"
-                : "text-red-600"
-            }`}
-          >
-            {stats.growthMetrics.totalOrdersGrowth >= 0 ? (
-              <ArrowUp className="w-4 h-4 mr-1" />
-            ) : (
-              <ArrowDown className="w-4 h-4 mr-1" />
-            )}
-            {Math.abs(stats.growthMetrics.totalOrdersGrowth).toFixed(1)}%
+
+        {/* Total Sale Card */}
+        <div className="bg-[#dbeed9] rounded-lg shadow-sm">
+          <div className="space-y-1">
+            <div className="inline-block px-2 pt-2 pb-1 rounded-tr-2xl mr-6 mt-3 bg-[#0b8f00]">
+              <h3 className="text-sm font-medium text-white">TOTAL SALE</h3>
+            </div>
+            <div className="text-xl md:text-2xl font-semibold text-gray-900 mt-3 px-3">
+              ₹{stats.performanceSummary.totalSales.toLocaleString("en-IN")}
+            </div>
+            <div className="flex items-center justify-end text-sm px-3 pb-2">
+              <span className="flex items-center">
+                <span
+                  className={`font-semibold ${
+                    stats.growthMetrics.totalSalesGrowth >= 0
+                      ? "text-green-600"
+                      : "text-red-600"
+                  }`}
+                >
+                  {Math.abs(stats.growthMetrics.totalSalesGrowth).toFixed(1)}%
+                </span>
+                {stats.growthMetrics.totalSalesGrowth >= 0 ? (
+                  <ArrowUp className="w-4 h-4 ml-1 text-green-600" />
+                ) : (
+                  <ArrowDown className="w-4 h-4 ml-1 text-red-600" />
+                )}
+              </span>
+            </div>
           </div>
         </div>
-        <div className="bg-white rounded-lg border border-gray-200 p-4 md:p-6">
-          <div className="text-xs md:text-sm text-gray-500 mb-2">
-            TOTAL CUSTOMERS
+
+        {/* Total Orders Card */}
+        <div className="bg-[#fff4e6] rounded-lg shadow-sm">
+          <div className="space-y-1">
+            <div className="inline-block px-2 pt-2 pb-1 rounded-tr-2xl mr-6 mt-3 bg-[#ff9800]">
+              <h3 className="text-sm font-medium text-white">TOTAL ORDERS</h3>
+            </div>
+            <div className="text-xl md:text-2xl font-semibold text-gray-900 mt-3 px-3">
+              {stats.performanceSummary.totalOrders.toLocaleString("en-IN")}
+            </div>
+            <div className="flex items-center justify-end text-sm px-3 pb-2">
+              <span className="flex items-center">
+                <span
+                  className={`font-semibold ${
+                    stats.growthMetrics.totalOrdersGrowth >= 0
+                      ? "text-green-600"
+                      : "text-red-600"
+                  }`}
+                >
+                  {Math.abs(stats.growthMetrics.totalOrdersGrowth).toFixed(1)}%
+                </span>
+                {stats.growthMetrics.totalOrdersGrowth >= 0 ? (
+                  <ArrowUp className="w-4 h-4 ml-1 text-green-600" />
+                ) : (
+                  <ArrowDown className="w-4 h-4 ml-1 text-red-600" />
+                )}
+              </span>
+            </div>
           </div>
-          <div className="text-xl md:text-2xl font-bold text-gray-900 mb-2">
-            {stats.performanceSummary.totalCustomers.toLocaleString("en-IN")}
-          </div>
-          <div
-            className={`flex items-center text-xs md:text-sm ${
-              stats.growthMetrics.totalCustomersGrowth >= 0
-                ? "text-green-600"
-                : "text-red-600"
-            }`}
-          >
-            {stats.growthMetrics.totalCustomersGrowth >= 0 ? (
-              <ArrowUp className="w-4 h-4 mr-1" />
-            ) : (
-              <ArrowDown className="w-4 h-4 mr-1" />
-            )}
-            {Math.abs(stats.growthMetrics.totalCustomersGrowth).toFixed(1)}%
+        </div>
+
+        {/* Total Customers Card */}
+        <div className="bg-[#e6f3ff] rounded-lg shadow-sm">
+          <div className="space-y-1">
+            <div className="inline-block px-2 pt-2 pb-1 rounded-tr-2xl mr-6 mt-3 bg-[#2196f3]">
+              <h3 className="text-sm font-medium text-white">TOTAL CUSTOMERS</h3>
+            </div>
+            <div className="text-xl md:text-2xl font-semibold text-gray-900 mt-3 px-3">
+              {stats.performanceSummary.totalCustomers.toLocaleString("en-IN")}
+            </div>
+            <div className="flex items-center justify-end text-sm px-3 pb-2">
+              <span className="flex items-center">
+                <span
+                  className={`font-semibold ${
+                    stats.growthMetrics.totalCustomersGrowth >= 0
+                      ? "text-green-600"
+                      : "text-red-600"
+                  }`}
+                >
+                  {Math.abs(stats.growthMetrics.totalCustomersGrowth).toFixed(1)}%
+                </span>
+                {stats.growthMetrics.totalCustomersGrowth >= 0 ? (
+                  <ArrowUp className="w-4 h-4 ml-1 text-green-600" />
+                ) : (
+                  <ArrowDown className="w-4 h-4 ml-1 text-red-600" />
+                )}
+              </span>
+            </div>
           </div>
         </div>
       </div>
