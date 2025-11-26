@@ -45,13 +45,36 @@ type ProductFormData = Omit<
   | "type"
   | "expiry"
   | "discount"
+  | "mrp"
+  | "gst"
+  | "stock"
+  | "weight"
+  | "pricing_range"
+  | "productCollections"
 > & {
   categoryId: string;
   subCategoryId?: string; // Optional per API documentation
   expiry?: string; // Form uses string for date input
+  mrp: number | null;
+  gst: number | null;
+  stock: number | null;
+  weight: {
+    value: number | null;
+    unit: string;
+  };
+  pricing_range: {
+    quantity_start: number | null;
+    quantity_end: number | null;
+    price: number | null;
+  }[];
+  productCollections: {
+    quantity: number | null;
+    price: number | null;
+    unit?: string;
+  }[];
   discount: {
     type: "percentage" | "fixed";
-    value: number;
+    value: number | null;
     startDate?: string;
     endDate?: string;
     isActive: boolean;
@@ -435,7 +458,10 @@ export default function InventoryAddProductPage() {
   };
 
   const addCollection = () => {
-    if (newCollection.quantity > 0 && newCollection.price > 0) {
+    if (
+      newCollection.quantity !== null && newCollection.quantity !== undefined && newCollection.quantity > 0 &&
+      newCollection.price !== null && newCollection.price !== undefined && newCollection.price > 0
+    ) {
       setValue("productCollections", [
         ...productCollections,
         { ...newCollection },
@@ -1083,24 +1109,26 @@ export default function InventoryAddProductPage() {
       errors.push("At least one pricing range is required");
     } else {
       data.pricing_range.forEach((range, index) => {
-        if (range.quantity_start <= 0) {
+        if (range.quantity_start === null || range.quantity_start === undefined || range.quantity_start <= 0) {
           errors.push(
             `Pricing range ${index + 1}: Quantity start must be greater than 0`
           );
         }
-        if (range.quantity_end <= 0) {
+        if (range.quantity_end === null || range.quantity_end === undefined || range.quantity_end <= 0) {
           errors.push(
             `Pricing range ${index + 1}: Quantity end must be greater than 0`
           );
         }
-        if (range.quantity_start >= range.quantity_end) {
+        if (range.quantity_start !== null && range.quantity_start !== undefined && 
+            range.quantity_end !== null && range.quantity_end !== undefined &&
+            range.quantity_start >= range.quantity_end) {
           errors.push(
             `Pricing range ${
               index + 1
             }: Quantity start must be less than quantity end`
           );
         }
-        if (range.price <= 0) {
+        if (range.price === null || range.price === undefined || range.price <= 0) {
           errors.push(
             `Pricing range ${index + 1}: Price must be greater than 0`
           );
@@ -1145,7 +1173,7 @@ export default function InventoryAddProductPage() {
 
     // Discount validation (only if discount fields are shown)
     if (showDiscountFields && data.discount) {
-      if (data.discount.value < 0) {
+      if (data.discount.value !== null && data.discount.value !== undefined && data.discount.value < 0) {
         errors.push("Discount value cannot be negative");
       }
       if (data.discount.startDate && data.discount.endDate) {
@@ -1160,12 +1188,12 @@ export default function InventoryAddProductPage() {
     // Product Collections validation (matching API: optional but if provided, must be valid)
     if (data.productCollections && data.productCollections.length > 0) {
       data.productCollections.forEach((item, index) => {
-        if (item.quantity <= 0) {
+        if (item.quantity === null || item.quantity === undefined || item.quantity <= 0) {
           errors.push(
             `Collection item ${index + 1}: Quantity must be greater than 0`
           );
         }
-        if (item.price <= 0) {
+        if (item.price === null || item.price === undefined || item.price <= 0) {
           errors.push(
             `Collection item ${index + 1}: Price must be greater than 0`
           );
@@ -1961,12 +1989,13 @@ export default function InventoryAddProductPage() {
                                   placeholder="Enter discount value"
                                   type="number"
                                   step="0.01"
-                                  {...field}
-                                  onChange={(e) =>
-                                    field.onChange(
-                                      parseFloat(e.target.value) || 0
-                                    )
-                                  }
+                                  value={field.value !== null && field.value !== undefined ? String(field.value) : ""}
+                                  onChange={(e) => {
+                                    const val = e.target.value;
+                                    field.onChange(val === "" ? null : (isNaN(parseFloat(val)) ? null : parseFloat(val)));
+                                  }}
+                                  onBlur={field.onBlur}
+                                  name={field.name}
                                 />
                               )}
                             />
@@ -2041,7 +2070,7 @@ export default function InventoryAddProductPage() {
                           className="text-xs md:text-sm"
                           placeholder="Start quantity"
                           type="number"
-                          value={newPricingRange.quantity_start !== null && newPricingRange.quantity_start !== undefined ? newPricingRange.quantity_start : ""}
+                          value={newPricingRange.quantity_start !== null && newPricingRange.quantity_start !== undefined ? String(newPricingRange.quantity_start) : ""}
                           onChange={(e) => {
                             const val = e.target.value;
                             setNewPricingRange({
@@ -2061,7 +2090,7 @@ export default function InventoryAddProductPage() {
                           className="text-xs md:text-sm"
                           placeholder="End quantity"
                           type="number"
-                          value={newPricingRange.quantity_end !== null && newPricingRange.quantity_end !== undefined ? newPricingRange.quantity_end : ""}
+                          value={newPricingRange.quantity_end !== null && newPricingRange.quantity_end !== undefined ? String(newPricingRange.quantity_end) : ""}
                           onChange={(e) => {
                             const val = e.target.value;
                             setNewPricingRange({
@@ -2082,7 +2111,7 @@ export default function InventoryAddProductPage() {
                           placeholder="Price for this range"
                           type="number"
                           step="0.01"
-                          value={newPricingRange.price !== null && newPricingRange.price !== undefined ? newPricingRange.price : ""}
+                          value={newPricingRange.price !== null && newPricingRange.price !== undefined ? String(newPricingRange.price) : ""}
                           onChange={(e) => {
                             const val = e.target.value;
                             setNewPricingRange({
@@ -2227,7 +2256,7 @@ export default function InventoryAddProductPage() {
                             return isNaN(num) ? null : num;
                           },
                         })}
-                        value={watch("stock") !== null && watch("stock") !== undefined ? watch("stock") : ""}
+                        value={watch("stock") !== null && watch("stock") !== undefined ? String(watch("stock")) : ""}
                         onChange={(e) => {
                           const val = e.target.value;
                           setValue("stock", val === "" ? null : (isNaN(parseFloat(val)) ? null : parseFloat(val)));
@@ -2468,7 +2497,7 @@ export default function InventoryAddProductPage() {
                           className="text-xs md:text-sm"
                           placeholder="Enter quantity"
                           type="number"
-                          value={newCollection.quantity !== null && newCollection.quantity !== undefined ? newCollection.quantity : ""}
+                          value={newCollection.quantity !== null && newCollection.quantity !== undefined ? String(newCollection.quantity) : ""}
                           onChange={(e) => {
                             const val = e.target.value;
                             setNewCollection({
@@ -2489,7 +2518,7 @@ export default function InventoryAddProductPage() {
                           placeholder="Enter price"
                           type="number"
                           step="0.01"
-                          value={newCollection.price !== null && newCollection.price !== undefined ? newCollection.price : ""}
+                          value={newCollection.price !== null && newCollection.price !== undefined ? String(newCollection.price) : ""}
                           onChange={(e) => {
                             const val = e.target.value;
                             setNewCollection({
