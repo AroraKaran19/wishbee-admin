@@ -79,19 +79,19 @@ export default function InventoryAddProductPage() {
       images: [],
       status: "ACTIVE",
       isOrganic: false,
-      mrp: 0,
-      gst: 0,
+      mrp: null as number | null,
+      gst: null as number | null,
       pricing_range: [],
       discount: {
         type: "percentage",
-        value: 0,
+        value: null as number | null,
         startDate: "",
         endDate: "",
         isActive: true,
       },
-      stock: 0,
+      stock: null as number | null,
       weight: {
-        value: 0,
+        value: null as number | null,
         unit: "kg",
       },
       reviewsCount: 0,
@@ -123,14 +123,14 @@ export default function InventoryAddProductPage() {
   const [editingHighlightIndex, setEditingHighlightIndex] = useState<number | null>(null);
   const [keywordInput, setKeywordInput] = useState("");
   const [newCollection, setNewCollection] = useState({
-    quantity: 0,
-    price: 0,
+    quantity: null as number | null,
+    price: null as number | null,
     unit: "",
   });
   const [newPricingRange, setNewPricingRange] = useState({
-    quantity_start: 0,
-    quantity_end: 0,
-    price: 0,
+    quantity_start: null as number | null,
+    quantity_end: null as number | null,
+    price: null as number | null,
   });
   const [editingPricingRangeIndex, setEditingPricingRangeIndex] = useState<number | null>(null);
 
@@ -440,15 +440,15 @@ export default function InventoryAddProductPage() {
         ...productCollections,
         { ...newCollection },
       ]);
-      setNewCollection({ quantity: 0, price: 0, unit: "" });
+      setNewCollection({ quantity: null, price: null, unit: "" });
     }
   };
 
   const addPricingRange = () => {
     if (
-      newPricingRange.quantity_start > 0 &&
-      newPricingRange.quantity_end > 0 &&
-      newPricingRange.price > 0
+      newPricingRange.quantity_start !== null && newPricingRange.quantity_start !== undefined && newPricingRange.quantity_start > 0 &&
+      newPricingRange.quantity_end !== null && newPricingRange.quantity_end !== undefined && newPricingRange.quantity_end > 0 &&
+      newPricingRange.price !== null && newPricingRange.price !== undefined && newPricingRange.price > 0
     ) {
       const currentPricingRange = watch("pricing_range") || [];
       if (editingPricingRangeIndex !== null) {
@@ -464,7 +464,7 @@ export default function InventoryAddProductPage() {
           { ...newPricingRange },
         ]);
       }
-      setNewPricingRange({ quantity_start: 0, quantity_end: 0, price: 0 });
+      setNewPricingRange({ quantity_start: null, quantity_end: null, price: null });
     }
   };
 
@@ -1247,18 +1247,18 @@ export default function InventoryAddProductPage() {
         images: data.images,
         status: data.status,
         isOrganic: data.isOrganic,
-        mrp: Number(data.mrp),
-        gst: data.gst ? Number(data.gst) : undefined,
+        mrp: data.mrp !== null && data.mrp !== undefined ? Number(data.mrp) : 0,
+        gst: data.gst !== null && data.gst !== undefined ? Number(data.gst) : undefined,
         pricing_range: data.pricing_range.map((range) => ({
-          quantity_start: Number(range.quantity_start),
-          quantity_end: Number(range.quantity_end),
-          price: Number(range.price),
+          quantity_start: range.quantity_start !== null && range.quantity_start !== undefined ? Number(range.quantity_start) : 0,
+          quantity_end: range.quantity_end !== null && range.quantity_end !== undefined ? Number(range.quantity_end) : 0,
+          price: range.price !== null && range.price !== undefined ? Number(range.price) : 0,
         })),
         discount:
           showDiscountFields && data.discount
             ? {
                 type: data.discount.type,
-                value: Number(data.discount.value),
+                value: data.discount.value !== null && data.discount.value !== undefined ? Number(data.discount.value) : 0,
                 startDate: data.discount.startDate
                   ? new Date(data.discount.startDate)
                   : undefined,
@@ -1270,16 +1270,16 @@ export default function InventoryAddProductPage() {
             : undefined,
         minimumOrderQuantity: Number(data.minimumOrderQuantity) || 1,
         maximumOrderQuantity: Number(data.maximumOrderQuantity) || 100,
-        stock: Number(data.stock),
+        stock: data.stock !== null && data.stock !== undefined ? Number(data.stock) : 0,
         weight: {
-          value: Number(data.weight.value),
+          value: data.weight.value !== null && data.weight.value !== undefined ? Number(data.weight.value) : 0,
           unit: String(data.weight.unit || "kg"),
         },
         productCollections:
           data.productCollections && data.productCollections.length > 0
             ? data.productCollections.map((collection) => ({
-                quantity: Number(collection.quantity),
-                price: Number(collection.price),
+                quantity: collection.quantity !== null && collection.quantity !== undefined ? Number(collection.quantity) : 0,
+                price: collection.price !== null && collection.price !== undefined ? Number(collection.price) : 0,
                 unit: collection.unit,
               }))
             : undefined,
@@ -1832,14 +1832,14 @@ export default function InventoryAddProductPage() {
                             placeholder="Enter MRP"
                             type="number"
                             step="0.01"
-                            value={field.value === 0 ? "" : field.value || ""}
+                            value={field.value === null || field.value === undefined ? "" : field.value}
                             onChange={(e) => {
                               const value = e.target.value;
                               if (value === "" || value === null || value === undefined) {
-                                field.onChange("");
+                                field.onChange(null);
                               } else {
                                 const numValue = parseFloat(value);
-                                field.onChange(isNaN(numValue) ? "" : numValue);
+                                field.onChange(isNaN(numValue) ? null : numValue);
                               }
                             }}
                           />
@@ -1874,10 +1874,11 @@ export default function InventoryAddProductPage() {
                             <select
                               className="w-full pl-10 pr-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-gray-400 bg-muted text-sm"
                               {...field}
-                              onChange={(e) =>
-                                field.onChange(parseFloat(e.target.value) || 0)
-                              }
-                              value={field.value || 0}
+                              onChange={(e) => {
+                                const val = parseFloat(e.target.value);
+                                field.onChange(isNaN(val) ? null : val);
+                              }}
+                              value={field.value !== null && field.value !== undefined ? field.value : 0}
                             >
                               <option value={0}>0%</option>
                               <option value={5}>5%</option>
@@ -2040,13 +2041,14 @@ export default function InventoryAddProductPage() {
                           className="text-xs md:text-sm"
                           placeholder="Start quantity"
                           type="number"
-                          value={newPricingRange.quantity_start}
-                          onChange={(e) =>
+                          value={newPricingRange.quantity_start !== null && newPricingRange.quantity_start !== undefined ? newPricingRange.quantity_start : ""}
+                          onChange={(e) => {
+                            const val = e.target.value;
                             setNewPricingRange({
                               ...newPricingRange,
-                              quantity_start: parseInt(e.target.value) || 0,
-                            })
-                          }
+                              quantity_start: val === "" ? null : (isNaN(parseInt(val)) ? null : parseInt(val)),
+                            });
+                          }}
                         />
                       </div>
                       <div className="space-y-2">
@@ -2059,13 +2061,14 @@ export default function InventoryAddProductPage() {
                           className="text-xs md:text-sm"
                           placeholder="End quantity"
                           type="number"
-                          value={newPricingRange.quantity_end}
-                          onChange={(e) =>
+                          value={newPricingRange.quantity_end !== null && newPricingRange.quantity_end !== undefined ? newPricingRange.quantity_end : ""}
+                          onChange={(e) => {
+                            const val = e.target.value;
                             setNewPricingRange({
                               ...newPricingRange,
-                              quantity_end: parseInt(e.target.value) || 0,
-                            })
-                          }
+                              quantity_end: val === "" ? null : (isNaN(parseInt(val)) ? null : parseInt(val)),
+                            });
+                          }}
                         />
                       </div>
                       <div className="space-y-2">
@@ -2079,13 +2082,14 @@ export default function InventoryAddProductPage() {
                           placeholder="Price for this range"
                           type="number"
                           step="0.01"
-                          value={newPricingRange.price}
-                          onChange={(e) =>
+                          value={newPricingRange.price !== null && newPricingRange.price !== undefined ? newPricingRange.price : ""}
+                          onChange={(e) => {
+                            const val = e.target.value;
                             setNewPricingRange({
                               ...newPricingRange,
-                              price: parseFloat(e.target.value) || 0,
-                            })
-                          }
+                              price: val === "" ? null : (isNaN(parseFloat(val)) ? null : parseFloat(val)),
+                            });
+                          }}
                         />
                       </div>
                       <div className="space-y-2">
@@ -2217,7 +2221,17 @@ export default function InventoryAddProductPage() {
                             value: 0,
                             message: "Stock must be non-negative",
                           },
+                          setValueAs: (v) => {
+                            if (v === "" || v === null || v === undefined) return null;
+                            const num = parseFloat(v);
+                            return isNaN(num) ? null : num;
+                          },
                         })}
+                        value={watch("stock") !== null && watch("stock") !== undefined ? watch("stock") : ""}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setValue("stock", val === "" ? null : (isNaN(parseFloat(val)) ? null : parseFloat(val)));
+                        }}
                       />
                       {errors.stock && (
                         <p className="text-red-500 text-xs mt-1">
@@ -2390,9 +2404,11 @@ export default function InventoryAddProductPage() {
                             type="number"
                             step="0.01"
                             {...field}
-                            onChange={(e) =>
-                              field.onChange(parseFloat(e.target.value) || 0)
-                            }
+                            value={field.value !== null && field.value !== undefined ? field.value : ""}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              field.onChange(val === "" ? null : (isNaN(parseFloat(val)) ? null : parseFloat(val)));
+                            }}
                           />
                         )}
                       />
@@ -2452,13 +2468,14 @@ export default function InventoryAddProductPage() {
                           className="text-xs md:text-sm"
                           placeholder="Enter quantity"
                           type="number"
-                          value={newCollection.quantity}
-                          onChange={(e) =>
+                          value={newCollection.quantity !== null && newCollection.quantity !== undefined ? newCollection.quantity : ""}
+                          onChange={(e) => {
+                            const val = e.target.value;
                             setNewCollection({
                               ...newCollection,
-                              quantity: parseInt(e.target.value) || 0,
-                            })
-                          }
+                              quantity: val === "" ? null : (isNaN(parseInt(val)) ? null : parseInt(val)),
+                            });
+                          }}
                         />
                       </div>
                       <div className="space-y-2">
@@ -2472,13 +2489,14 @@ export default function InventoryAddProductPage() {
                           placeholder="Enter price"
                           type="number"
                           step="0.01"
-                          value={newCollection.price}
-                          onChange={(e) =>
+                          value={newCollection.price !== null && newCollection.price !== undefined ? newCollection.price : ""}
+                          onChange={(e) => {
+                            const val = e.target.value;
                             setNewCollection({
                               ...newCollection,
-                              price: parseFloat(e.target.value) || 0,
-                            })
-                          }
+                              price: val === "" ? null : (isNaN(parseFloat(val)) ? null : parseFloat(val)),
+                            });
+                          }}
                         />
                       </div>
                       <div className="space-y-2">
@@ -2536,14 +2554,15 @@ export default function InventoryAddProductPage() {
                                     variant="muted"
                                     className="text-sm"
                                     type="number"
-                                    value={collection.quantity}
-                                    onChange={(e) =>
+                                    value={collection.quantity !== null && collection.quantity !== undefined ? collection.quantity : ""}
+                                    onChange={(e) => {
+                                      const val = e.target.value;
                                       updateCollection(
                                         index,
                                         "quantity",
-                                        parseInt(e.target.value) || 0
-                                      )
-                                    }
+                                        val === "" ? null : (isNaN(parseInt(val)) ? null : parseInt(val))
+                                      );
+                                    }}
                                   />
                                 </div>
                                 <div>
@@ -2555,14 +2574,15 @@ export default function InventoryAddProductPage() {
                                     className="text-sm"
                                     type="number"
                                     step="0.01"
-                                    value={collection.price}
-                                    onChange={(e) =>
+                                    value={collection.price !== null && collection.price !== undefined ? collection.price : ""}
+                                    onChange={(e) => {
+                                      const val = e.target.value;
                                       updateCollection(
                                         index,
                                         "price",
-                                        parseFloat(e.target.value) || 0
-                                      )
-                                    }
+                                        val === "" ? null : (isNaN(parseFloat(val)) ? null : parseFloat(val))
+                                      );
+                                    }}
                                   />
                                 </div>
                                 <div>
