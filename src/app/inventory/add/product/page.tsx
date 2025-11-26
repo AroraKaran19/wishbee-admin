@@ -143,7 +143,9 @@ export default function InventoryAddProductPage() {
 
   const [highlightKeyInput, setHighlightKeyInput] = useState("");
   const [highlightValueInput, setHighlightValueInput] = useState("");
-  const [editingHighlightIndex, setEditingHighlightIndex] = useState<number | null>(null);
+  const [editingHighlightIndex, setEditingHighlightIndex] = useState<
+    number | null
+  >(null);
   const [keywordInput, setKeywordInput] = useState("");
   const [newCollection, setNewCollection] = useState({
     quantity: null as number | null,
@@ -155,7 +157,9 @@ export default function InventoryAddProductPage() {
     quantity_end: null as number | null,
     price: null as number | null,
   });
-  const [editingPricingRangeIndex, setEditingPricingRangeIndex] = useState<number | null>(null);
+  const [editingPricingRangeIndex, setEditingPricingRangeIndex] = useState<
+    number | null
+  >(null);
 
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitSuccess, setSubmitSuccess] = useState(false);
@@ -176,7 +180,9 @@ export default function InventoryAddProductPage() {
   const [showCategoryModal, setShowCategoryModal] = useState(false);
   const [showSubcategoryModal, setShowSubcategoryModal] = useState(false);
   const [editingCategory, setEditingCategory] = useState<any | null>(null);
-  const [editingSubcategory, setEditingSubcategory] = useState<any | null>(null);
+  const [editingSubcategory, setEditingSubcategory] = useState<any | null>(
+    null
+  );
   const [uploadingImages, setUploadingImages] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<{
     [key: string]: number;
@@ -459,8 +465,12 @@ export default function InventoryAddProductPage() {
 
   const addCollection = () => {
     if (
-      newCollection.quantity !== null && newCollection.quantity !== undefined && newCollection.quantity > 0 &&
-      newCollection.price !== null && newCollection.price !== undefined && newCollection.price > 0
+      newCollection.quantity !== null &&
+      newCollection.quantity !== undefined &&
+      newCollection.quantity > 0 &&
+      newCollection.price !== null &&
+      newCollection.price !== undefined &&
+      newCollection.price > 0
     ) {
       setValue("productCollections", [
         ...productCollections,
@@ -472,9 +482,15 @@ export default function InventoryAddProductPage() {
 
   const addPricingRange = () => {
     if (
-      newPricingRange.quantity_start !== null && newPricingRange.quantity_start !== undefined && newPricingRange.quantity_start > 0 &&
-      newPricingRange.quantity_end !== null && newPricingRange.quantity_end !== undefined && newPricingRange.quantity_end > 0 &&
-      newPricingRange.price !== null && newPricingRange.price !== undefined && newPricingRange.price > 0
+      newPricingRange.quantity_start !== null &&
+      newPricingRange.quantity_start !== undefined &&
+      newPricingRange.quantity_start > 0 &&
+      newPricingRange.quantity_end !== null &&
+      newPricingRange.quantity_end !== undefined &&
+      newPricingRange.quantity_end > 0 &&
+      newPricingRange.price !== null &&
+      newPricingRange.price !== undefined &&
+      newPricingRange.price > 0
     ) {
       const currentPricingRange = watch("pricing_range") || [];
       if (editingPricingRangeIndex !== null) {
@@ -490,7 +506,11 @@ export default function InventoryAddProductPage() {
           { ...newPricingRange },
         ]);
       }
-      setNewPricingRange({ quantity_start: null, quantity_end: null, price: null });
+      setNewPricingRange({
+        quantity_start: null,
+        quantity_end: null,
+        price: null,
+      });
     }
   };
 
@@ -1109,26 +1129,42 @@ export default function InventoryAddProductPage() {
       errors.push("At least one pricing range is required");
     } else {
       data.pricing_range.forEach((range, index) => {
-        if (range.quantity_start === null || range.quantity_start === undefined || range.quantity_start <= 0) {
+        if (
+          range.quantity_start === null ||
+          range.quantity_start === undefined ||
+          range.quantity_start <= 0
+        ) {
           errors.push(
             `Pricing range ${index + 1}: Quantity start must be greater than 0`
           );
         }
-        if (range.quantity_end === null || range.quantity_end === undefined || range.quantity_end <= 0) {
+        if (
+          range.quantity_end === null ||
+          range.quantity_end === undefined ||
+          range.quantity_end <= 0
+        ) {
           errors.push(
             `Pricing range ${index + 1}: Quantity end must be greater than 0`
           );
         }
-        if (range.quantity_start !== null && range.quantity_start !== undefined && 
-            range.quantity_end !== null && range.quantity_end !== undefined &&
-            range.quantity_start >= range.quantity_end) {
+        if (
+          range.quantity_start !== null &&
+          range.quantity_start !== undefined &&
+          range.quantity_end !== null &&
+          range.quantity_end !== undefined &&
+          range.quantity_start >= range.quantity_end
+        ) {
           errors.push(
             `Pricing range ${
               index + 1
             }: Quantity start must be less than quantity end`
           );
         }
-        if (range.price === null || range.price === undefined || range.price <= 0) {
+        if (
+          range.price === null ||
+          range.price === undefined ||
+          range.price <= 0
+        ) {
           errors.push(
             `Pricing range ${index + 1}: Price must be greater than 0`
           );
@@ -1173,7 +1209,11 @@ export default function InventoryAddProductPage() {
 
     // Discount validation (only if discount fields are shown)
     if (showDiscountFields && data.discount) {
-      if (data.discount.value !== null && data.discount.value !== undefined && data.discount.value < 0) {
+      if (
+        data.discount.value !== null &&
+        data.discount.value !== undefined &&
+        data.discount.value < 0
+      ) {
         errors.push("Discount value cannot be negative");
       }
       if (data.discount.startDate && data.discount.endDate) {
@@ -1188,12 +1228,20 @@ export default function InventoryAddProductPage() {
     // Product Collections validation (matching API: optional but if provided, must be valid)
     if (data.productCollections && data.productCollections.length > 0) {
       data.productCollections.forEach((item, index) => {
-        if (item.quantity === null || item.quantity === undefined || item.quantity <= 0) {
+        if (
+          item.quantity === null ||
+          item.quantity === undefined ||
+          item.quantity <= 0
+        ) {
           errors.push(
             `Collection item ${index + 1}: Quantity must be greater than 0`
           );
         }
-        if (item.price === null || item.price === undefined || item.price <= 0) {
+        if (
+          item.price === null ||
+          item.price === undefined ||
+          item.price <= 0
+        ) {
           errors.push(
             `Collection item ${index + 1}: Price must be greater than 0`
           );
@@ -1236,7 +1284,7 @@ export default function InventoryAddProductPage() {
         name: string;
         type: "product";
         description: string;
-        highlights: { key: string; value: string; }[];
+        highlights: { key: string; value: string }[];
         category: string;
         subCategory?: string;
         images: string[];
@@ -1244,13 +1292,27 @@ export default function InventoryAddProductPage() {
         isOrganic: boolean;
         mrp: number;
         gst?: number;
-        pricing_range: { quantity_start: number; quantity_end: number; price: number; }[];
-        discount?: { type: "percentage" | "fixed"; value: number; startDate?: Date; endDate?: Date; isActive: boolean; };
+        pricing_range: {
+          quantity_start: number;
+          quantity_end: number;
+          price: number;
+        }[];
+        discount?: {
+          type: "percentage" | "fixed";
+          value: number;
+          startDate?: Date;
+          endDate?: Date;
+          isActive: boolean;
+        };
         stock: number;
-        weight: { value: number; unit: string; };
+        weight: { value: number; unit: string };
         minimumOrderQuantity?: number;
         maximumOrderQuantity?: number;
-        productCollections?: { quantity: number; price: number; unit?: string; }[];
+        productCollections?: {
+          quantity: number;
+          price: number;
+          unit?: string;
+        }[];
         alertExpiry?: number;
         expiry?: Date;
         metaTitle?: string;
@@ -1271,22 +1333,40 @@ export default function InventoryAddProductPage() {
         description: data.description?.trim() || "",
         highlights: data.highlights,
         category: data.categoryId,
-        ...(data.subCategoryId?.trim() && { subCategory: data.subCategoryId.trim() }),
+        ...(data.subCategoryId?.trim() && {
+          subCategory: data.subCategoryId.trim(),
+        }),
         images: data.images,
         status: data.status,
         isOrganic: data.isOrganic,
         mrp: data.mrp !== null && data.mrp !== undefined ? Number(data.mrp) : 0,
-        gst: data.gst !== null && data.gst !== undefined ? Number(data.gst) : undefined,
+        gst:
+          data.gst !== null && data.gst !== undefined
+            ? Number(data.gst)
+            : undefined,
         pricing_range: data.pricing_range.map((range) => ({
-          quantity_start: range.quantity_start !== null && range.quantity_start !== undefined ? Number(range.quantity_start) : 0,
-          quantity_end: range.quantity_end !== null && range.quantity_end !== undefined ? Number(range.quantity_end) : 0,
-          price: range.price !== null && range.price !== undefined ? Number(range.price) : 0,
+          quantity_start:
+            range.quantity_start !== null && range.quantity_start !== undefined
+              ? Number(range.quantity_start)
+              : 0,
+          quantity_end:
+            range.quantity_end !== null && range.quantity_end !== undefined
+              ? Number(range.quantity_end)
+              : 0,
+          price:
+            range.price !== null && range.price !== undefined
+              ? Number(range.price)
+              : 0,
         })),
         discount:
           showDiscountFields && data.discount
             ? {
                 type: data.discount.type,
-                value: data.discount.value !== null && data.discount.value !== undefined ? Number(data.discount.value) : 0,
+                value:
+                  data.discount.value !== null &&
+                  data.discount.value !== undefined
+                    ? Number(data.discount.value)
+                    : 0,
                 startDate: data.discount.startDate
                   ? new Date(data.discount.startDate)
                   : undefined,
@@ -1298,16 +1378,29 @@ export default function InventoryAddProductPage() {
             : undefined,
         minimumOrderQuantity: Number(data.minimumOrderQuantity) || 1,
         maximumOrderQuantity: Number(data.maximumOrderQuantity) || 100,
-        stock: data.stock !== null && data.stock !== undefined ? Number(data.stock) : 0,
+        stock:
+          data.stock !== null && data.stock !== undefined
+            ? Number(data.stock)
+            : 0,
         weight: {
-          value: data.weight.value !== null && data.weight.value !== undefined ? Number(data.weight.value) : 0,
+          value:
+            data.weight.value !== null && data.weight.value !== undefined
+              ? Number(data.weight.value)
+              : 0,
           unit: String(data.weight.unit || "kg"),
         },
         productCollections:
           data.productCollections && data.productCollections.length > 0
             ? data.productCollections.map((collection) => ({
-                quantity: collection.quantity !== null && collection.quantity !== undefined ? Number(collection.quantity) : 0,
-                price: collection.price !== null && collection.price !== undefined ? Number(collection.price) : 0,
+                quantity:
+                  collection.quantity !== null &&
+                  collection.quantity !== undefined
+                    ? Number(collection.quantity)
+                    : 0,
+                price:
+                  collection.price !== null && collection.price !== undefined
+                    ? Number(collection.price)
+                    : 0,
                 unit: collection.unit,
               }))
             : undefined,
@@ -1360,7 +1453,9 @@ export default function InventoryAddProductPage() {
             >
               <ArrowLeft className="w-4 h-4" />
             </button>
-            <h1 className="text-lg md:text-xl font-semibold text-gray-900">Add Product</h1>
+            <h1 className="text-lg md:text-xl font-semibold text-gray-900">
+              Add Product
+            </h1>
           </div>
           <p className="text-gray-500 mt-1 text-xs md:text-sm">
             Add new items to your inventory with complete details.
@@ -1634,7 +1729,10 @@ export default function InventoryAddProductPage() {
                     </div>
                     <div className="space-y-2">
                       <label className="text-sm font-medium text-gray-700">
-                        Sub-category <span className="text-gray-500 text-xs">(Optional)</span>
+                        Sub-category{" "}
+                        <span className="text-gray-500 text-xs">
+                          (Optional)
+                        </span>
                       </label>
                       <ActionDropdown
                         options={subcategoryOptions}
@@ -1685,11 +1783,13 @@ export default function InventoryAddProductPage() {
                           required: "Description is required",
                           minLength: {
                             value: 10,
-                            message: "Description must be at least 10 characters long",
+                            message:
+                              "Description must be at least 10 characters long",
                           },
                           maxLength: {
                             value: 1000,
-                            message: "Description must be less than 1000 characters",
+                            message:
+                              "Description must be less than 1000 characters",
                           },
                         })}
                         rows={3}
@@ -1774,7 +1874,9 @@ export default function InventoryAddProductPage() {
                                   : ""
                               }`}
                             >
-                              {editingHighlightIndex !== null ? "Update Highlight" : "Add Highlight"}
+                              {editingHighlightIndex !== null
+                                ? "Update Highlight"
+                                : "Add Highlight"}
                             </Button>
                             {editingHighlightIndex !== null && (
                               <Button
@@ -1860,14 +1962,24 @@ export default function InventoryAddProductPage() {
                             placeholder="Enter MRP"
                             type="number"
                             step="0.01"
-                            value={field.value === null || field.value === undefined ? "" : field.value}
+                            value={
+                              field.value === null || field.value === undefined
+                                ? ""
+                                : field.value
+                            }
                             onChange={(e) => {
                               const value = e.target.value;
-                              if (value === "" || value === null || value === undefined) {
+                              if (
+                                value === "" ||
+                                value === null ||
+                                value === undefined
+                              ) {
                                 field.onChange(null);
                               } else {
                                 const numValue = parseFloat(value);
-                                field.onChange(isNaN(numValue) ? null : numValue);
+                                field.onChange(
+                                  isNaN(numValue) ? null : numValue
+                                );
                               }
                             }}
                           />
@@ -1906,7 +2018,12 @@ export default function InventoryAddProductPage() {
                                 const val = parseFloat(e.target.value);
                                 field.onChange(isNaN(val) ? null : val);
                               }}
-                              value={field.value !== null && field.value !== undefined ? field.value : 0}
+                              value={
+                                field.value !== null &&
+                                field.value !== undefined
+                                  ? field.value
+                                  : 0
+                              }
                             >
                               <option value={0}>0%</option>
                               <option value={5}>5%</option>
@@ -1989,10 +2106,21 @@ export default function InventoryAddProductPage() {
                                   placeholder="Enter discount value"
                                   type="number"
                                   step="0.01"
-                                  value={field.value !== null && field.value !== undefined ? String(field.value) : ""}
+                                  value={
+                                    field.value !== null &&
+                                    field.value !== undefined
+                                      ? String(field.value)
+                                      : ""
+                                  }
                                   onChange={(e) => {
                                     const val = e.target.value;
-                                    field.onChange(val === "" ? null : (isNaN(parseFloat(val)) ? null : parseFloat(val)));
+                                    field.onChange(
+                                      val === ""
+                                        ? null
+                                        : isNaN(parseFloat(val))
+                                        ? null
+                                        : parseFloat(val)
+                                    );
                                   }}
                                   onBlur={field.onBlur}
                                   name={field.name}
@@ -2070,12 +2198,22 @@ export default function InventoryAddProductPage() {
                           className="text-xs md:text-sm"
                           placeholder="Start quantity"
                           type="number"
-                          value={newPricingRange.quantity_start !== null && newPricingRange.quantity_start !== undefined ? String(newPricingRange.quantity_start) : ""}
+                          value={
+                            newPricingRange.quantity_start !== null &&
+                            newPricingRange.quantity_start !== undefined
+                              ? String(newPricingRange.quantity_start)
+                              : ""
+                          }
                           onChange={(e) => {
                             const val = e.target.value;
                             setNewPricingRange({
                               ...newPricingRange,
-                              quantity_start: val === "" ? null : (isNaN(parseInt(val)) ? null : parseInt(val)),
+                              quantity_start:
+                                val === ""
+                                  ? null
+                                  : isNaN(parseInt(val))
+                                  ? null
+                                  : parseInt(val),
                             });
                           }}
                         />
@@ -2090,12 +2228,22 @@ export default function InventoryAddProductPage() {
                           className="text-xs md:text-sm"
                           placeholder="End quantity"
                           type="number"
-                          value={newPricingRange.quantity_end !== null && newPricingRange.quantity_end !== undefined ? String(newPricingRange.quantity_end) : ""}
+                          value={
+                            newPricingRange.quantity_end !== null &&
+                            newPricingRange.quantity_end !== undefined
+                              ? String(newPricingRange.quantity_end)
+                              : ""
+                          }
                           onChange={(e) => {
                             const val = e.target.value;
                             setNewPricingRange({
                               ...newPricingRange,
-                              quantity_end: val === "" ? null : (isNaN(parseInt(val)) ? null : parseInt(val)),
+                              quantity_end:
+                                val === ""
+                                  ? null
+                                  : isNaN(parseInt(val))
+                                  ? null
+                                  : parseInt(val),
                             });
                           }}
                         />
@@ -2111,12 +2259,22 @@ export default function InventoryAddProductPage() {
                           placeholder="Price for this range"
                           type="number"
                           step="0.01"
-                          value={newPricingRange.price !== null && newPricingRange.price !== undefined ? String(newPricingRange.price) : ""}
+                          value={
+                            newPricingRange.price !== null &&
+                            newPricingRange.price !== undefined
+                              ? String(newPricingRange.price)
+                              : ""
+                          }
                           onChange={(e) => {
                             const val = e.target.value;
                             setNewPricingRange({
                               ...newPricingRange,
-                              price: val === "" ? null : (isNaN(parseFloat(val)) ? null : parseFloat(val)),
+                              price:
+                                val === ""
+                                  ? null
+                                  : isNaN(parseFloat(val))
+                                  ? null
+                                  : parseFloat(val),
                             });
                           }}
                         />
@@ -2137,7 +2295,9 @@ export default function InventoryAddProductPage() {
                                 : ""
                             }`}
                           >
-                            {editingPricingRangeIndex !== null ? "Update Range" : "Add Range"}
+                            {editingPricingRangeIndex !== null
+                              ? "Update Range"
+                              : "Add Range"}
                           </Button>
                           {editingPricingRangeIndex !== null && (
                             <Button
@@ -2178,7 +2338,8 @@ export default function InventoryAddProductPage() {
                                         Quantity Range
                                       </p>
                                       <p className="text-sm font-semibold text-gray-900">
-                                        {range.quantity_start} - {range.quantity_end}
+                                        {range.quantity_start} -{" "}
+                                        {range.quantity_end}
                                       </p>
                                     </div>
                                   </div>
@@ -2207,7 +2368,9 @@ export default function InventoryAddProductPage() {
                                     }`}
                                     title="Edit pricing range"
                                   >
-                                    {editingPricingRangeIndex === index ? "Editing..." : "Edit"}
+                                    {editingPricingRangeIndex === index
+                                      ? "Editing..."
+                                      : "Edit"}
                                   </Button>
                                   <Button
                                     type="button"
@@ -2251,15 +2414,28 @@ export default function InventoryAddProductPage() {
                             message: "Stock must be non-negative",
                           },
                           setValueAs: (v) => {
-                            if (v === "" || v === null || v === undefined) return null;
+                            if (v === "" || v === null || v === undefined)
+                              return null;
                             const num = parseFloat(v);
                             return isNaN(num) ? null : num;
                           },
                         })}
-                        value={watch("stock") !== null && watch("stock") !== undefined ? String(watch("stock")) : ""}
+                        value={
+                          watch("stock") !== null &&
+                          watch("stock") !== undefined
+                            ? String(watch("stock"))
+                            : ""
+                        }
                         onChange={(e) => {
                           const val = e.target.value;
-                          setValue("stock", val === "" ? null : (isNaN(parseFloat(val)) ? null : parseFloat(val)));
+                          setValue(
+                            "stock",
+                            val === ""
+                              ? null
+                              : isNaN(parseFloat(val))
+                              ? null
+                              : parseFloat(val)
+                          );
                         }}
                       />
                       {errors.stock && (
@@ -2433,10 +2609,20 @@ export default function InventoryAddProductPage() {
                             type="number"
                             step="0.01"
                             {...field}
-                            value={field.value !== null && field.value !== undefined ? field.value : ""}
+                            value={
+                              field.value !== null && field.value !== undefined
+                                ? field.value
+                                : ""
+                            }
                             onChange={(e) => {
                               const val = e.target.value;
-                              field.onChange(val === "" ? null : (isNaN(parseFloat(val)) ? null : parseFloat(val)));
+                              field.onChange(
+                                val === ""
+                                  ? null
+                                  : isNaN(parseFloat(val))
+                                  ? null
+                                  : parseFloat(val)
+                              );
                             }}
                           />
                         )}
@@ -2477,177 +2663,215 @@ export default function InventoryAddProductPage() {
 
                 {/* Collection Information */}
                 {false && (
-                <div className="space-y-4">
-                  <h3 className="text-base md:text-lg font-medium text-gray-900">
-                    Collection Information
-                  </h3>
-                  <p className="text-xs md:text-sm text-gray-500">
-                    Add different collection options for this product (e.g.,
-                    5kg, 2 packets, etc.)
-                  </p>
                   <div className="space-y-4">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-                      <div className="space-y-2">
-                        <label className="text-xs md:text-sm font-medium text-gray-700">
-                          Quantity
-                        </label>
-                        <Input
-                          variant="muted"
-                          icon={<Package className="w-4 h-4" />}
-                          className="text-xs md:text-sm"
-                          placeholder="Enter quantity"
-                          type="number"
-                          value={newCollection.quantity !== null && newCollection.quantity !== undefined ? String(newCollection.quantity) : ""}
-                          onChange={(e) => {
-                            const val = e.target.value;
-                            setNewCollection({
-                              ...newCollection,
-                              quantity: val === "" ? null : (isNaN(parseInt(val)) ? null : parseInt(val)),
-                            });
-                          }}
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <label className="text-xs md:text-sm font-medium text-gray-700">
-                          Price
-                        </label>
-                        <Input
-                          variant="muted"
-                          icon={<IndianRupee className="w-4 h-4" />}
-                          className="text-xs md:text-sm"
-                          placeholder="Enter price"
-                          type="number"
-                          step="0.01"
-                          value={newCollection.price !== null && newCollection.price !== undefined ? String(newCollection.price) : ""}
-                          onChange={(e) => {
-                            const val = e.target.value;
-                            setNewCollection({
-                              ...newCollection,
-                              price: val === "" ? null : (isNaN(parseFloat(val)) ? null : parseFloat(val)),
-                            });
-                          }}
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <label className="text-xs md:text-sm font-medium text-gray-700">
-                          Unit
-                        </label>
-                        <Input
-                          variant="muted"
-                          icon={<Weight className="w-4 h-4" />}
-                          className="text-xs md:text-sm"
-                          placeholder="e.g., kg, packets"
-                          value={newCollection.unit}
-                          onChange={(e) =>
-                            setNewCollection({
-                              ...newCollection,
-                              unit: e.target.value,
-                            })
-                          }
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <label className="text-xs md:text-sm font-medium text-gray-700">
-                          Action
-                        </label>
-                        <Button
-                          type="button"
-                          variant="secondary"
-                          onClick={addCollection}
-                          icon={<Plus className="w-4 h-4" />}
-                          className="w-full text-xs md:text-sm"
-                        >
-                          Add Collection
-                        </Button>
-                      </div>
-                    </div>
-
-                    {/* Collection List */}
-                    {productCollections.length > 0 && (
-                      <div className="space-y-2">
-                        <label className="text-sm font-medium text-gray-700">
-                          Added Collections
-                        </label>
+                    <h3 className="text-base md:text-lg font-medium text-gray-900">
+                      Collection Information
+                    </h3>
+                    <p className="text-xs md:text-sm text-gray-500">
+                      Add different collection options for this product (e.g.,
+                      5kg, 2 packets, etc.)
+                    </p>
+                    <div className="space-y-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
                         <div className="space-y-2">
-                          {productCollections.map((collection, index) => (
-                            <div
-                              key={index}
-                              className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4 p-3 bg-gray-50 rounded-lg border border-gray-200"
-                            >
-                              <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
-                                <div>
-                                  <label className="text-xs text-gray-500">
-                                    Quantity
-                                  </label>
-                                  <Input
-                                    variant="muted"
-                                    className="text-sm"
-                                    type="number"
-                                    value={collection.quantity !== null && collection.quantity !== undefined ? collection.quantity : ""}
-                                    onChange={(e) => {
-                                      const val = e.target.value;
-                                      updateCollection(
-                                        index,
-                                        "quantity",
-                                        val === "" ? null : (isNaN(parseInt(val)) ? null : parseInt(val))
-                                      );
-                                    }}
-                                  />
-                                </div>
-                                <div>
-                                  <label className="text-xs text-gray-500">
-                                    Price
-                                  </label>
-                                  <Input
-                                    variant="muted"
-                                    className="text-sm"
-                                    type="number"
-                                    step="0.01"
-                                    value={collection.price !== null && collection.price !== undefined ? collection.price : ""}
-                                    onChange={(e) => {
-                                      const val = e.target.value;
-                                      updateCollection(
-                                        index,
-                                        "price",
-                                        val === "" ? null : (isNaN(parseFloat(val)) ? null : parseFloat(val))
-                                      );
-                                    }}
-                                  />
-                                </div>
-                                <div>
-                                  <label className="text-xs text-gray-500">
-                                    Unit
-                                  </label>
-                                  <Input
-                                    variant="muted"
-                                    className="text-sm"
-                                    value={collection.unit || ""}
-                                    onChange={(e) =>
-                                      updateCollection(
-                                        index,
-                                        "unit",
-                                        e.target.value
-                                      )
-                                    }
-                                  />
-                                </div>
-                              </div>
-                              <Button
-                                type="button"
-                                variant="secondary"
-                                onClick={() => removeCollection(index)}
-                                icon={<X className="w-4 h-4" />}
-                                className="px-2 py-1"
-                              >
-                                Remove
-                              </Button>
-                            </div>
-                          ))}
+                          <label className="text-xs md:text-sm font-medium text-gray-700">
+                            Quantity
+                          </label>
+                          <Input
+                            variant="muted"
+                            icon={<Package className="w-4 h-4" />}
+                            className="text-xs md:text-sm"
+                            placeholder="Enter quantity"
+                            type="number"
+                            value={
+                              newCollection.quantity !== null &&
+                              newCollection.quantity !== undefined
+                                ? String(newCollection.quantity)
+                                : ""
+                            }
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              setNewCollection({
+                                ...newCollection,
+                                quantity:
+                                  val === ""
+                                    ? null
+                                    : isNaN(parseInt(val))
+                                    ? null
+                                    : parseInt(val),
+                              });
+                            }}
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-xs md:text-sm font-medium text-gray-700">
+                            Price
+                          </label>
+                          <Input
+                            variant="muted"
+                            icon={<IndianRupee className="w-4 h-4" />}
+                            className="text-xs md:text-sm"
+                            placeholder="Enter price"
+                            type="number"
+                            step="0.01"
+                            value={
+                              newCollection.price !== null &&
+                              newCollection.price !== undefined
+                                ? String(newCollection.price)
+                                : ""
+                            }
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              setNewCollection({
+                                ...newCollection,
+                                price:
+                                  val === ""
+                                    ? null
+                                    : isNaN(parseFloat(val))
+                                    ? null
+                                    : parseFloat(val),
+                              });
+                            }}
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-xs md:text-sm font-medium text-gray-700">
+                            Unit
+                          </label>
+                          <Input
+                            variant="muted"
+                            icon={<Weight className="w-4 h-4" />}
+                            className="text-xs md:text-sm"
+                            placeholder="e.g., kg, packets"
+                            value={newCollection.unit}
+                            onChange={(e) =>
+                              setNewCollection({
+                                ...newCollection,
+                                unit: e.target.value,
+                              })
+                            }
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-xs md:text-sm font-medium text-gray-700">
+                            Action
+                          </label>
+                          <Button
+                            type="button"
+                            variant="secondary"
+                            onClick={addCollection}
+                            icon={<Plus className="w-4 h-4" />}
+                            className="w-full text-xs md:text-sm"
+                          >
+                            Add Collection
+                          </Button>
                         </div>
                       </div>
-                    )}
+
+                      {/* Collection List */}
+                      {productCollections.length > 0 && (
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium text-gray-700">
+                            Added Collections
+                          </label>
+                          <div className="space-y-2">
+                            {productCollections.map((collection, index) => (
+                              <div
+                                key={index}
+                                className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4 p-3 bg-gray-50 rounded-lg border border-gray-200"
+                              >
+                                <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
+                                  <div>
+                                    <label className="text-xs text-gray-500">
+                                      Quantity
+                                    </label>
+                                    <Input
+                                      variant="muted"
+                                      className="text-sm"
+                                      type="number"
+                                      value={
+                                        collection.quantity !== null &&
+                                        collection.quantity !== undefined
+                                          ? collection.quantity
+                                          : ""
+                                      }
+                                      onChange={(e) => {
+                                        const val = e.target.value;
+                                        updateCollection(
+                                          index,
+                                          "quantity",
+                                          val === ""
+                                            ? null
+                                            : isNaN(parseInt(val))
+                                            ? null
+                                            : parseInt(val)
+                                        );
+                                      }}
+                                    />
+                                  </div>
+                                  <div>
+                                    <label className="text-xs text-gray-500">
+                                      Price
+                                    </label>
+                                    <Input
+                                      variant="muted"
+                                      className="text-sm"
+                                      type="number"
+                                      step="0.01"
+                                      value={
+                                        collection.price !== null &&
+                                        collection.price !== undefined
+                                          ? collection.price
+                                          : ""
+                                      }
+                                      onChange={(e) => {
+                                        const val = e.target.value;
+                                        updateCollection(
+                                          index,
+                                          "price",
+                                          val === ""
+                                            ? null
+                                            : isNaN(parseFloat(val))
+                                            ? null
+                                            : parseFloat(val)
+                                        );
+                                      }}
+                                    />
+                                  </div>
+                                  <div>
+                                    <label className="text-xs text-gray-500">
+                                      Unit
+                                    </label>
+                                    <Input
+                                      variant="muted"
+                                      className="text-sm"
+                                      value={collection.unit || ""}
+                                      onChange={(e) =>
+                                        updateCollection(
+                                          index,
+                                          "unit",
+                                          e.target.value
+                                        )
+                                      }
+                                    />
+                                  </div>
+                                </div>
+                                <Button
+                                  type="button"
+                                  variant="secondary"
+                                  onClick={() => removeCollection(index)}
+                                  icon={<X className="w-4 h-4" />}
+                                  className="px-2 py-1"
+                                >
+                                  Remove
+                                </Button>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   </div>
-                </div>
                 )}
 
                 {/* SEO Information */}
@@ -2935,7 +3159,11 @@ function CreateCategoryModal({
     if (!formData.name || !formData.slug) return;
 
     // Validate description length if provided
-    if (formData.description && formData.description.length > 0 && formData.description.length < 10) {
+    if (
+      formData.description &&
+      formData.description.length > 0 &&
+      formData.description.length < 10
+    ) {
       toast.error("Description must be at least 10 characters long");
       return;
     }
@@ -2948,9 +3176,14 @@ function CreateCategoryModal({
         await onCreate(formData);
       }
     } catch (error) {
-      console.error(`Error ${isEditMode ? "updating" : "creating"} category:`, error);
+      console.error(
+        `Error ${isEditMode ? "updating" : "creating"} category:`,
+        error
+      );
       toast.error(
-        error instanceof Error ? error.message : `Failed to ${isEditMode ? "update" : "create"} category`
+        error instanceof Error
+          ? error.message
+          : `Failed to ${isEditMode ? "update" : "create"} category`
       );
     } finally {
       setIsSubmitting(false);
@@ -3236,7 +3469,8 @@ function CreateSubcategoryModal({
       setFormData({
         name: initialData.name || "",
         description: initialData.description || "",
-        parentCategoryId: initialData.parentCategory || selectedCategoryId || "",
+        parentCategoryId:
+          initialData.parentCategory || selectedCategoryId || "",
         slug: initialData.slug || "",
         image: initialData.image || "",
       });
@@ -3265,15 +3499,14 @@ function CreateSubcategoryModal({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (
-      !formData.name ||
-      !formData.parentCategoryId ||
-      !formData.slug
-    )
-      return;
+    if (!formData.name || !formData.parentCategoryId || !formData.slug) return;
 
     // Validate description length if provided
-    if (formData.description && formData.description.length > 0 && formData.description.length < 10) {
+    if (
+      formData.description &&
+      formData.description.length > 0 &&
+      formData.description.length < 10
+    ) {
       toast.error("Description must be at least 10 characters long");
       return;
     }
@@ -3286,9 +3519,14 @@ function CreateSubcategoryModal({
         await onCreate(formData);
       }
     } catch (error) {
-      console.error(`Error ${isEditMode ? "updating" : "creating"} subcategory:`, error);
+      console.error(
+        `Error ${isEditMode ? "updating" : "creating"} subcategory:`,
+        error
+      );
       toast.error(
-        error instanceof Error ? error.message : `Failed to ${isEditMode ? "update" : "create"} subcategory`
+        error instanceof Error
+          ? error.message
+          : `Failed to ${isEditMode ? "update" : "create"} subcategory`
       );
     } finally {
       setIsSubmitting(false);

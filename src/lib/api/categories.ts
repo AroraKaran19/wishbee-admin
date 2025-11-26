@@ -11,6 +11,7 @@ export const categoryApi = {
     slug: string;
     image?: string;
     isActive?: boolean;
+    showOnHomepage?: boolean;
   }) => {
     const response = await fetch(`${API_BASE_URL}/categories`, {
       method: 'POST',
@@ -18,6 +19,7 @@ export const categoryApi = {
       body: JSON.stringify({
         ...data,
         isActive: data.isActive ?? true,
+        showOnHomepage: data.showOnHomepage ?? false,
       }),
     });
 
@@ -77,6 +79,7 @@ export const categoryApi = {
     slug: string;
     image: string;
     isActive: boolean;
+    showOnHomepage: boolean;
   }>) => {
     const response = await fetch(`${API_BASE_URL}/categories/${categoryId}`, {
       method: 'PUT',
