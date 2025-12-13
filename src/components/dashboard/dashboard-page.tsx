@@ -26,6 +26,7 @@ import {
 import { dashboardApi } from "@/lib/api/dashboard";
 import toast from "react-hot-toast";
 import { useRouter } from "next/navigation";
+import { useSessionStore } from "@/stores/sessionStore";
 
 interface DashboardStatistics {
   performanceSummary: {
@@ -84,9 +85,26 @@ interface DashboardStatistics {
 
 export function DashboardPage() {
   const router = useRouter();
+  const admin = useSessionStore((state) => state.admin);
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState<DashboardStatistics | null>(null);
-  const [selectedPeriod, setSelectedPeriod] = useState("30 Days");
+
+  // Get display name with first letter capitalized
+  const getDisplayName = () => {
+    if (admin?.firstName) {
+      return (
+        admin.firstName.charAt(0).toUpperCase() +
+        admin.firstName.slice(1).toLowerCase()
+      );
+    }
+    if (admin?.email) {
+      const emailName = admin.email.split("@")[0];
+      return (
+        emailName.charAt(0).toUpperCase() + emailName.slice(1).toLowerCase()
+      );
+    }
+    return "Admin";
+  };
 
   // Fetch dashboard statistics
   useEffect(() => {
@@ -147,7 +165,7 @@ export function DashboardPage() {
     <div className="space-y-4 md:space-y-6 px-4 md:px-0">
       <div>
         <h1 className="text-base md:text-lg flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 font-bold text-gray-900">
-          Hey Admin -
+          Hey {getDisplayName()} -
           <span className="text-gray-500 text-xs md:text-sm font-medium">
             Here&apos;s a quick look at your store performance today.
           </span>
@@ -160,7 +178,9 @@ export function DashboardPage() {
         <div className="bg-[#d9f4ff] rounded-lg shadow-sm">
           <div className="space-y-1">
             <div className="inline-block px-2 pt-2 pb-1 rounded-tr-2xl mr-6 mt-3 bg-[#00b7fb]">
-              <h3 className="text-sm font-medium text-white">TODAY&apos;S SALE</h3>
+              <h3 className="text-sm font-medium text-white">
+                TODAY&apos;S SALE
+              </h3>
             </div>
             <div className="text-xl md:text-2xl font-semibold text-gray-900 mt-3 px-3">
               ₹{stats.performanceSummary.todaySales.toLocaleString("en-IN")}
@@ -250,7 +270,9 @@ export function DashboardPage() {
         <div className="bg-[#e6f3ff] rounded-lg shadow-sm">
           <div className="space-y-1">
             <div className="inline-block px-2 pt-2 pb-1 rounded-tr-2xl mr-6 mt-3 bg-[#2196f3]">
-              <h3 className="text-sm font-medium text-white">TOTAL CUSTOMERS</h3>
+              <h3 className="text-sm font-medium text-white">
+                TOTAL CUSTOMERS
+              </h3>
             </div>
             <div className="text-xl md:text-2xl font-semibold text-gray-900 mt-3 px-3">
               {stats.performanceSummary.totalCustomers.toLocaleString("en-IN")}
@@ -264,7 +286,10 @@ export function DashboardPage() {
                       : "text-red-600"
                   }`}
                 >
-                  {Math.abs(stats.growthMetrics.totalCustomersGrowth).toFixed(1)}%
+                  {Math.abs(stats.growthMetrics.totalCustomersGrowth).toFixed(
+                    1
+                  )}
+                  %
                 </span>
                 {stats.growthMetrics.totalCustomersGrowth >= 0 ? (
                   <ArrowUp className="w-4 h-4 ml-1 text-green-600" />
@@ -396,17 +421,17 @@ export function DashboardPage() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Top Selling Stock */}
         <div className="bg-white rounded-lg border border-gray-200 p-4 md:p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-base md:text-lg font-semibold text-gray-900">
-                Top Selling Stock
-              </h2>
-              <button
-                onClick={() => router.push("/inventory/top-selling-stock")}
-                className="text-primary cursor-pointer text-xs md:text-sm font-medium hover:underline"
-              >
-                See All
-              </button>
-            </div>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-base md:text-lg font-semibold text-gray-900">
+              Top Selling Stock
+            </h2>
+            <button
+              onClick={() => router.push("/inventory/top-selling-stock")}
+              className="text-primary cursor-pointer text-xs md:text-sm font-medium hover:underline"
+            >
+              See All
+            </button>
+          </div>
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead className="bg-gray-50">

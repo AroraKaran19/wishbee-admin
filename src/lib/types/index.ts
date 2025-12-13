@@ -233,9 +233,9 @@ export interface OrderSummary {
 }
 
 export interface Address {
-  type: "HOME" | "WORK" | "OTHER";
+  type: "HOME" | "WORK" | "OTHER" | "STORE";
   addressLine: string;
-  landmark: string;
+  landmark?: string; // Optional as per API
   city: string;
   state: string;
   postalCode: string;

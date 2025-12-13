@@ -78,11 +78,23 @@ export function Sidebar({ onClose }: SidebarProps) {
     }
   };
 
+  // Get display name with first letter capitalized
+  const getDisplayName = () => {
+    if (admin?.firstName) {
+      return admin.firstName.charAt(0).toUpperCase() + admin.firstName.slice(1).toLowerCase();
+    }
+    if (admin?.email) {
+      const emailName = admin.email.split("@")[0];
+      return emailName.charAt(0).toUpperCase() + emailName.slice(1).toLowerCase();
+    }
+    return "Admin";
+  };
+
   return (
     <div className="w-64 bg-white border-r border-gray-200 h-screen flex flex-col lg:shadow-none shadow-xl">
       <div className="p-6 pb-4">
         <Image
-          src="/logo.svg"
+          src="/logo.png"
           alt="Wishbee Logo"
           width={150}
           height={150}
@@ -95,7 +107,9 @@ export function Sidebar({ onClose }: SidebarProps) {
       </div>
 
       <div className="px-6 pb-4 border-b border-gray-200">
-        <h2 className="text-lg font-semibold text-gray-900">Hey Admin-</h2>
+        <h2 className="text-lg font-semibold text-gray-900">
+          Hey {getDisplayName()}
+        </h2>
       </div>
 
       <nav className="flex-1 p-4 overflow-y-auto scrollbar-hide">

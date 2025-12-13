@@ -31,8 +31,13 @@ export interface User {
   updatedAt?: Date;
 }
 
+export interface GovtId {
+  type: "GST" | "PAN" | "UDYAM" | "SHOP_LICENSE" | "OTHER";
+  number: string;
+}
+
 export interface Consumer extends User {
-  addresses: Address[];
+  addresses?: Address[];
   defaultAddress?: Address;
 
   preferences?: {
@@ -56,8 +61,9 @@ export interface Consumer extends User {
     updatedAt?: Date;
   };
 
-  gstNumber?: string;
-  orders?: Order[];
+  govtId?: GovtId; // Replaces gstNumber - optional object with type and number
+  orders?: string[]; // Array of order IDs (strings) instead of Order objects
+  totalSpend?: number; // Total amount spent across all orders
 
   loyaltyTier?: "BRONZE" | "SILVER" | "GOLD" | "PLATINUM" | "DIAMOND";
   loyaltyPoints?: number;
@@ -72,6 +78,7 @@ export interface Consumer extends User {
   storeName?: string;
 
   firstTimeLogin?: boolean;
+  joinedAt?: string | Date; // Used in profile responses (alternative to createdAt)
 }
 
 export interface Admin extends User {

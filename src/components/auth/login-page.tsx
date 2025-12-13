@@ -65,7 +65,7 @@ export function LoginPage() {
           <div className="text-center mb-8">
             <div className="flex justify-center mb-4">
               <Image
-                src="/logo.svg"
+                src="/logo.png"
                 alt="Wishbee Logo"
                 width={150}
                 height={50}

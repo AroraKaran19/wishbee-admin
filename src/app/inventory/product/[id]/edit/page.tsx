@@ -1427,9 +1427,9 @@ export default function InventoryEditProductPage() {
               ? Number(range.price)
               : 0,
         })),
-        discount:
-          showDiscountFields && data.discount
-            ? {
+        ...(showDiscountFields && data.discount
+          ? {
+              discount: {
                 type: data.discount.type,
                 value:
                   data.discount.value !== null &&
@@ -1443,8 +1443,9 @@ export default function InventoryEditProductPage() {
                   ? new Date(data.discount.endDate)
                   : undefined,
                 isActive: data.discount.isActive,
-              }
-            : undefined,
+              },
+            }
+          : {}), // Omit discount field to remove it
         minimumOrderQuantity: Number(data.minimumOrderQuantity) || 1,
         maximumOrderQuantity: Number(data.maximumOrderQuantity) || 100,
         stock:

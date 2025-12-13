@@ -191,7 +191,10 @@
       "firstName": "string",
       "lastName": "string",
       "photo": "string",
-      "gstNumber": "string",
+      "govtId": {
+        "type": "GST",
+        "number": "string"
+      },
       "storeName": "string",
       "loyaltyTier": "BRONZE",
       "loyaltyPoints": 100,
@@ -229,7 +232,8 @@
   ```
 - **Note**:
   - For admin users, the response includes `permissions` array
-  - For customer users, the response includes customer-specific fields like `gstNumber`, `storeName`, `loyaltyTier`, `loyaltyPoints`, and `defaultAddress`
+  - For customer users, the response includes customer-specific fields like `govtId`, `storeName`, `loyaltyTier`, `loyaltyPoints`, and `defaultAddress`
+  - `govtId` is an optional object with `type` (enum: "GST", "PAN", "UDYAM", "SHOP_LICENSE", "OTHER") and `number` (string) fields
   - `SUPER_ADMIN` users will have permissions array (handled on frontend as all permissions)
 
 ### Update Profile
@@ -244,7 +248,7 @@
     "photo": "string"
   }
   ```
-- **Note**: 
+- **Note**:
   - Either both `firstName` and `lastName` must be provided, or `photo` must be provided (or both)
   - Works for both Consumer and Admin/SUPER_ADMIN users
   - For Admin/SUPER_ADMIN users, the password field is automatically excluded from updates (use change password endpoint instead)
@@ -260,7 +264,10 @@
       "firstName": "string",
       "lastName": "string",
       "photo": "string",
-      "gstNumber": "string",
+      "govtId": {
+        "type": "GST",
+        "number": "string"
+      },
       "storeName": "string",
       "loyaltyTier": "BRONZE",
       "loyaltyPoints": 100,
@@ -371,7 +378,6 @@
     "state": "string",
     "postalCode": "string",
     "country": "string",
-    "storeName": "string",
     "latitude": 0,
     "longitude": 0
   }
@@ -379,7 +385,6 @@
 - **Note**:
   - Maximum 25 addresses allowed per user
   - `type` must be one of: "HOME", "WORK", "OTHER", "STORE"
-  - `storeName` is required when `type` is "STORE"
   - `latitude` and `longitude` are optional
 - **Response**: Updated addresses array
 
@@ -435,7 +440,10 @@
           "phoneNumber": "string",
           "role": "CUSTOMER",
           "isActive": true,
-          "gstNumber": "string",
+          "govtId": {
+            "type": "GST",
+            "number": "string"
+          },
           "storeName": "string",
           "loyaltyTier": "BRONZE",
           "loyaltyPoints": 100,
@@ -496,7 +504,10 @@
       "phoneNumber": "string",
       "role": "CUSTOMER",
       "isActive": true,
-      "gstNumber": "string",
+      "govtId": {
+        "type": "GST",
+        "number": "string"
+      },
       "storeName": "string",
       "loyaltyTier": "BRONZE",
       "loyaltyPoints": 100,
@@ -571,7 +582,10 @@
         "phoneNumber": "string",
         "role": "CUSTOMER",
         "isActive": true,
-        "gstNumber": "string",
+        "govtId": {
+          "type": "GST",
+          "number": "string"
+        },
         "storeName": "string",
         "loyaltyTier": "BRONZE",
         "loyaltyPoints": 100,
@@ -698,7 +712,10 @@
     "email": "string",
     "gender": "MALE",
     "isActive": true,
-    "gstNumber": "string",
+    "govtId": {
+      "type": "GST",
+      "number": "string"
+    },
     "storeName": "string",
     "loyaltyTier": "BRONZE",
     "loyaltyPoints": 100,
@@ -711,6 +728,7 @@
   - `gender` must be one of: "MALE", "FEMALE", "OTHER"
   - `loyaltyTier` must be one of: "BRONZE", "SILVER", "GOLD", "PLATINUM", "DIAMOND"
   - `isActive` is a boolean field
+  - `govtId` is an optional object with `type` (enum: "GST", "PAN", "UDYAM", "SHOP_LICENSE", "OTHER") and `number` (string) fields
   - `password`: Only applicable for Admin users. Password is automatically hashed using bcrypt before storing. For Consumer users, password field is ignored (they use OTP authentication)
 - **Response**:
   ```json
@@ -726,7 +744,10 @@
       "phoneNumber": "string",
       "role": "CUSTOMER",
       "isActive": true,
-      "gstNumber": "string",
+      "govtId": {
+        "type": "GST",
+        "number": "string"
+      },
       "storeName": "string",
       "loyaltyTier": "BRONZE",
       "loyaltyPoints": 100,
@@ -1037,13 +1058,20 @@
   - `limit` (number, default: 10, max: 100)
   - `category` (string) - Category ID
   - `subCategory` (string) - Subcategory ID
-  - `status` (string) - ACTIVE, OUT_OF_STOCK, DISCONTINUED
+  - `status` (string) - ACTIVE, OUT_OF_STOCK, DISCONTINUED (if not specified, returns ACTIVE and OUT_OF_STOCK, excluding DISCONTINUED)
   - `isOrganic` (boolean)
   - `minPrice` (number)
   - `maxPrice` (number)
   - `search` (string) - Search in name, description, SKU
   - `name` (string) - Filter by product name
   - `filter` (string) - "pfy" for Pay For Yourself products, "dotd" for Deal of the Day products
+- **Note**:
+  - By default, returns products with status ACTIVE and OUT_OF_STOCK (excludes DISCONTINUED)
+  - Products are automatically sorted by status: ACTIVE products appear first, followed by OUT_OF_STOCK products
+  - Within the same status, products are sorted by creation date (newest first)
+  - To get only ACTIVE products, explicitly set `status=ACTIVE`
+  - To get only OUT_OF_STOCK products, explicitly set `status=OUT_OF_STOCK`
+  - To get DISCONTINUED products, explicitly set `status=DISCONTINUED`
 - **Response**:
   ```json
   {
@@ -1143,6 +1171,9 @@
 - **Query Parameters**:
   - `page` (number, default: 1)
   - `limit` (number, default: 10)
+- **Note**: 
+  - Returns only products with `dotd: true` and `status: "ACTIVE"`
+  - Products are sorted by creation date (newest first)
 - **Response**: Same as products list response
 
 ### Get PFY Products
@@ -1152,6 +1183,9 @@
 - **Query Parameters**:
   - `page` (number, default: 1)
   - `limit` (number, default: 10)
+- **Note**: 
+  - Returns only products with `pfy: true` and `status: "ACTIVE"`
+  - Products are sorted by creation date (newest first)
 - **Response**: Same as products list response
 
 ### Get Essential Products
@@ -1162,7 +1196,9 @@
   - `page` (number, default: 1)
   - `limit` (number, default: 10)
 - **Response**: Same as products list response
-- **Note**: Returns only products where `isEssential: true` and `status: "ACTIVE"`
+- **Note**: 
+  - Returns only products where `isEssential: true` and `status: "ACTIVE"` (OUT_OF_STOCK essential products are excluded from this endpoint)
+  - Products are sorted by creation date (newest first)
 
 ### Get Out of Stock Products
 
@@ -1440,6 +1476,10 @@
   - `page` (number, default: 1)
   - `limit` (number, default: 10)
 - **Response**: Products list response
+- **Note**: 
+  - Returns products with status ACTIVE and OUT_OF_STOCK (excludes DISCONTINUED)
+  - Products are automatically sorted by status: ACTIVE products appear first, followed by OUT_OF_STOCK products
+  - Within the same status, products are sorted by creation date (newest first)
 
 ### Get Category Products by Slug
 
@@ -1447,6 +1487,10 @@
 - **Access**: Public
 - **Query Parameters**: Same as above
 - **Response**: Products list response
+- **Note**: 
+  - Returns products with status ACTIVE and OUT_OF_STOCK (excludes DISCONTINUED)
+  - Products are automatically sorted by status: ACTIVE products appear first, followed by OUT_OF_STOCK products
+  - Within the same status, products are sorted by creation date (newest first)
 
 ### Get Subcategories
 
@@ -2614,7 +2658,7 @@
 - **Query Parameters**:
   - `page` (number, default: 1)
   - `limit` (number, default: 10, max: 100)
-  - `status` (string) - ACTIVE, OUT_OF_STOCK, DISCONTINUED
+  - `status` (string) - ACTIVE, OUT_OF_STOCK, DISCONTINUED (if not specified, returns ACTIVE and OUT_OF_STOCK, excluding DISCONTINUED)
   - `isOrganic` (boolean)
   - `minPrice` (number)
   - `maxPrice` (number)
@@ -2622,6 +2666,13 @@
   - `type` (string) - "product", "combo", "all" (default: "all")
   - `category` (string) - Category ID
   - `subCategory` (string) - Subcategory ID
+- **Note**:
+  - By default, returns products and combos with status ACTIVE and OUT_OF_STOCK (excludes DISCONTINUED)
+  - Products are automatically sorted by status: ACTIVE products appear first, followed by OUT_OF_STOCK products
+  - Within the same status, products are sorted by creation date (newest first)
+  - To get only ACTIVE items, explicitly set `status=ACTIVE`
+  - To get only OUT_OF_STOCK items, explicitly set `status=OUT_OF_STOCK`
+  - To get DISCONTINUED items, explicitly set `status=DISCONTINUED`
 - **Response**:
   ```json
   {
@@ -2956,7 +3007,7 @@
     }
   }
   ```
-- **Note**: 
+- **Note**:
   - Valid statuses are: "PENDING", "PROCESSING", "SHIPPED", "DELIVERED", "CANCELLED", "RETURNED", "REFUNDED"
   - Status is case-insensitive (e.g., "Cancelled" will be normalized to "CANCELLED")
   - Order cannot be changed once it has been CANCELLED or REFUNDED
@@ -3135,7 +3186,7 @@
 - **Query Parameters**:
   - `page` (number, default: 1)
   - `limit` (number, default: 20, max: 100)
-  - `showAll` (boolean, default: false) - If true, returns all active items without search filtering
+  - `showAll` (boolean, default: false) - If true, returns all items without search filtering
 
 **Usage Examples**:
 
@@ -3146,6 +3197,43 @@
 
 - If `showAll` is false, search term is required
 - If `showAll` is true, search term can be any value (e.g., "all")
+- Returns products and combos with status ACTIVE and OUT_OF_STOCK (excludes DISCONTINUED)
+- Both search results and `showAll=true` include OUT_OF_STOCK items
+- Results are automatically sorted by status: ACTIVE products appear first, followed by OUT_OF_STOCK products
+- Within the same status, results are sorted by relevance score (for search) or creation date (for showAll)
+
+**Fuzzy Search Implementation**:
+
+The search endpoint uses advanced fuzzy matching to handle typos, spelling variations, and transliteration differences. The fuzzy search algorithm:
+
+1. **Search Strategy**:
+   - First performs direct regex matching on product names, descriptions, slugs, and meta keywords
+   - Searches in category and subcategory names
+   - Fetches products/combos with similar starting characters (first 2 characters) for broader fuzzy matching
+   - Applies fuzzy matching algorithm to filter and score results
+
+2. **Fuzzy Matching Types** (in priority order):
+   - **Exact Match**: Perfect match (score: 100)
+   - **Starts With**: Search term appears at the beginning (score: 90)
+   - **Substring Match**: Search term appears anywhere in the text (score: 80)
+   - **Fuzzy Substring**: All characters of search term appear in order (score: 70)
+   - **Similarity Match**: Uses Levenshtein distance algorithm with similarity threshold of 0.4 (score: 0-60)
+     - Handles typos like "sooji" vs "souji" or "besan" vs "busan"
+     - More lenient for short strings (≤6 characters) with 1-2 character differences
+     - Checks similarity against individual words in multi-word product names
+
+3. **Result Sorting**:
+   - Primary: By product status (ACTIVE → OUT_OF_STOCK → DISCONTINUED)
+   - Secondary: By fuzzy match score (higher = better match)
+   - Tertiary: By match type priority (direct match → category match → subcategory match)
+   - Final: By creation date (newest first)
+
+4. **Examples of What Fuzzy Search Handles**:
+   - Typos: "sooji" finds "suji", "souji", "sooji"
+   - Transliteration variations: "besan" finds "busan", "besan"
+   - Partial matches: "rice" finds "basmati rice", "rice flour"
+   - Case-insensitive: "RICE" finds "rice", "Rice", "RICE"
+   - Word order variations: Searches within individual words of product names
 
 - **Response**:
   ```json

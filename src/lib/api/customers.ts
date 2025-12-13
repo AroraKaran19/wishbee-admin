@@ -167,7 +167,10 @@ export const customerApi = {
       email?: string;
       gender?: "MALE" | "FEMALE" | "OTHER";
       isActive?: boolean;
-      gstNumber?: string;
+      govtId?: {
+        type: "GST" | "PAN" | "UDYAM" | "SHOP_LICENSE" | "OTHER";
+        number: string;
+      };
       storeName?: string;
       loyaltyTier?: "BRONZE" | "SILVER" | "GOLD" | "PLATINUM" | "DIAMOND";
       loyaltyPoints?: number;

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { MetricCard } from "./metric-card";
 import { SearchBar } from "@/components/ui/search-bar";
 import { InventoryTable } from "./inventory-table";
@@ -34,15 +34,18 @@ export function InventorySummary() {
   // Debounce search query - update debouncedSearchQuery after 500ms of no typing
   useEffect(() => {
     const timeoutId = setTimeout(() => {
+      const hasSearchChanged = debouncedSearchQuery !== searchQuery;
       setDebouncedSearchQuery(searchQuery);
-      setCurrentPage(1); // Reset to first page when search changes
+      if (hasSearchChanged) {
+        setCurrentPage(1); // Reset to first page when search changes
+      }
     }, 500);
 
     // Cleanup function
     return () => {
       clearTimeout(timeoutId);
     };
-  }, [searchQuery]);
+  }, [searchQuery, debouncedSearchQuery]);
 
   // Load inventory from API
   useEffect(() => {
@@ -50,6 +53,7 @@ export function InventorySummary() {
       try {
         setLoading(true);
         setError(null);
+
         const response = await dashboardApi.getInventory({
           page: currentPage,
           limit: itemsPerPage,
@@ -60,13 +64,12 @@ export function InventorySummary() {
         if (response.success && response.data) {
           const inventoryData = response.data.data || {};
           const productsData = inventoryData.products || [];
+          const allProductsArray = Array.isArray(productsData) ? productsData : [];
 
-          setProducts(Array.isArray(productsData) ? productsData : []);
           setTotalInventoryValue(response.data.totalInventoryValue || 0);
           setTotalProducts(response.data.totalProducts || 0);
           setTotalCombos(response.data.totalCombos || 0);
-
-          // Set pagination data
+          setProducts(allProductsArray);
           setPagination({
             currentPage: inventoryData.page || currentPage,
             totalPages: inventoryData.totalPages || 1,

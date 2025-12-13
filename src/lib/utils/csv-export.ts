@@ -157,3 +157,89 @@ export function exportTopSellingToCSV(
 
   exportToCSV(transformedItems, filename, columns);
 }
+
+export function exportCustomerDataToCSV(
+  customer: any,
+  orderStatistics: any,
+  filename = "customer-data"
+) {
+  // Format customer name
+  const name = [customer.firstName, customer.lastName]
+    .filter(Boolean)
+    .join(" ") || "N/A";
+
+  // Format phone number
+  const phoneNumber = customer.phoneNumber || "N/A";
+
+  // Format address - prefer default address, otherwise use first address
+  let address = "N/A";
+  if (customer.addresses && customer.addresses.length > 0) {
+    const defaultAddress = customer.addresses.find(
+      (addr: any) => addr.isDefault === true
+    ) || customer.addresses[0];
+    
+    if (defaultAddress) {
+      const addressParts = [
+        defaultAddress.addressLine,
+        defaultAddress.city,
+        defaultAddress.state,
+        defaultAddress.postalCode,
+        defaultAddress.country,
+      ].filter(Boolean);
+      address = addressParts.join(", ") || "N/A";
+    }
+  }
+
+  // Format GST/Document number
+  let govtDocument = "N/A";
+  if (customer.govtId) {
+    const { type, number } = customer.govtId;
+    govtDocument = `${type}: ${number}`;
+  }
+
+  // Get lifetime orders count - prefer customer.orders array length as it's definitely lifetime
+  const lifetimeOrders =
+    customer.orders?.length ||
+    customer.totalOrders ||
+    orderStatistics?.totalOrders ||
+    0;
+
+  // Get total spend - prefer customer.totalSpend as it's lifetime spend
+  const totalSpendValue =
+    customer.totalSpend ||
+    customer.totalRevenue ||
+    orderStatistics?.totalSpend ||
+    0;
+
+  // Format total spend as a number with 2 decimal places (Excel-friendly, no currency symbol)
+  // Using en-IN locale for Indian number formatting (commas for thousands)
+  const totalSpend = totalSpendValue.toLocaleString("en-IN", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+
+  // Create data array with single customer record
+  const customerData = [
+    {
+      name,
+      phoneNumber,
+      address,
+      govtDocument,
+      lifetimeOrders,
+      totalSpend,
+    },
+  ];
+
+  type CustomerDataItem = (typeof customerData)[0];
+
+  const columns: { key: keyof CustomerDataItem; label: string }[] = [
+    { key: "name", label: "Name" },
+    { key: "phoneNumber", label: "Phone Number" },
+    { key: "address", label: "Address" },
+    { key: "govtDocument", label: "GST Number/Document" },
+    { key: "lifetimeOrders", label: "Lifetime Orders" },
+    { key: "totalSpend", label: "Total Spend" },
+  ];
+
+  exportToCSV(customerData, filename, columns);
+}

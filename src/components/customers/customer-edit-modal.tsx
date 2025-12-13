@@ -27,6 +27,14 @@ const GENDER_OPTIONS = [
   { value: 'OTHER', label: 'Other' },
 ];
 
+const GOVT_ID_TYPES = [
+  { value: 'GST', label: 'GST' },
+  { value: 'PAN', label: 'PAN' },
+  { value: 'UDYAM', label: 'Udyam' },
+  { value: 'SHOP_LICENSE', label: 'Shop License' },
+  { value: 'OTHER', label: 'Other' },
+];
+
 export function CustomerEditModal({
   customer,
   isOpen,
@@ -39,7 +47,8 @@ export function CustomerEditModal({
     email: '',
     gender: 'MALE' as 'MALE' | 'FEMALE' | 'OTHER',
     isActive: true,
-    gstNumber: '',
+    govtIdType: '' as '' | 'GST' | 'PAN' | 'UDYAM' | 'SHOP_LICENSE' | 'OTHER',
+    govtIdNumber: '',
     storeName: '',
     loyaltyTier: 'BRONZE' as 'BRONZE' | 'SILVER' | 'GOLD' | 'PLATINUM' | 'DIAMOND',
     loyaltyPoints: 0,
@@ -68,7 +77,8 @@ export function CustomerEditModal({
             email: apiUser.email || '',
             gender: apiUser.gender || 'MALE',
             isActive: apiUser.isActive !== undefined ? apiUser.isActive : true,
-            gstNumber: apiUser.gstNumber || '',
+            govtIdType: apiUser.govtId?.type || '',
+            govtIdNumber: apiUser.govtId?.number || '',
             storeName: apiUser.storeName || '',
             loyaltyTier: apiUser.loyaltyTier || 'BRONZE',
             loyaltyPoints: apiUser.loyaltyPoints || 0,
@@ -99,7 +109,8 @@ export function CustomerEditModal({
             email: customer.email === 'N/A' ? '' : customer.email,
             gender: 'MALE',
             isActive: customer.status === 'Active',
-            gstNumber: '',
+            govtIdType: '',
+            govtIdNumber: '',
             storeName: '',
             loyaltyTier: mapLoyaltyTierToAPI(customer.loyaltyTier),
             loyaltyPoints: 0,
@@ -131,7 +142,13 @@ export function CustomerEditModal({
       if (formData.email) updateData.email = formData.email;
       if (formData.gender) updateData.gender = formData.gender;
       updateData.isActive = formData.isActive;
-      if (formData.gstNumber) updateData.gstNumber = formData.gstNumber;
+      // Include govtId if both type and number are provided
+      if (formData.govtIdType && formData.govtIdNumber) {
+        updateData.govtId = {
+          type: formData.govtIdType,
+          number: formData.govtIdNumber,
+        };
+      }
       if (formData.storeName) updateData.storeName = formData.storeName;
       if (formData.loyaltyTier) updateData.loyaltyTier = formData.loyaltyTier;
       if (formData.loyaltyPoints !== undefined && formData.loyaltyPoints !== null) {
@@ -279,18 +296,34 @@ export function CustomerEditModal({
             </label>
           </div>
 
-          {/* GST Number */}
-          <div>
+          {/* Government ID */}
+          <div className="space-y-2">
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              GST Number
+              Government ID
             </label>
-            <input
-              type="text"
-              value={formData.gstNumber}
-              onChange={(e) => setFormData({ ...formData, gstNumber: e.target.value })}
-              disabled={isUpdating}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
-            />
+            <div className="grid grid-cols-2 gap-3">
+              <select
+                value={formData.govtIdType}
+                onChange={(e) => setFormData({ ...formData, govtIdType: e.target.value as typeof formData.govtIdType })}
+                disabled={isUpdating}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <option value="">Select Type</option>
+                {GOVT_ID_TYPES.map((type) => (
+                  <option key={type.value} value={type.value}>
+                    {type.label}
+                  </option>
+                ))}
+              </select>
+              <input
+                type="text"
+                value={formData.govtIdNumber}
+                onChange={(e) => setFormData({ ...formData, govtIdNumber: e.target.value })}
+                disabled={isUpdating}
+                placeholder="ID Number"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
+              />
+            </div>
           </div>
 
           {/* Store Name */}

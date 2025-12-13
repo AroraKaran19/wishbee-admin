@@ -15,7 +15,7 @@ interface SessionState {
 
   // Tokens
   accessToken: AccessToken | null;
-  refreshTokenExpiresAt: Date | null;
+  lastRefreshTokenRefresh: Date | null; // Track when we last refreshed the refresh token
 
   // Actions
   login: (email: string, password: string) => Promise<void>;
@@ -24,7 +24,7 @@ interface SessionState {
   refreshRefreshToken: () => Promise<void>;
   checkRefreshTokenExists: () => Promise<boolean>;
   isTokenValid: () => boolean;
-  isRefreshTokenExpiringSoon: () => boolean;
+  isRefreshTokenExpiringSoon: () => Promise<boolean>; // Now async to check with backend
   fetchAdminProfile: () => Promise<void>;
   setStatus: (status: "authenticated" | "unauthenticated" | "loading") => void;
   setLoading: (loading: boolean) => void;
@@ -38,7 +38,7 @@ export const useSessionStore = create<SessionState>()(
       status: "unauthenticated",
       isLoading: false,
       accessToken: null,
-      refreshTokenExpiresAt: null,
+      lastRefreshTokenRefresh: null,
 
       // Set status
       setStatus: (status) => set({ status }),
@@ -65,15 +65,22 @@ export const useSessionStore = create<SessionState>()(
         return new Date(accessToken.expiresAt) > new Date();
       },
 
-      // Check if refresh token is expiring soon (within 24 hours)
-      isRefreshTokenExpiringSoon: () => {
-        const { refreshTokenExpiresAt } = get();
-        if (!refreshTokenExpiresAt) return false;
-        const expiresAt = new Date(refreshTokenExpiresAt);
+      // Check if refresh token is expiring soon
+      // Since refresh token is HTTP-only, we can't read its expiration
+      // Instead, we check if it's been more than 6 days since last refresh
+      // (refresh tokens expire in 7 days, so we refresh proactively)
+      isRefreshTokenExpiringSoon: async () => {
+        const { lastRefreshTokenRefresh } = get();
+        if (!lastRefreshTokenRefresh) {
+          // If we don't have a record, check with backend
+          return !(await get().checkRefreshTokenExists());
+        }
+        const lastRefresh = new Date(lastRefreshTokenRefresh);
         const now = new Date();
-        const hoursUntilExpiry =
-          (expiresAt.getTime() - now.getTime()) / (1000 * 60 * 60);
-        return hoursUntilExpiry <= 24;
+        const daysSinceRefresh =
+          (now.getTime() - lastRefresh.getTime()) / (1000 * 60 * 60 * 24);
+        // Refresh if it's been more than 6 days (refresh tokens expire in 7 days)
+        return daysSinceRefresh >= 6;
       },
 
       // Generate access token
@@ -88,15 +95,33 @@ export const useSessionStore = create<SessionState>()(
             accessToken: accessTokenData,
           });
           return token;
-        } catch (error) {
+        } catch (error: any) {
           console.error("Error generating access token:", error);
-          // If token generation fails, clear session
-          set({
-            admin: null,
-            status: "unauthenticated",
-            accessToken: null,
-            refreshTokenExpiresAt: null,
-          });
+          
+          // Check if error is due to refresh token expiry (401/403)
+          // Only clear session if refresh token is actually expired
+          const isRefreshTokenExpired = 
+            error?.message?.includes("401") || 
+            error?.message?.includes("403") ||
+            error?.message?.toLowerCase().includes("unauthorized") ||
+            error?.message?.toLowerCase().includes("forbidden") ||
+            error?.message?.toLowerCase().includes("refresh token expired");
+          
+          if (isRefreshTokenExpired) {
+            // Refresh token expired - clear session
+            set({
+              admin: null,
+              status: "unauthenticated",
+              accessToken: null,
+              lastRefreshTokenRefresh: null,
+            });
+          } else {
+            // Temporary error (network, etc.) - don't clear session
+            // Just clear the access token so it can be retried
+            set({
+              accessToken: null,
+            });
+          }
           throw error;
         }
       },
@@ -122,10 +147,9 @@ export const useSessionStore = create<SessionState>()(
       refreshRefreshToken: async () => {
         try {
           await authApi.refreshToken();
+          // Track when we last refreshed (refresh token expires in 7 days from backend)
           set({
-            refreshTokenExpiresAt: new Date(
-              Date.now() + 7 * 24 * 60 * 60 * 1000
-            ), // 7 days
+            lastRefreshTokenRefresh: new Date(),
           });
         } catch (error) {
           console.error("Error refreshing refresh token:", error);
@@ -141,18 +165,25 @@ export const useSessionStore = create<SessionState>()(
           set({
             admin: adminData,
             status: "authenticated",
-            refreshTokenExpiresAt: new Date(
-              Date.now() + 7 * 24 * 60 * 60 * 1000
-            ), // 7 days
+            lastRefreshTokenRefresh: new Date(), // Track when login happened (refresh token set by backend)
           });
           // Generate access token immediately after login
           await get().generateAccessToken();
+          
+          // Fetch full profile to get firstName, lastName, photo, etc.
+          // The login response only includes basic fields, so we need to fetch the complete profile
+          try {
+            await get().fetchAdminProfile();
+          } catch (profileError) {
+            console.error("Error fetching admin profile after login:", profileError);
+            // Don't fail login if profile fetch fails - we still have basic admin data
+          }
         } catch (error) {
           set({
             admin: null,
             status: "unauthenticated",
             accessToken: null,
-            refreshTokenExpiresAt: null,
+            lastRefreshTokenRefresh: null,
           });
           throw error;
         } finally {
@@ -175,7 +206,7 @@ export const useSessionStore = create<SessionState>()(
             admin: null,
             status: "unauthenticated",
             accessToken: null,
-            refreshTokenExpiresAt: null,
+            lastRefreshTokenRefresh: null,
           });
         }
       },
@@ -194,9 +225,9 @@ export const useSessionStore = create<SessionState>()(
               parsed.state.accessToken.expiresAt
             );
           }
-          if (parsed.state?.refreshTokenExpiresAt) {
-            parsed.state.refreshTokenExpiresAt = new Date(
-              parsed.state.refreshTokenExpiresAt
+          if (parsed.state?.lastRefreshTokenRefresh) {
+            parsed.state.lastRefreshTokenRefresh = new Date(
+              parsed.state.lastRefreshTokenRefresh
             );
           }
           return parsed;
@@ -214,7 +245,7 @@ export const useSessionStore = create<SessionState>()(
         admin: state.admin ?? null,
         status: state.status ?? "unauthenticated",
         accessToken: state.accessToken ?? null,
-        refreshTokenExpiresAt: state.refreshTokenExpiresAt ?? null,
+        lastRefreshTokenRefresh: state.lastRefreshTokenRefresh ?? null,
       }),
     }
   )

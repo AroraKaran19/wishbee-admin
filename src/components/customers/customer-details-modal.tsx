@@ -1,13 +1,14 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { X, Calendar } from 'lucide-react';
+import { X, Calendar, Download } from 'lucide-react';
 import { customerApi, CustomerDetailsFilters } from '@/lib/api/customers';
 import { convertApiOrderToUIOrder, OrderPeriod } from '@/lib/api/orders';
 import { Order } from '@/lib/types';
 import { formatCurrency } from '@/lib/utils';
 import { DateRangePicker } from '@/components/ui/date-range-picker';
 import { OrderTable } from '@/components/orders/order-table';
+import { exportCustomerDataToCSV } from '@/lib/utils/csv-export';
 import toast from 'react-hot-toast';
 
 interface CustomerDetailsModalProps {
@@ -278,6 +279,28 @@ export function CustomerDetailsModal({ customerId, isOpen, onClose }: CustomerDe
     await fetchOrders();
   };
 
+  const handleExportData = () => {
+    if (!customer) {
+      toast.error("Customer data not available");
+      return;
+    }
+
+    try {
+      // Generate filename with customer name or ID
+      const customerName = [customer.firstName, customer.lastName]
+        .filter(Boolean)
+        .join("_")
+        .replace(/\s+/g, "_") || customer._id || "customer";
+      const filename = `customer_${customerName}_${new Date().toISOString().split("T")[0]}`;
+
+      exportCustomerDataToCSV(customer, orderStatistics, filename);
+      toast.success("Customer data exported successfully");
+    } catch (error) {
+      console.error("Error exporting customer data:", error);
+      toast.error("Failed to export customer data");
+    }
+  };
+
   if (!isOpen) return null;
 
   return (
@@ -286,12 +309,24 @@ export function CustomerDetailsModal({ customerId, isOpen, onClose }: CustomerDe
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b">
           <h2 className="text-2xl font-bold text-gray-900">Customer Details</h2>
-          <button
-            onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 transition-colors"
-          >
-            <X className="h-6 w-6" />
-          </button>
+          <div className="flex items-center gap-3">
+            {customer && (
+              <button
+                onClick={handleExportData}
+                className="flex items-center gap-2 px-4 py-2 cursor-pointer bg-[#13aaff] text-white rounded-lg hover:bg-[#0d8fd9] transition-colors text-sm font-medium"
+                title="Export customer data to CSV"
+              >
+                <Download className="h-4 w-4" />
+                Export Data
+              </button>
+            )}
+            <button
+              onClick={onClose}
+              className="text-gray-400 hover:text-gray-600 transition-colors cursor-pointer"
+            >
+              <X className="h-6 w-6" />
+            </button>
+          </div>
         </div>
 
         {/* Content */}
@@ -350,12 +385,7 @@ export function CustomerDetailsModal({ customerId, isOpen, onClose }: CustomerDe
                       <span className="ml-2 font-medium text-gray-900">{customer.loyaltyPoints}</span>
                     </div>
                   )}
-                  {customer.gstNumber && (
-                    <div>
-                      <span className="text-gray-500">GST Number:</span>
-                      <span className="ml-2 font-medium text-gray-900">{customer.gstNumber}</span>
-                    </div>
-                  )}
+                  {/* Note: govtId is not in Customer interface, would need to fetch from API */}
                   {customer.storeName && (
                     <div>
                       <span className="text-gray-500">Store Name:</span>

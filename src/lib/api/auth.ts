@@ -9,8 +9,10 @@ export interface AdminLoginResponse {
   firstName?: string;
   lastName?: string;
   photo?: string;
-  createdAt: string;
-  updatedAt: string;
+  gender?: "MALE" | "FEMALE" | "OTHER";
+  createdAt?: string;
+  updatedAt?: string;
+  joinedAt?: string; // Used in profile responses
 }
 
 export interface LoginCredentials {
@@ -57,10 +59,12 @@ export const authApi = {
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      throw new Error(
+      const error = new Error(
         errorData.message ||
           `Failed to generate access token: ${response.statusText}`
-      );
+      ) as Error & { status?: number };
+      error.status = response.status;
+      throw error;
     }
 
     const result = await response.json();
@@ -123,9 +127,11 @@ export const authApi = {
     password: string,
     confirmPassword: string
   ): Promise<void> => {
+    // Generate access token first
     const accessToken = await authApi.generateAccessToken();
 
-    const response = await fetch(`${API_BASE_URL}/auth/change-admin-password`, {
+    // Use Next.js API route to proxy the request and handle cookies
+    const response = await fetch("/api/auth/change-admin-password", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -173,8 +179,10 @@ export const authApi = {
       firstName: profileData.firstName,
       lastName: profileData.lastName,
       photo: profileData.photo,
+      gender: profileData.gender,
       createdAt: profileData.createdAt || profileData.joinedAt,
       updatedAt: profileData.updatedAt,
+      joinedAt: profileData.joinedAt || profileData.createdAt,
     };
   },
 
