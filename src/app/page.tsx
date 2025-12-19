@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useSessionStore } from "@/stores/sessionStore";
 import { useSessionManager } from "@/hooks/useSessionManager";
@@ -9,20 +9,27 @@ import { Loader2 } from "lucide-react";
 export default function Home() {
   const router = useRouter();
   const { status, isLoading } = useSessionStore();
+  const hasRedirected = useRef(false);
   useSessionManager(); // Initialize session management
 
   useEffect(() => {
+    // Prevent multiple redirects
+    if (hasRedirected.current) {
+      return;
+    }
+
     if (!isLoading) {
+      hasRedirected.current = true;
       if (status === "authenticated") {
-        router.push("/dashboard");
+        router.replace("/dashboard");
       } else {
-        router.push("/login");
+        router.replace("/login");
       }
     }
   }, [isLoading, status, router]);
 
-  if (isLoading) {
-  return (
+  if (isLoading || status === "loading") {
+    return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
           <Loader2 className="h-8 w-8 animate-spin text-blue-600 mx-auto mb-4" />

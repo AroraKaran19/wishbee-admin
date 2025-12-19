@@ -39,6 +39,12 @@ export function useSessionManager() {
       return;
     }
 
+    // If status is explicitly unauthenticated and we have no admin data, skip initialization
+    // This prevents loops after logout
+    if (currentState.status === "unauthenticated" && !currentState.admin && !currentState.accessToken) {
+      return;
+    }
+
     initializingRef.current = true;
     let isMounted = true;
 
@@ -72,15 +78,23 @@ export function useSessionManager() {
                 lastError = error;
                 // Check if it's a refresh token expiry error
                 const isRefreshTokenExpired = 
+                  error?.status === 401 || 
+                  error?.status === 403 ||
                   error?.message?.includes("401") || 
                   error?.message?.includes("403") ||
                   error?.message?.toLowerCase().includes("unauthorized") ||
-                  error?.message?.toLowerCase().includes("forbidden");
+                  error?.message?.toLowerCase().includes("forbidden") ||
+                  error?.message?.toLowerCase().includes("refresh token");
                 
                 if (isRefreshTokenExpired) {
-                  // Refresh token expired, don't retry
+                  // Refresh token expired, clear everything and stop
                   if (isMounted) {
                     setStatus("unauthenticated");
+                    useSessionStore.setState({
+                      admin: null,
+                      accessToken: null,
+                      refreshTokenExpiresAt: null,
+                    });
                   }
                   initializingRef.current = false;
                   return;
@@ -113,11 +127,6 @@ export function useSessionManager() {
 
           // Get current state again to check admin
           const currentStateAfterToken = useSessionStore.getState();
-          // If we successfully restored session but don't have lastRefreshTokenRefresh, set it to now
-          // This ensures we track when the refresh token was last known to be valid
-          if (!currentStateAfterToken.lastRefreshTokenRefresh) {
-            useSessionStore.setState({ lastRefreshTokenRefresh: new Date() });
-          }
           
           // If we have admin data, check if it has complete profile info (firstName/lastName)
           // If not, fetch the full profile to get complete admin data
@@ -162,17 +171,32 @@ export function useSessionManager() {
             }
           }
         } else {
-          // No valid session
+          // No valid session - clear everything
           if (isMounted) {
             setStatus("unauthenticated");
+            // Clear session data to prevent re-initialization attempts
+            useSessionStore.setState({
+              admin: null,
+              accessToken: null,
+              refreshTokenExpiresAt: null,
+            });
           }
         }
       } catch (error) {
         console.error("Error initializing session:", error);
         if (isMounted) {
-          // Don't immediately set to unauthenticated - check if refresh token still exists
+          // On error, check if refresh token still exists
           const refreshTokenExists = await checkRefreshTokenExists().catch(() => false);
           if (!refreshTokenExists) {
+            // No refresh token - clear everything and set unauthenticated
+            setStatus("unauthenticated");
+            useSessionStore.setState({
+              admin: null,
+              accessToken: null,
+              refreshTokenExpiresAt: null,
+            });
+          } else {
+            // Refresh token exists but initialization failed - set to unauthenticated to prevent loops
             setStatus("unauthenticated");
           }
         }

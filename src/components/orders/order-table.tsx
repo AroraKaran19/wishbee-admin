@@ -3,9 +3,11 @@
 import React, { useState } from 'react';
 import { DataTable } from '@/components/ui/data-table';
 import { Order, TableConfig } from '@/lib/types';
-import { Edit, Trash2 } from 'lucide-react';
+import { Edit, Trash2, Download } from 'lucide-react';
 import { OrderStatusModal } from './order-status-modal';
 import { OrderDetailsModal } from './order-details-modal';
+import { downloadOrderInvoice } from '@/lib/utils/invoice';
+import toast from 'react-hot-toast';
 
 interface OrderTableProps {
   orders: Order[];
@@ -59,6 +61,20 @@ export function OrderTable({
 
     if (onOrderDelete) {
       await onOrderDelete(order.id);
+    }
+  };
+
+  const handleDownloadInvoice = async (order: Order) => {
+    try {
+      toast.loading('Generating invoice...', { id: 'invoice-download' });
+      await downloadOrderInvoice(order.id);
+      toast.success('Invoice downloaded successfully', { id: 'invoice-download' });
+    } catch (error) {
+      console.error('Error downloading invoice:', error);
+      toast.error(
+        error instanceof Error ? error.message : 'Failed to download invoice',
+        { id: 'invoice-download' }
+      );
     }
   };
 
@@ -181,6 +197,15 @@ export function OrderTable({
       }
     ],
     actions: [
+      {
+        key: 'download',
+        label: '',
+        icon: <Download className="h-4 w-4" />,
+        onClick: (record) => handleDownloadInvoice(record),
+        variant: 'secondary',
+        size: 'sm',
+        className: 'text-blue-600 hover:text-blue-700 bg-transparent hover:bg-blue-50 border-0 shadow-none rounded-full pr-1.5 flex items-center justify-center'
+      },
       {
         key: 'edit',
         label: '',

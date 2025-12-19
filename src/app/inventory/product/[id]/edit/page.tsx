@@ -25,7 +25,7 @@ import {
   X,
   Edit,
 } from "lucide-react";
-import { Product, Category, Discount } from "@/lib/types";
+import { Product } from "@/lib/types";
 import { productApi, getPresignedUrl, deleteImage } from "@/lib/api/products";
 import { categoryApi, subcategoryApi } from "@/lib/api/categories";
 import {
@@ -226,7 +226,10 @@ export default function InventoryEditProductPage() {
         setValue("description", product.description || "");
         setValue("highlights", product.highlights || []);
         setValue("images", product.images || []);
-        setValue("status", product.status || "ACTIVE");
+        setValue("status", product.status || "ACTIVE", {
+          shouldValidate: true,
+          shouldDirty: true,
+        });
         setValue("isOrganic", product.isOrganic || false);
         setValue(
           "mrp",
@@ -1406,7 +1409,7 @@ export default function InventoryEditProductPage() {
         category: data.categoryId,
         subCategory: data.subCategoryId?.trim() || undefined,
         images: data.images,
-        status: data.status,
+        status: data.status as "ACTIVE" | "OUT_OF_STOCK" | "DISCONTINUED",
         isOrganic: data.isOrganic,
         mrp: data.mrp !== null && data.mrp !== undefined ? Number(data.mrp) : 0,
         gst:
@@ -2548,12 +2551,19 @@ export default function InventoryEditProductPage() {
                         </label>
                         <select
                           className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-gray-400 bg-muted text-sm"
-                          {...register("status")}
+                          {...register("status", {
+                            required: "Status is required",
+                          })}
                         >
                           <option value="ACTIVE">Active</option>
                           <option value="OUT_OF_STOCK">Out of Stock</option>
                           <option value="DISCONTINUED">Discontinued</option>
                         </select>
+                        {errors.status && (
+                          <p className="text-red-500 text-xs mt-1">
+                            {errors.status.message}
+                          </p>
+                        )}
                       </div>
                       <div className="space-y-2">
                         <label className="text-sm font-medium text-gray-700">

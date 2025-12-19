@@ -8,6 +8,185 @@
 
 ---
 
+## Session Management (Zustand Implementation)
+
+The frontend uses **Zustand** with persistence middleware for session management. This section explains how refresh tokens and access tokens are handled in the client-side implementation.
+
+### Overview
+
+The session management system implements a **dual-token authentication strategy**:
+- **Refresh Token**: Long-lived token (7 days) stored in HTTP-only cookies (managed by backend)
+- **Access Token**: Short-lived token (15 minutes) stored in Zustand store
+
+### Zustand Store Structure
+
+The session store (`useSessionStore`) manages the following state:
+
+```typescript
+interface SessionState {
+  user: Consumer | null;
+  status: "authenticated" | "unauthenticated" | "loading";
+  accessToken: {
+    token: string;
+    expiresAt: Date;
+  } | null;
+  refreshTokenExpiresAt: Date | null;
+  otpExpiresAt: Date | null;
+  // ... other fields
+}
+```
+
+### Storage and Persistence
+
+- **Storage**: Uses `sessionStorage` (via Zustand persist middleware)
+- **Persisted Data**: User data, access token, token expiry times, and selected delivery address
+- **Session Scope**: Data persists only for the browser session (cleared when tab/window closes)
+
+### Token Lifecycle
+
+#### 1. Login Flow
+
+When a user successfully verifies OTP:
+
+1. **Refresh Token**: Backend sets refresh token in HTTP-only cookie (7 days expiry)
+2. **Refresh Token Expiry**: Store tracks expiry time (`refreshTokenExpiresAt`) - set to 7 days from login
+3. **Access Token Generation**: Automatically calls `generateAccessToken()` after login
+4. **Access Token Storage**: Access token stored in Zustand with 15-minute expiry
+
+```typescript
+// After OTP verification
+set({
+  user: userData,
+  status: "authenticated",
+  refreshTokenExpiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
+});
+await generateAccessToken(); // Generates and stores access token
+```
+
+#### 2. Access Token Management
+
+**Automatic Injection**:
+- The `apiClient` (Axios instance) automatically adds access token to all requests via request interceptor
+- Token is retrieved from Zustand store using `getAccessToken()` function
+
+**Token Refresh on 401**:
+- When any API call receives a 401 (Unauthorized) response:
+  1. Interceptor detects the 401 error
+  2. Automatically calls `refreshAccessToken()` function
+  3. Generates new access token using refresh token (via `/api/auth/access` endpoint)
+  4. Retries the original request with new token
+  5. If refresh fails, user is logged out
+
+```typescript
+// Automatic token refresh on 401
+apiClient.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    if (error.response?.status === 401 && refreshAccessToken) {
+      const newToken = await refreshAccessToken();
+      if (newToken) {
+        error.config.headers.Authorization = `Bearer ${newToken}`;
+        return apiClient.request(error.config); // Retry original request
+      }
+    }
+    return Promise.reject(error);
+  }
+);
+```
+
+#### 3. Token Validation
+
+The store provides helper methods to check token validity:
+
+- **`isTokenValid()`**: Checks if access token exists and hasn't expired
+- **`isRefreshTokenExpiringSoon()`**: Checks if refresh token expires within 24 hours
+
+### Key Methods
+
+#### `generateAccessToken()`
+- Calls `/api/auth/access` endpoint (uses refresh token from cookie)
+- Stores new access token with 15-minute expiry
+- Called automatically after login and on 401 errors
+
+#### `refreshRefreshToken()`
+- Calls `/api/auth/refresh-token` endpoint
+- Updates `refreshTokenExpiresAt` to 7 days from now
+- Can be called proactively before refresh token expires
+
+#### `checkRefreshTokenExists()`
+- Calls `/api/auth/me` endpoint to verify refresh token validity
+- Used to check authentication status on app initialization
+- Logs out user if refresh token is invalid
+
+#### `logout()`
+- Calls `/api/auth/logout` endpoint
+- Clears all session data from store
+- Backend removes refresh token from cookie
+- Redirects to home page
+
+### Automatic Token Refresh Flow
+
+```
+User makes API request
+    ↓
+apiClient adds access token to header
+    ↓
+Request sent to backend
+    ↓
+Backend responds with 401 (token expired)
+    ↓
+Interceptor catches 401
+    ↓
+Calls refreshAccessToken()
+    ↓
+POST /api/auth/access (uses refresh token from cookie)
+    ↓
+New access token received
+    ↓
+Store updated with new token
+    ↓
+Original request retried with new token
+    ↓
+Request succeeds
+```
+
+### Session Initialization
+
+On app load:
+
+1. Zustand store is hydrated from `sessionStorage`
+2. Check if refresh token exists via `checkRefreshTokenExists()`
+3. If valid:
+   - Generate new access token
+   - Fetch user profile
+   - Set status to "authenticated"
+4. If invalid:
+   - Clear session data
+   - Set status to "unauthenticated"
+
+### Security Features
+
+1. **HTTP-Only Cookies**: Refresh tokens stored in HTTP-only cookies (not accessible via JavaScript)
+2. **Short-Lived Access Tokens**: 15-minute expiry reduces exposure window
+3. **Automatic Cleanup**: Expired tokens are automatically refreshed or user is logged out
+4. **Session Storage**: Access tokens stored in sessionStorage (cleared on tab close)
+5. **Token Validation**: Built-in checks prevent using expired tokens
+
+### Token Expiry Times
+
+- **Access Token**: 15 minutes
+- **Refresh Token**: 7 days
+- **OTP**: 60 seconds
+
+### Error Handling
+
+- **401 on Access Token**: Automatically refreshed (transparent to user)
+- **401 on Refresh Token**: User is logged out and redirected
+- **Network Errors**: Handled gracefully with appropriate error messages
+- **Token Refresh Failure**: Session cleared, user must login again
+
+---
+
 ## 1. Authentication Endpoints
 
 ### Send OTP
