@@ -1285,6 +1285,9 @@ export default function InventoryAddProductPage() {
         sku: string;
         hsn?: string;
         name: string;
+        title2?: string;
+        title3?: string;
+        title4?: string;
         type: "product";
         description: string;
         highlights: { key: string; value: string }[];
