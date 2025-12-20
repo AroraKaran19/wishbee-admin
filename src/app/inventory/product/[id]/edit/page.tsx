@@ -99,6 +99,9 @@ export default function InventoryEditProductPage() {
       sku: "",
       hsn: "",
       name: "",
+      title2: "",
+      title3: "",
+      title4: "",
       description: "",
       highlights: [],
       images: [],
@@ -223,6 +226,9 @@ export default function InventoryEditProductPage() {
         setValue("sku", product.sku || "");
         setValue("hsn", product.hsn || "");
         setValue("name", product.name || "");
+        setValue("title2", product.title2 || "");
+        setValue("title3", product.title3 || "");
+        setValue("title4", product.title4 || "");
         setValue("description", product.description || "");
         setValue("highlights", product.highlights || []);
         setValue("images", product.images || []);
@@ -1403,6 +1409,9 @@ export default function InventoryEditProductPage() {
         sku: data.sku.trim(),
         hsn: data.hsn?.trim() || undefined,
         name: data.name.trim(),
+        title2: data.title2?.trim() || undefined,
+        title3: data.title3?.trim() || undefined,
+        title4: data.title4?.trim() || undefined,
         type: "product" as const,
         description: data.description.trim(),
         highlights: data.highlights,
@@ -1751,6 +1760,51 @@ export default function InventoryEditProductPage() {
                             {errors.name.message}
                           </p>
                         )}
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium text-gray-700">
+                          Title 2
+                          <span className="text-gray-500 text-xs ml-1">
+                            (Optional)
+                          </span>
+                        </label>
+                        <Input
+                          variant="muted"
+                          icon={<FileText className="w-4 h-4" />}
+                          className="text-sm"
+                          placeholder="Enter title 2"
+                          {...register("title2")}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium text-gray-700">
+                          Title 3
+                          <span className="text-gray-500 text-xs ml-1">
+                            (Optional)
+                          </span>
+                        </label>
+                        <Input
+                          variant="muted"
+                          icon={<FileText className="w-4 h-4" />}
+                          className="text-sm"
+                          placeholder="Enter title 3"
+                          {...register("title3")}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium text-gray-700">
+                          Title 4
+                          <span className="text-gray-500 text-xs ml-1">
+                            (Optional)
+                          </span>
+                        </label>
+                        <Input
+                          variant="muted"
+                          icon={<FileText className="w-4 h-4" />}
+                          className="text-sm"
+                          placeholder="Enter title 4"
+                          {...register("title4")}
+                        />
                       </div>
                       <div className="space-y-2">
                         <label className="text-sm font-medium text-gray-700">
@@ -3272,15 +3326,6 @@ function CreateCategoryModal({
     e.preventDefault();
     if (!formData.name || !formData.slug) return;
 
-    // Validate description length if provided
-    if (
-      formData.description &&
-      formData.description.length > 0 &&
-      formData.description.length < 10
-    ) {
-      toast.error("Description must be at least 10 characters long");
-      return;
-    }
 
     try {
       setIsSubmitting(true);
@@ -3356,18 +3401,13 @@ function CreateCategoryModal({
             />
           </div>
 
-          {/* <div>
+          <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Description *{" "}
-              <span className="text-gray-500 text-xs">(min 10 characters)</span>
+              Description
+              <span className="text-gray-500 text-xs ml-1">(Optional)</span>
             </label>
             <textarea
-              className={`w-full px-3 py-2 border rounded-lg focus:outline-none bg-muted text-sm ${
-                formData.description.length > 0 &&
-                formData.description.length < 10
-                  ? "border-red-300 focus:border-red-500"
-                  : "border-gray-200 focus:border-gray-400"
-              }`}
+              className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-gray-400 bg-muted text-sm"
               value={formData.description}
               onChange={(e) =>
                 setFormData((prev) => ({
@@ -3375,26 +3415,15 @@ function CreateCategoryModal({
                   description: e.target.value,
                 }))
               }
-              placeholder="Enter category description (minimum 10 characters)"
+              placeholder="Enter category description"
               rows={3}
-              required
             />
             <div className="flex justify-between items-center mt-1">
-              <span
-                className={`text-xs ${
-                  formData.description.length > 0 &&
-                  formData.description.length < 10
-                    ? "text-red-500"
-                    : "text-gray-500"
-                }`}
-              >
-                {formData.description.length > 0 &&
-                formData.description.length < 10
-                  ? "Description must be at least 10 characters long"
-                  : `${formData.description.length} characters`}
+              <span className="text-xs text-gray-500">
+                {formData.description.length} characters
               </span>
             </div>
-          </div> */}
+          </div>
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -3615,15 +3644,6 @@ function CreateSubcategoryModal({
     e.preventDefault();
     if (!formData.name || !formData.parentCategoryId || !formData.slug) return;
 
-    // Validate description length if provided
-    if (
-      formData.description &&
-      formData.description.length > 0 &&
-      formData.description.length < 10
-    ) {
-      toast.error("Description must be at least 10 characters long");
-      return;
-    }
 
     try {
       setIsSubmitting(true);
@@ -3723,18 +3743,13 @@ function CreateSubcategoryModal({
             />
           </div>
 
-          {/* <div>
+          <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Description *{" "}
-              <span className="text-gray-500 text-xs">(min 10 characters)</span>
+              Description
+              <span className="text-gray-500 text-xs ml-1">(Optional)</span>
             </label>
             <textarea
-              className={`w-full px-3 py-2 border rounded-lg focus:outline-none bg-muted text-sm ${
-                formData.description.length > 0 &&
-                formData.description.length < 10
-                  ? "border-red-300 focus:border-red-500"
-                  : "border-gray-200 focus:border-gray-400"
-              }`}
+              className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-gray-400 bg-muted text-sm"
               value={formData.description}
               onChange={(e) =>
                 setFormData((prev) => ({
@@ -3742,26 +3757,15 @@ function CreateSubcategoryModal({
                   description: e.target.value,
                 }))
               }
-              placeholder="Enter sub-category description (minimum 10 characters)"
+              placeholder="Enter sub-category description"
               rows={3}
-              required
             />
             <div className="flex justify-between items-center mt-1">
-              <span
-                className={`text-xs ${
-                  formData.description.length > 0 &&
-                  formData.description.length < 10
-                    ? "text-red-500"
-                    : "text-gray-500"
-                }`}
-              >
-                {formData.description.length > 0 &&
-                formData.description.length < 10
-                  ? "Description must be at least 10 characters long"
-                  : `${formData.description.length} characters`}
+              <span className="text-xs text-gray-500">
+                {formData.description.length} characters
               </span>
             </div>
-          </div> */}
+          </div>
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">

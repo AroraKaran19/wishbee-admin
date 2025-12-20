@@ -6,6 +6,9 @@ export interface Product {
   sku: string; // Stock Keeping Unit for barcode value
   hsn?: string; // Harmonized System of Nomenclature code
   name: string;
+  title2?: string; // Optional title field 2
+  title3?: string; // Optional title field 3
+  title4?: string; // Optional title field 4
   type: "product";
   description: string;
   highlights: {

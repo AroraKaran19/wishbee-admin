@@ -18,6 +18,11 @@ The session management system implements a **dual-token authentication strategy*
 - **Refresh Token**: Long-lived token (7 days) stored in HTTP-only cookies (managed by backend)
 - **Access Token**: Short-lived token (15 minutes) stored in Zustand store
 
+**Note**: Some authentication endpoints are implemented as **Next.js frontend API routes** (located in `frontend/src/app/api/auth/`) rather than backend routes. These frontend routes act as proxies that:
+- Handle cookie management
+- Forward requests to the backend API
+- Provide a consistent frontend API interface
+
 ### Zustand Store Structure
 
 The session store (`useSessionStore`) manages the following state:
@@ -73,7 +78,7 @@ await generateAccessToken(); // Generates and stores access token
 - When any API call receives a 401 (Unauthorized) response:
   1. Interceptor detects the 401 error
   2. Automatically calls `refreshAccessToken()` function
-  3. Generates new access token using refresh token (via `/api/auth/access` endpoint)
+  3. Generates new access token using refresh token (via `/api/auth/access` Next.js frontend route, which proxies to backend)
   4. Retries the original request with new token
   5. If refresh fails, user is logged out
 
@@ -104,19 +109,24 @@ The store provides helper methods to check token validity:
 ### Key Methods
 
 #### `generateAccessToken()`
-- Calls `/api/auth/access` endpoint (uses refresh token from cookie)
+- Calls `/api/auth/access` endpoint (Next.js frontend API route)
+- This frontend route proxies to backend `/auth/generate-access-token` endpoint
+- Uses refresh token from HTTP-only cookie
 - Stores new access token with 15-minute expiry
 - Called automatically after login and on 401 errors
 
 #### `refreshRefreshToken()`
-- Calls `/api/auth/refresh-token` endpoint
+- Calls `/api/auth/refresh-token` endpoint (Next.js frontend API route)
+- This frontend route proxies to backend `/auth/refresh-token` endpoint
 - Updates `refreshTokenExpiresAt` to 7 days from now
 - Can be called proactively before refresh token expires
 
 #### `checkRefreshTokenExists()`
-- Calls `/api/auth/me` endpoint to verify refresh token validity
+- Calls `/api/auth/me` endpoint (Next.js frontend API route)
+- This is a **frontend-only route** that checks if refresh token cookie exists
+- Does not call the backend - only verifies cookie presence
 - Used to check authentication status on app initialization
-- Logs out user if refresh token is invalid
+- Logs out user if refresh token cookie is missing
 
 #### `logout()`
 - Calls `/api/auth/logout` endpoint
@@ -139,7 +149,7 @@ Interceptor catches 401
     ↓
 Calls refreshAccessToken()
     ↓
-POST /api/auth/access (uses refresh token from cookie)
+POST /api/auth/access (Next.js frontend route → proxies to backend /auth/generate-access-token)
     ↓
 New access token received
     ↓
@@ -1261,6 +1271,9 @@ On app load:
           "_id": "string",
           "sku": "string",
           "name": "string",
+          "title2": "string",
+          "title3": "string",
+          "title4": "string",
           "type": "product",
           "description": "string",
           "highlights": [
@@ -1426,6 +1439,9 @@ On app load:
           "_id": "string",
           "sku": "string",
           "name": "string",
+          "title2": "string",
+          "title3": "string",
+          "title4": "string",
           "type": "product",
           "description": "string",
           "highlights": [
@@ -1512,6 +1528,9 @@ On app load:
   {
     "sku": "string",
     "name": "string",
+    "title2": "string",
+    "title3": "string",
+    "title4": "string",
     "description": "string",
     "highlights": [
       {
@@ -1569,6 +1588,7 @@ On app load:
   - `subCategory` is optional - products can be created without a subcategory
   - `category` is required for products with status other than "DISCONTINUED"
   - `dotd`, `pfy`, and `isEssential` are boolean fields (default: false)
+  - `title2`, `title3`, and `title4` are optional string fields
 - **Response**: Created product object
 
 ### Update Product
