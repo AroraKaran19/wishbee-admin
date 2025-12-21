@@ -65,6 +65,24 @@ export function OrderTable({
   };
 
   const handleDownloadInvoice = async (order: Order) => {
+    // Check if order is cancelled - prevent invoice generation
+    if (order.status === 'Cancelled') {
+      toast.error('Cannot generate invoice for cancelled orders', { id: 'invoice-download' });
+      return;
+    }
+
+    // Check if order is delivered and payment is completed
+    if (order.status !== 'Delivered') {
+      toast.error('Invoice can only be generated for delivered orders', { id: 'invoice-download' });
+      return;
+    }
+
+    const paymentStatus = order.paymentDetails?.status?.toUpperCase();
+    if (paymentStatus !== 'COMPLETED') {
+      toast.error('Invoice can only be generated for orders with completed payment', { id: 'invoice-download' });
+      return;
+    }
+
     try {
       toast.loading('Generating invoice...', { id: 'invoice-download' });
       await downloadOrderInvoice(order.id);
@@ -204,7 +222,23 @@ export function OrderTable({
         onClick: (record) => handleDownloadInvoice(record),
         variant: 'secondary',
         size: 'sm',
-        className: 'text-blue-600 hover:text-blue-700 bg-transparent hover:bg-blue-50 border-0 shadow-none rounded-full pr-1.5 flex items-center justify-center'
+        disabled: (record: Order) => {
+          // Disable if cancelled
+          if (record.status === 'Cancelled') {
+            return true;
+          }
+          // Disable if not delivered
+          if (record.status !== 'Delivered') {
+            return true;
+          }
+          // Disable if payment is not completed
+          const paymentStatus = record.paymentDetails?.status?.toUpperCase();
+          if (paymentStatus !== 'COMPLETED') {
+            return true;
+          }
+          return false;
+        },
+        className: 'text-blue-600 hover:text-blue-700 bg-transparent hover:bg-blue-50 border-0 shadow-none rounded-full pr-1.5 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed'
       },
       {
         key: 'edit',

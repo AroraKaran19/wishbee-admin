@@ -12,6 +12,23 @@ export async function downloadOrderInvoice(orderId: string): Promise<void> {
     const response = await apiClient.get(`/orders/${orderId}`);
     const apiOrder = response.data.data;
 
+    // Check if order is cancelled - do not generate invoice for cancelled orders
+    if (apiOrder.status === 'CANCELLED' || apiOrder.status === 'Cancelled') {
+      throw new Error('Cannot generate invoice for cancelled orders');
+    }
+
+    // Check if order is delivered and payment is completed - invoice can only be generated for delivered orders with completed payment
+    const orderStatus = apiOrder.status?.toUpperCase();
+    const paymentStatus = apiOrder.payment?.status?.toUpperCase();
+    
+    if (orderStatus !== 'DELIVERED') {
+      throw new Error('Invoice can only be generated for delivered orders');
+    }
+    
+    if (paymentStatus !== 'COMPLETED') {
+      throw new Error('Invoice can only be generated for orders with completed payment');
+    }
+
     // Extract user information from the order
     // The user field is populated with firstName, lastName, phoneNumber, email, role
     // govtId might not be included, so we'll try to fetch it if needed
@@ -25,8 +42,16 @@ export async function downloadOrderInvoice(orderId: string): Promise<void> {
       }
     }
     
+    // Use storeName if available, otherwise fall back to firstName + lastName
+    let customerName: string;
+    if (user?.storeName && user.storeName.trim()) {
+      customerName = user.storeName.trim();
+    } else {
+      customerName = [user?.firstName, user?.lastName].filter(Boolean).join(' ') || user?.phoneNumber || 'Customer';
+    }
+    
     const userInfo = {
-      name: [user?.firstName, user?.lastName].filter(Boolean).join(' ') || user?.phoneNumber || 'Customer',
+      name: customerName,
       email: user?.email || '',
       phone: user?.phoneNumber || '',
       gstin,

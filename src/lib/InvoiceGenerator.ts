@@ -874,6 +874,10 @@ export class InvoiceGenerator {
     this.doc.save(filename || defaultFilename);
   }
 
+  getInvoiceBlob(): Blob {
+    return this.doc.output('blob');
+  }
+
   openInvoice(): void {
     const pdfDataUri = this.doc.output("datauristring");
     window.open(pdfDataUri, "_blank");
@@ -947,6 +951,37 @@ export const generateInvoicePDF = async (
   const generator = await InvoiceGenerator.create();
   await generator.generateInvoice(order, userInfo);
   generator.downloadInvoice(filename);
+};
+
+export const generateInvoicePDFBlob = async (
+  order: OrderItem,
+  userInfo: UserInfo
+): Promise<Blob> => {
+  // Fetch invoice number from API if not already present
+  let invoiceNumber = order.invoiceNumber;
+
+  if (!invoiceNumber) {
+    try {
+      // Dynamically import apiClient to avoid circular dependencies
+      const { apiClient } = await import("@/lib/api/apiClient");
+      const response = await apiClient.get(
+        `/orders/${order._id}/invoice-number`
+      );
+
+      if (response.data.success && response.data.data?.invoiceNumber) {
+        invoiceNumber = response.data.data.invoiceNumber;
+        // Update order object with invoice number
+        order.invoiceNumber = invoiceNumber;
+      }
+    } catch (error) {
+      console.error("Failed to fetch invoice number:", error);
+      // Continue without invoice number, will use fallback
+    }
+  }
+
+  const generator = await InvoiceGenerator.create();
+  await generator.generateInvoice(order, userInfo);
+  return generator.getInvoiceBlob();
 };
 
 export const shareInvoicePDF = async (

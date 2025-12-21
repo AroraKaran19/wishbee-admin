@@ -6,9 +6,10 @@ import { OrderTable } from './order-table';
 import { OrderSummaryCards } from './order-summary-cards';
 import { orderApi, convertApiOrderToUIOrder, convertStatsToOrderSummary, OrderPeriod } from '@/lib/api/orders';
 import { Order, OrderSummary } from '@/lib/types';
-import { Upload, Calendar } from 'lucide-react';
+import { Upload, Calendar, Download } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { DateRangePicker } from '@/components/ui/date-range-picker';
+import { BulkInvoiceModal } from './bulk-invoice-modal';
 
 // Map UI period labels to API period values
 const periodMap: Record<string, OrderPeriod> = {
@@ -50,6 +51,7 @@ export function OrderPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [totalPages, setTotalPages] = useState(1);
+  const [isBulkInvoiceModalOpen, setIsBulkInvoiceModalOpen] = useState(false);
   const itemsPerPage = 10;
 
   // Set default date range (last 30 days) when custom is first selected
@@ -344,7 +346,7 @@ export function OrderPage() {
                     setAppliedStartDate("");
                     setAppliedEndDate("");
                   }}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  className={`px-4 py-2 cursor-pointer rounded-lg text-sm font-medium transition-colors ${
                     period === periodMap[periodKey]
                       ? "bg-[#13aaff] text-white"
                       : "bg-gray-100 text-gray-700 hover:bg-gray-200"
@@ -449,6 +451,13 @@ export function OrderPage() {
             searchValue={searchQuery}
             actions={[
               {
+                key: 'bulk-invoice',
+                label: 'Bulk Download Invoices',
+                icon: <Download className="w-4 h-4" />,
+                onClick: () => setIsBulkInvoiceModalOpen(true),
+                variant: 'primary'
+              },
+              {
                 key: 'export',
                 label: 'Export PDF',
                 icon: <Upload className="w-4 h-4" />,
@@ -496,6 +505,12 @@ export function OrderPage() {
           )}
         </div>
       </div>
+
+      {/* Bulk Invoice Modal */}
+      <BulkInvoiceModal
+        isOpen={isBulkInvoiceModalOpen}
+        onClose={() => setIsBulkInvoiceModalOpen(false)}
+      />
     </div>
   );
 }
