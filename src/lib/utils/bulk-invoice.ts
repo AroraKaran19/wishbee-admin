@@ -1,6 +1,7 @@
 import JSZip from 'jszip';
 import { apiClient } from '@/lib/api/apiClient';
 import { generateInvoicePDFBlob } from '@/lib/InvoiceGenerator';
+import { customerApi } from '@/lib/api/customers';
 
 interface BulkInvoiceFilters {
   startDate: string;
@@ -59,29 +60,41 @@ async function fetchOrders(filters: BulkInvoiceFilters): Promise<OrderForInvoice
 /**
  * Prepares order data for invoice generation
  */
-function prepareOrderForInvoice(apiOrder: OrderForInvoice) {
+async function prepareOrderForInvoice(apiOrder: OrderForInvoice) {
   const user = apiOrder.user;
+  let fullUser = user;
+  
+  // Fetch full user details if storeName is not available (to get storeName and govtId)
+  if (user?._id && !user?.storeName) {
+    try {
+      fullUser = await customerApi.getById(user._id);
+    } catch (error) {
+      console.warn(`Failed to fetch full user details for order ${apiOrder._id}, using order user data:`, error);
+      // Continue with order user data if fetch fails
+    }
+  }
+  
   let gstin: string | undefined;
   
   // Try to get GSTIN from user.govtId if available
-  if (user?.govtId) {
-    if (user.govtId.type === 'GST') {
-      gstin = user.govtId.number;
+  if (fullUser?.govtId) {
+    if (fullUser.govtId.type === 'GST') {
+      gstin = fullUser.govtId.number;
     }
   }
   
   // Use storeName if available, otherwise fall back to firstName + lastName
   let customerName: string;
-  if (user?.storeName && user.storeName.trim()) {
-    customerName = user.storeName.trim();
+  if (fullUser?.storeName && fullUser.storeName.trim()) {
+    customerName = fullUser.storeName.trim();
   } else {
-    customerName = [user?.firstName, user?.lastName].filter(Boolean).join(' ') || user?.phoneNumber || 'Customer';
+    customerName = [fullUser?.firstName, fullUser?.lastName].filter(Boolean).join(' ') || fullUser?.phoneNumber || 'Customer';
   }
   
   const userInfo = {
     name: customerName,
-    email: user?.email || '',
-    phone: user?.phoneNumber || '',
+    email: fullUser?.email || user?.email || '',
+    phone: fullUser?.phoneNumber || user?.phoneNumber || '',
     gstin,
   };
 
@@ -156,7 +169,7 @@ export async function generateBulkInvoices(
   // Generate invoices for each order
   for (const order of eligibleOrders) {
     try {
-      const { orderForInvoice, userInfo } = prepareOrderForInvoice(order);
+      const { orderForInvoice, userInfo } = await prepareOrderForInvoice(order);
       
       // Generate invoice PDF blob
       const pdfBlob = await generateInvoicePDFBlob(orderForInvoice, userInfo);

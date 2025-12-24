@@ -1,6 +1,7 @@
 import { orderApi } from '@/lib/api/orders';
 import { generateInvoicePDF } from '@/lib/InvoiceGenerator';
 import { apiClient } from '@/lib/api/apiClient';
+import { customerApi } from '@/lib/api/customers';
 
 /**
  * Downloads invoice PDF for an order
@@ -31,29 +32,41 @@ export async function downloadOrderInvoice(orderId: string): Promise<void> {
 
     // Extract user information from the order
     // The user field is populated with firstName, lastName, phoneNumber, email, role
-    // govtId might not be included, so we'll try to fetch it if needed
+    // storeName and govtId might not be included, so we'll fetch full user details if needed
     const user = apiOrder.user;
+    let fullUser = user;
+    
+    // Fetch full user details if storeName is not available (to get storeName and govtId)
+    if (user?._id && !user?.storeName) {
+      try {
+        fullUser = await customerApi.getById(user._id);
+      } catch (error) {
+        console.warn('Failed to fetch full user details, using order user data:', error);
+        // Continue with order user data if fetch fails
+      }
+    }
+    
     let gstin: string | undefined;
     
     // Try to get GSTIN from user.govtId if available
-    if (user?.govtId) {
-      if (user.govtId.type === 'GST') {
-        gstin = user.govtId.number;
+    if (fullUser?.govtId) {
+      if (fullUser.govtId.type === 'GST') {
+        gstin = fullUser.govtId.number;
       }
     }
     
     // Use storeName if available, otherwise fall back to firstName + lastName
     let customerName: string;
-    if (user?.storeName && user.storeName.trim()) {
-      customerName = user.storeName.trim();
+    if (fullUser?.storeName && fullUser.storeName.trim()) {
+      customerName = fullUser.storeName.trim();
     } else {
-      customerName = [user?.firstName, user?.lastName].filter(Boolean).join(' ') || user?.phoneNumber || 'Customer';
+      customerName = [fullUser?.firstName, fullUser?.lastName].filter(Boolean).join(' ') || fullUser?.phoneNumber || 'Customer';
     }
     
     const userInfo = {
       name: customerName,
-      email: user?.email || '',
-      phone: user?.phoneNumber || '',
+      email: fullUser?.email || user?.email || '',
+      phone: fullUser?.phoneNumber || user?.phoneNumber || '',
       gstin,
     };
 
