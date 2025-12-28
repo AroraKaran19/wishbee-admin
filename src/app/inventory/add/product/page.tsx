@@ -180,6 +180,8 @@ export default function InventoryAddProductPage() {
     totalPages: 1,
     hasMore: true,
   });
+  const [categorySearchQuery, setCategorySearchQuery] = useState("");
+  const [subcategorySearchQuery, setSubcategorySearchQuery] = useState("");
   const [showCategoryModal, setShowCategoryModal] = useState(false);
   const [showSubcategoryModal, setShowSubcategoryModal] = useState(false);
   const [editingCategory, setEditingCategory] = useState<any | null>(null);
@@ -215,16 +217,17 @@ export default function InventoryAddProductPage() {
     }
   };
 
-  // Load initial categories on component mount
+  // Load categories with search
   useEffect(() => {
-    const loadInitialCategories = async () => {
+    const loadCategories = async () => {
       try {
         setLoadingCategories(true);
 
         const response = await categoryApi.getAll({
           isActive: true,
           page: 1,
-          limit: 20, // Load 20 categories initially
+          limit: 50, // Load more categories when searching
+          search: categorySearchQuery || undefined,
         });
 
         const categoriesData = response.data?.categories;
@@ -249,8 +252,8 @@ export default function InventoryAddProductPage() {
       }
     };
 
-    loadInitialCategories();
-  }, []);
+    loadCategories();
+  }, [categorySearchQuery]);
 
   // Load subcategories when category changes
   useEffect(() => {
@@ -759,15 +762,20 @@ export default function InventoryAddProductPage() {
     })
   );
 
-  // Convert subcategories to dropdown options
-  const subcategoryOptions: DropdownOption[] = (subcategories || []).map(
-    (subcategory, index) => ({
+  // Convert subcategories to dropdown options with client-side filtering
+  const subcategoryOptions: DropdownOption[] = (subcategories || [])
+    .filter((subcategory) => {
+      if (!subcategorySearchQuery) return true;
+      return subcategory.name
+        .toLowerCase()
+        .includes(subcategorySearchQuery.toLowerCase());
+    })
+    .map((subcategory, index) => ({
       id: subcategory._id || `subcategory-${index}`,
       label: subcategory.name,
       value: subcategory._id,
       image: subcategory.image,
-    })
-  );
+    }));
 
   // Load more categories
   const loadMoreCategories = async () => {
@@ -781,6 +789,7 @@ export default function InventoryAddProductPage() {
         isActive: true,
         page: nextPage,
         limit: 20,
+        search: categorySearchQuery || undefined,
       });
 
       const categoriesData = response.data?.categories;
@@ -806,6 +815,16 @@ export default function InventoryAddProductPage() {
     } finally {
       setLoadingCategories(false);
     }
+  };
+
+  // Handle category search
+  const handleCategorySearch = (searchQuery: string) => {
+    setCategorySearchQuery(searchQuery);
+  };
+
+  // Handle subcategory search (client-side filtering)
+  const handleSubcategorySearch = (searchQuery: string) => {
+    setSubcategorySearchQuery(searchQuery);
   };
 
   // Load more subcategories
@@ -1779,6 +1798,9 @@ export default function InventoryAddProductPage() {
                         hasMore={categoriesPagination.hasMore}
                         onLoadMore={loadMoreCategories}
                         loadingMore={loadingCategories}
+                        searchable={true}
+                        onSearch={handleCategorySearch}
+                        searchPlaceholder="Search categories..."
                       />
                     </div>
                     <div className="space-y-2">
@@ -1814,6 +1836,9 @@ export default function InventoryAddProductPage() {
                         hasMore={subcategoriesPagination.hasMore}
                         onLoadMore={loadMoreSubcategories}
                         loadingMore={loadingSubcategories}
+                        searchable={true}
+                        onSearch={handleSubcategorySearch}
+                        searchPlaceholder="Search subcategories..."
                       />
                     </div>
                     <div className="space-y-2 md:col-span-2">

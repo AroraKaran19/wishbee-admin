@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from "react";
-import { ChevronDown, Edit, Trash2, Plus } from "lucide-react";
+import { ChevronDown, Edit, Trash2, Plus, Search, X } from "lucide-react";
 import { Button } from "./button";
 
 export interface DropdownOption {
@@ -30,6 +30,9 @@ export interface ActionDropdownProps {
   hasMore?: boolean;
   onLoadMore?: () => void;
   loadingMore?: boolean;
+  searchable?: boolean;
+  onSearch?: (searchQuery: string) => void;
+  searchPlaceholder?: string;
 }
 
 export function ActionDropdown({
@@ -50,11 +53,44 @@ export function ActionDropdown({
   hasMore = false,
   onLoadMore,
   loadingMore = false,
+  searchable = false,
+  onSearch,
+  searchPlaceholder = "Search...",
 }: ActionDropdownProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [hoveredOption, setHoveredOption] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
   const dropdownRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+
+  // Debounce search query
+  useEffect(() => {
+    if (!searchable) return;
+
+    const timer = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery);
+    }, 300); // 300ms debounce delay
+
+    return () => clearTimeout(timer);
+  }, [searchQuery, searchable]);
+
+  // Call onSearch when debounced query changes
+  useEffect(() => {
+    if (searchable && onSearch && debouncedSearchQuery !== undefined) {
+      onSearch(debouncedSearchQuery);
+    }
+  }, [debouncedSearchQuery, searchable, onSearch]);
+
+  // Focus search input when dropdown opens
+  useEffect(() => {
+    if (isOpen && searchable && searchInputRef.current) {
+      setTimeout(() => {
+        searchInputRef.current?.focus();
+      }, 100);
+    }
+  }, [isOpen, searchable]);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -65,6 +101,10 @@ export function ActionDropdown({
       ) {
         setIsOpen(false);
         setHoveredOption(null);
+        if (searchable) {
+          setSearchQuery("");
+          setDebouncedSearchQuery("");
+        }
       }
     };
 
@@ -72,7 +112,7 @@ export function ActionDropdown({
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
     };
-  }, []);
+  }, [searchable]);
 
   // Handle scroll to load more
   const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
@@ -93,8 +133,32 @@ export function ActionDropdown({
       onSelect(option);
       setIsOpen(false);
       setHoveredOption(null);
+      if (searchable) {
+        setSearchQuery("");
+        setDebouncedSearchQuery("");
+      }
     }
   };
+
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchQuery(e.target.value);
+  };
+
+  const handleClearSearch = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setSearchQuery("");
+    setDebouncedSearchQuery("");
+    if (onSearch) {
+      onSearch("");
+    }
+  };
+
+  // Filter options based on search query (client-side filtering as fallback)
+  const filteredOptions = searchable && debouncedSearchQuery
+    ? options.filter((option) =>
+        option.label.toLowerCase().includes(debouncedSearchQuery.toLowerCase())
+      )
+    : options;
 
   const handleActionClick = (
     e: React.MouseEvent,
@@ -179,17 +243,48 @@ export function ActionDropdown({
       {/* Dropdown Menu */}
       {isOpen && (
         <div
-          className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto"
+          className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-hidden flex flex-col"
           ref={scrollContainerRef}
-          onScroll={handleScroll}
         >
-          {options.length === 0 ? (
-            <div className="px-3 py-2 text-sm text-gray-500 text-center">
-              No options available
+          {/* Search Input */}
+          {searchable && (
+            <div className="p-2 border-b border-gray-200 sticky top-0 bg-white z-10">
+              <div className="relative">
+                <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <input
+                  ref={searchInputRef}
+                  type="text"
+                  value={searchQuery}
+                  onChange={handleSearchChange}
+                  onClick={(e) => e.stopPropagation()}
+                  placeholder={searchPlaceholder}
+                  className="w-full pl-8 pr-8 py-1.5 text-sm border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                />
+                {searchQuery && (
+                  <button
+                    type="button"
+                    onClick={handleClearSearch}
+                    className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
             </div>
-          ) : (
-            <>
-              {options.map((option, index) => (
+          )}
+          <div
+            className="overflow-y-auto flex-1"
+            onScroll={handleScroll}
+          >
+            {filteredOptions.length === 0 ? (
+              <div className="px-3 py-2 text-sm text-gray-500 text-center">
+                {searchable && debouncedSearchQuery
+                  ? "No results found"
+                  : "No options available"}
+              </div>
+            ) : (
+              <>
+                {filteredOptions.map((option, index) => (
                 <div
                   key={option.id || `option-${index}`}
                   className={`px-3 py-2 text-sm transition-colors border-b border-gray-100 last:border-b-0 flex items-center justify-between group ${
@@ -267,6 +362,7 @@ export function ActionDropdown({
               )}
             </>
           )}
+          </div>
         </div>
       )}
     </div>

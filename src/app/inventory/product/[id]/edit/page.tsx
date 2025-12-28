@@ -181,6 +181,8 @@ export default function InventoryEditProductPage() {
     totalPages: 1,
     hasMore: true,
   });
+  const [categorySearchQuery, setCategorySearchQuery] = useState("");
+  const [subcategorySearchQuery, setSubcategorySearchQuery] = useState("");
   const [showCategoryModal, setShowCategoryModal] = useState(false);
   const [showSubcategoryModal, setShowSubcategoryModal] = useState(false);
   const [editingCategory, setEditingCategory] = useState<any | null>(null);
@@ -331,20 +333,49 @@ export default function InventoryEditProductPage() {
     }
   };
 
-  // Load initial categories on component mount
+  // Load categories with search
   useEffect(() => {
-    const loadInitialCategories = async () => {
+    const loadCategories = async () => {
       try {
         setLoadingCategories(true);
+
+        const selectedCategoryId = watch("categoryId");
+        let selectedCategory = null;
+
+        // If there's a selected category, fetch it first to ensure it's in the list
+        if (selectedCategoryId && !categorySearchQuery) {
+          try {
+            const categoryResponse = await categoryApi.getById(selectedCategoryId);
+            selectedCategory = categoryResponse.data || categoryResponse;
+          } catch (error) {
+            // If category not found, continue without it
+            console.warn("Selected category not found:", error);
+          }
+        }
 
         const response = await categoryApi.getAll({
           isActive: true,
           page: 1,
-          limit: 20, // Load 20 categories initially
+          limit: 50, // Load more categories when searching
+          search: categorySearchQuery || undefined,
         });
 
-        const categoriesData = response.data?.categories;
+        let categoriesData = response.data?.categories;
         if (Array.isArray(categoriesData)) {
+          // If we have a selected category, ensure it's in the list
+          if (selectedCategory) {
+            const existingIndex = categoriesData.findIndex(
+              (cat) => cat._id === selectedCategory._id
+            );
+            if (existingIndex === -1) {
+              // Add selected category at the beginning
+              categoriesData = [selectedCategory, ...categoriesData];
+            } else {
+              // Move selected category to the beginning
+              const [selected] = categoriesData.splice(existingIndex, 1);
+              categoriesData = [selected, ...categoriesData];
+            }
+          }
           setCategories(categoriesData);
         }
 
@@ -365,25 +396,61 @@ export default function InventoryEditProductPage() {
       }
     };
 
-    loadInitialCategories();
-  }, []);
+    // Only load categories after product is loaded (to get selected categoryId)
+    if (!loadingProduct) {
+      loadCategories();
+    }
+  }, [categorySearchQuery, watch("categoryId"), loadingProduct]);
 
   // Load subcategories when category changes
   useEffect(() => {
     const selectedCategoryId = watch("categoryId");
+    const selectedSubCategoryId = watch("subCategoryId");
+    
     if (selectedCategoryId) {
       const loadSubcategories = async () => {
         try {
           setLoadingSubcategories(true);
+
+          let selectedSubcategory = null;
+
+          // If there's a selected subcategory, fetch it first to ensure it's in the list
+          if (selectedSubCategoryId && !subcategorySearchQuery) {
+            try {
+              const subcategoryResponse = await subcategoryApi.getById(selectedSubCategoryId);
+              selectedSubcategory = subcategoryResponse.data || subcategoryResponse;
+              // Verify it belongs to the selected category
+              if (selectedSubcategory.parentCategory !== selectedCategoryId) {
+                selectedSubcategory = null;
+              }
+            } catch (error) {
+              // If subcategory not found, continue without it
+              console.warn("Selected subcategory not found:", error);
+            }
+          }
 
           const response = await subcategoryApi.getByCategory(
             selectedCategoryId,
             { page: 1, limit: 20 }
           );
 
-          const subcategoriesData =
+          let subcategoriesData =
             response.data?.subcategories || response.data;
           if (Array.isArray(subcategoriesData)) {
+            // If we have a selected subcategory, ensure it's in the list
+            if (selectedSubcategory) {
+              const existingIndex = subcategoriesData.findIndex(
+                (sub) => sub._id === selectedSubcategory._id
+              );
+              if (existingIndex === -1) {
+                // Add selected subcategory at the beginning
+                subcategoriesData = [selectedSubcategory, ...subcategoriesData];
+              } else {
+                // Move selected subcategory to the beginning
+                const [selected] = subcategoriesData.splice(existingIndex, 1);
+                subcategoriesData = [selected, ...subcategoriesData];
+              }
+            }
             setSubcategories(subcategoriesData);
           }
 
@@ -402,11 +469,14 @@ export default function InventoryEditProductPage() {
         }
       };
 
-      loadSubcategories();
+      // Only load subcategories after product is loaded (to get selected subCategoryId)
+      if (!loadingProduct) {
+        loadSubcategories();
+      }
     } else {
       setSubcategories([]);
     }
-  }, [watch("categoryId")]);
+  }, [watch("categoryId"), watch("subCategoryId"), subcategorySearchQuery, loadingProduct]);
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
@@ -875,15 +945,20 @@ export default function InventoryEditProductPage() {
     })
   );
 
-  // Convert subcategories to dropdown options
-  const subcategoryOptions: DropdownOption[] = (subcategories || []).map(
-    (subcategory, index) => ({
+  // Convert subcategories to dropdown options with client-side filtering
+  const subcategoryOptions: DropdownOption[] = (subcategories || [])
+    .filter((subcategory) => {
+      if (!subcategorySearchQuery) return true;
+      return subcategory.name
+        .toLowerCase()
+        .includes(subcategorySearchQuery.toLowerCase());
+    })
+    .map((subcategory, index) => ({
       id: subcategory._id || `subcategory-${index}`,
       label: subcategory.name,
       value: subcategory._id,
       image: subcategory.image,
-    })
-  );
+    }));
 
   // Load more categories
   const loadMoreCategories = async () => {
@@ -897,6 +972,7 @@ export default function InventoryEditProductPage() {
         isActive: true,
         page: nextPage,
         limit: 20,
+        search: categorySearchQuery || undefined,
       });
 
       const categoriesData = response.data?.categories;
@@ -922,6 +998,16 @@ export default function InventoryEditProductPage() {
     } finally {
       setLoadingCategories(false);
     }
+  };
+
+  // Handle category search
+  const handleCategorySearch = (searchQuery: string) => {
+    setCategorySearchQuery(searchQuery);
+  };
+
+  // Handle subcategory search (client-side filtering)
+  const handleSubcategorySearch = (searchQuery: string) => {
+    setSubcategorySearchQuery(searchQuery);
   };
 
   // Load more subcategories
@@ -1868,6 +1954,9 @@ export default function InventoryEditProductPage() {
                           hasMore={categoriesPagination.hasMore}
                           onLoadMore={loadMoreCategories}
                           loadingMore={loadingCategories}
+                          searchable={true}
+                          onSearch={handleCategorySearch}
+                          searchPlaceholder="Search categories..."
                         />
                       </div>
                       <div className="space-y-2">
@@ -1905,6 +1994,9 @@ export default function InventoryEditProductPage() {
                           hasMore={subcategoriesPagination.hasMore}
                           onLoadMore={loadMoreSubcategories}
                           loadingMore={loadingSubcategories}
+                          searchable={true}
+                          onSearch={handleSubcategorySearch}
+                          searchPlaceholder="Search subcategories..."
                         />
                       </div>
                       <div className="space-y-2 md:col-span-2">
