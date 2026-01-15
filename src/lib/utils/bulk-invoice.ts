@@ -123,6 +123,8 @@ async function prepareOrderForInvoice(apiOrder: OrderForInvoice) {
       state: apiOrder.shippingAddress?.state || '',
       postalCode: apiOrder.shippingAddress?.postalCode || '',
       country: apiOrder.shippingAddress?.country || 'India',
+      latitude: apiOrder.shippingAddress?.latitude,
+      longitude: apiOrder.shippingAddress?.longitude,
     },
     payment: {
       method: apiOrder.payment?.method || 'COD',

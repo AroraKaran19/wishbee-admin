@@ -28,6 +28,8 @@ interface OrderItem {
     state: string;
     postalCode: string;
     country: string;
+    latitude?: number;
+    longitude?: number;
   };
   payment: {
     method: string;
@@ -405,6 +407,41 @@ export class InvoiceGenerator {
     // PIN
     this.doc.text(`PIN: ${order.shippingAddress.postalCode}`, billToX, billToY);
     billToY += lineHeight;
+
+    // Google Maps link if latitude and longitude are available
+    if (
+      order.shippingAddress.latitude &&
+      order.shippingAddress.longitude
+    ) {
+      const mapsUrl = `https://www.google.com/maps?q=${order.shippingAddress.latitude},${order.shippingAddress.longitude}`;
+      const linkText = "View on Google Maps";
+      
+      // Set link styling
+      this.doc.setTextColor(0, 123, 255); // Blue color for link
+      this.doc.setFont("helvetica", "normal");
+      
+      // Calculate text width and height for link area
+      const linkTextWidth = this.doc.getTextWidth(linkText);
+      const linkX = billToX;
+      const linkY = billToY;
+      const linkHeight = lineHeight;
+      
+      // Add the text
+      this.doc.text(linkText, linkX, linkY);
+      
+      // Add underline for link appearance
+      this.doc.setDrawColor(0, 123, 255);
+      this.doc.setLineWidth(0.1);
+      this.doc.line(linkX, linkY + 0.5, linkX + linkTextWidth, linkY + 0.5);
+      
+      // Add clickable link area
+      this.doc.link(linkX, linkY - linkHeight + 1, linkTextWidth, linkHeight, {
+        url: mapsUrl,
+      });
+      
+      billToY += lineHeight;
+      this.doc.setTextColor(0, 0, 0); // Reset to black
+    }
 
     // GSTIN
     if (userInfo.gstin) {
