@@ -1,9 +1,9 @@
 "use client";
 
 import React, { useState } from "react";
-import { X, Download, Calendar } from "lucide-react";
+import { X, Download, Calendar, FileText, FileSpreadsheet } from "lucide-react";
 import { DateRangePicker } from "@/components/ui/date-range-picker";
-import { generateBulkInvoices, downloadBlob } from "@/lib/utils/bulk-invoice";
+import { generateBulkInvoices, generateBulkInvoiceCSVFile, downloadBlob } from "@/lib/utils/bulk-invoice";
 import toast from "react-hot-toast";
 
 interface BulkInvoiceModalProps {
@@ -24,6 +24,7 @@ export function BulkInvoiceModal({ isOpen, onClose }: BulkInvoiceModalProps) {
   const [selectedStatuses, setSelectedStatuses] = useState<string[]>([
     "DELIVERED",
   ]);
+  const [exportFormat, setExportFormat] = useState<"pdf" | "csv">("pdf");
   const [isGenerating, setIsGenerating] = useState(false);
   const [progress, setProgress] = useState({ current: 0, total: 0 });
 
@@ -81,27 +82,52 @@ export function BulkInvoiceModal({ isOpen, onClose }: BulkInvoiceModalProps) {
         id: "bulk-invoice",
       });
 
-      const zipBlob = await generateBulkInvoices(
-        {
-          startDate,
-          endDate,
-          statuses: selectedStatuses,
-        },
-        (current, total) => {
-          setProgress({ current, total });
-          toast.loading(`Generating invoices... ${current}/${total}`, {
-            id: "bulk-invoice",
-          });
-        }
-      );
-
-      // Generate filename with date range
       const startDateStr = startDate.replace(/-/g, "");
       const endDateStr = endDate.replace(/-/g, "");
-      const filename = `WishBee_Invoices_${startDateStr}_${endDateStr}.zip`;
 
-      // Download zip file
-      downloadBlob(zipBlob, filename);
+      let blob: Blob;
+      let filename: string;
+
+      if (exportFormat === "csv") {
+        // Only CSV - download directly
+        blob = await generateBulkInvoiceCSVFile(
+          {
+            startDate,
+            endDate,
+            statuses: selectedStatuses,
+          },
+          (current, total) => {
+            setProgress({ current, total });
+            toast.loading(`Generating CSV... ${current}/${total}`, {
+              id: "bulk-invoice",
+            });
+          }
+        );
+        filename = `WishBee_Invoices_${startDateStr}_${endDateStr}.csv`;
+      } else {
+        // PDFs - zip file
+        blob = await generateBulkInvoices(
+          {
+            startDate,
+            endDate,
+            statuses: selectedStatuses,
+          },
+          {
+            includePDFs: true,
+            includeCSV: false,
+          },
+          (current, total) => {
+            setProgress({ current, total });
+            toast.loading(`Generating invoices... ${current}/${total}`, {
+              id: "bulk-invoice",
+            });
+          }
+        );
+        filename = `WishBee_Invoices_${startDateStr}_${endDateStr}.zip`;
+      }
+
+      // Download file
+      downloadBlob(blob, filename);
 
       toast.success("Invoices downloaded successfully!", {
         id: "bulk-invoice",
@@ -167,6 +193,53 @@ export function BulkInvoiceModal({ isOpen, onClose }: BulkInvoiceModalProps) {
                 End date must be after start date
               </p>
             )}
+          </div>
+
+          {/* Export Format Options */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-3">
+              Export Format
+            </label>
+            <div className="grid grid-cols-2 gap-3">
+              <label
+                className={`flex items-center p-3 border rounded-lg cursor-pointer hover:bg-gray-50 transition-colors ${
+                  exportFormat === "pdf"
+                    ? "border-blue-500 bg-blue-50"
+                    : "border-gray-200"
+                }`}
+              >
+                <input
+                  type="radio"
+                  name="exportFormat"
+                  value="pdf"
+                  checked={exportFormat === "pdf"}
+                  onChange={(e) => setExportFormat(e.target.value as "pdf" | "csv")}
+                  disabled={isGenerating}
+                  className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500"
+                />
+                <FileText className="w-4 h-4 ml-3 text-gray-600" />
+                <span className="ml-2 text-sm text-gray-700">PDF Invoices</span>
+              </label>
+              <label
+                className={`flex items-center p-3 border rounded-lg cursor-pointer hover:bg-gray-50 transition-colors ${
+                  exportFormat === "csv"
+                    ? "border-blue-500 bg-blue-50"
+                    : "border-gray-200"
+                }`}
+              >
+                <input
+                  type="radio"
+                  name="exportFormat"
+                  value="csv"
+                  checked={exportFormat === "csv"}
+                  onChange={(e) => setExportFormat(e.target.value as "pdf" | "csv")}
+                  disabled={isGenerating}
+                  className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500"
+                />
+                <FileSpreadsheet className="w-4 h-4 ml-3 text-gray-600" />
+                <span className="ml-2 text-sm text-gray-700">CSV File</span>
+              </label>
+            </div>
           </div>
 
           {/* Order Statuses */}

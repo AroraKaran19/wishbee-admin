@@ -3,10 +3,23 @@ import { apiClient } from '@/lib/api/apiClient';
 import { generateInvoicePDFBlob } from '@/lib/InvoiceGenerator';
 import { customerApi } from '@/lib/api/customers';
 
+interface InvoiceCSVRow {
+  name: string;
+  invoiceNo: string;
+  date: string;
+  totalBillValue: number;
+  gstNo: string;
+}
+
 interface BulkInvoiceFilters {
   startDate: string;
   endDate: string;
   statuses: string[];
+}
+
+export interface BulkInvoiceOptions {
+  includePDFs: boolean;
+  includeCSV: boolean;
 }
 
 interface OrderForInvoice {
@@ -139,9 +152,68 @@ async function prepareOrderForInvoice(apiOrder: OrderForInvoice) {
 }
 
 /**
- * Generates bulk invoices and returns them as a zip file
+ * Calculates total GST value for an order
  */
-export async function generateBulkInvoices(
+function calculateTotalGST(orderForInvoice: any): number {
+  return orderForInvoice.items.reduce((total: number, item: any) => {
+    const gstPercentage = item.product?.gst || 0;
+    const priceBeforeGST = item.priceAtPurchase * item.quantity;
+    const totalGST = (priceBeforeGST * gstPercentage) / 100;
+    return total + totalGST;
+  }, 0);
+}
+
+/**
+ * Formats date for CSV (DD/MM/YYYY format)
+ */
+function formatDateForCSV(dateString: string): string {
+  try {
+    const date = new Date(dateString);
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = date.getFullYear();
+    return `${day}/${month}/${year}`;
+  } catch (error) {
+    return dateString;
+  }
+}
+
+/**
+ * Generates CSV content for bulk invoices
+ */
+function generateBulkInvoiceCSV(invoiceRows: InvoiceCSVRow[]): string {
+  // CSV Header
+  const headers = ['Name/Store Name', 'Invoice No', 'Date', 'Total Bill Value', 'GST No.'];
+  
+  // Escape CSV values (handle commas, quotes, newlines)
+  const escapeCSVValue = (value: any): string => {
+    if (value === null || value === undefined) return '';
+    const stringValue = String(value);
+    if (stringValue.includes(',') || stringValue.includes('"') || stringValue.includes('\n')) {
+      return `"${stringValue.replace(/"/g, '""')}"`;
+    }
+    return stringValue;
+  };
+
+  // Create CSV rows
+  const csvRows = [
+    headers.join(','),
+    ...invoiceRows.map(row => [
+      escapeCSVValue(row.name),
+      escapeCSVValue(row.invoiceNo),
+      escapeCSVValue(row.date),
+      escapeCSVValue(row.totalBillValue.toFixed(2)),
+      escapeCSVValue(row.gstNo || ''),
+    ].join(','))
+  ];
+
+  return csvRows.join('\n');
+}
+
+/**
+ * Generates CSV file for bulk invoices
+ */
+export async function generateBulkInvoiceCSVFile(
   filters: BulkInvoiceFilters,
   onProgress?: (current: number, total: number) => void
 ): Promise<Blob> {
@@ -164,26 +236,122 @@ export async function generateBulkInvoices(
     throw new Error('No eligible orders found. Only delivered orders with completed payment can have invoices.');
   }
 
+  const csvRows: InvoiceCSVRow[] = [];
+  let processed = 0;
+
+  // Process each order to collect CSV data
+  for (const order of eligibleOrders) {
+    try {
+      const { orderForInvoice, userInfo } = await prepareOrderForInvoice(order);
+      
+      // Generate filename
+      const invoiceNumber = orderForInvoice.invoiceNumber 
+        ? `WB${orderForInvoice.invoiceNumber}` 
+        : orderForInvoice.refId;
+      
+      // Get total bill value
+      const totalBillValue = orderForInvoice.totalAmount;
+      
+      // Add to CSV rows
+      csvRows.push({
+        name: userInfo.name,
+        invoiceNo: invoiceNumber,
+        date: formatDateForCSV(orderForInvoice.createdAt),
+        totalBillValue: totalBillValue,
+        gstNo: userInfo.gstin || '',
+      });
+      
+      processed++;
+      if (onProgress) {
+        onProgress(processed, eligibleOrders.length);
+      }
+    } catch (error) {
+      console.error(`Error processing order ${order._id}:`, error);
+      // Continue with other orders even if one fails
+    }
+  }
+
+  // Generate CSV file
+  if (csvRows.length === 0) {
+    throw new Error('No invoice data to export');
+  }
+
+  const csvContent = generateBulkInvoiceCSV(csvRows);
+  const startDateStr = filters.startDate.replace(/-/g, '');
+  const endDateStr = filters.endDate.replace(/-/g, '');
+  const csvFilename = `WishBee_Invoices_${startDateStr}_${endDateStr}.csv`;
+  
+  return new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+}
+
+/**
+ * Generates bulk invoices and returns them as a zip file or CSV blob
+ */
+export async function generateBulkInvoices(
+  filters: BulkInvoiceFilters,
+  options: BulkInvoiceOptions,
+  onProgress?: (current: number, total: number) => void
+): Promise<Blob> {
+  // Fetch orders based on filters
+  const orders = await fetchOrders(filters);
+  
+  if (orders.length === 0) {
+    throw new Error('No orders found for the selected filters');
+  }
+
+  // Filter orders that are eligible for invoice generation
+  // Only DELIVERED orders with COMPLETED payment can have invoices
+  const eligibleOrders = orders.filter((order) => {
+    const orderStatus = order.status?.toUpperCase();
+    const paymentStatus = order.payment?.status?.toUpperCase();
+    return orderStatus === 'DELIVERED' && paymentStatus === 'COMPLETED';
+  });
+
+  if (eligibleOrders.length === 0) {
+    throw new Error('No eligible orders found. Only delivered orders with completed payment can have invoices.');
+  }
+
+  // If only CSV is requested, return CSV directly
+  if (!options.includePDFs && options.includeCSV) {
+    return await generateBulkInvoiceCSVFile(filters, onProgress);
+  }
+
   // Create zip file
   const zip = new JSZip();
   let processed = 0;
+  const csvRows: InvoiceCSVRow[] = [];
 
   // Generate invoices for each order
   for (const order of eligibleOrders) {
     try {
       const { orderForInvoice, userInfo } = await prepareOrderForInvoice(order);
       
-      // Generate invoice PDF blob
-      const pdfBlob = await generateInvoicePDFBlob(orderForInvoice, userInfo);
-      
       // Generate filename
       const invoiceNumber = orderForInvoice.invoiceNumber 
         ? `WB${orderForInvoice.invoiceNumber}` 
         : orderForInvoice.refId;
-      const filename = `WishBee_Invoice_${invoiceNumber}.pdf`;
       
-      // Add to zip
-      zip.file(filename, pdfBlob);
+      // Generate PDF if requested
+      if (options.includePDFs) {
+        const pdfBlob = await generateInvoicePDFBlob(orderForInvoice, userInfo);
+        const filename = `WishBee_Invoice_${invoiceNumber}.pdf`;
+        zip.file(filename, pdfBlob);
+      }
+      
+      // Collect CSV data if requested
+      if (options.includeCSV) {
+        // Get total bill value
+        const totalBillValue = orderForInvoice.totalAmount;
+        
+        // Add to CSV rows
+        csvRows.push({
+          name: userInfo.name,
+          invoiceNo: invoiceNumber,
+          date: formatDateForCSV(orderForInvoice.createdAt),
+          totalBillValue: totalBillValue,
+          gstNo: userInfo.gstin || '',
+        });
+      }
       
       processed++;
       if (onProgress) {
@@ -195,9 +363,22 @@ export async function generateBulkInvoices(
     }
   }
 
-  // Generate zip file
-  const zipBlob = await zip.generateAsync({ type: 'blob' });
-  return zipBlob;
+  // Generate CSV file and add to zip if requested
+  if (options.includeCSV && csvRows.length > 0) {
+    const csvContent = generateBulkInvoiceCSV(csvRows);
+    const startDateStr = filters.startDate.replace(/-/g, '');
+    const endDateStr = filters.endDate.replace(/-/g, '');
+    const csvFilename = `WishBee_Invoices_${startDateStr}_${endDateStr}.csv`;
+    zip.file(csvFilename, csvContent);
+  }
+
+  // Generate zip file (or return CSV blob if only CSV was requested)
+  if (options.includePDFs || (options.includeCSV && csvRows.length > 0)) {
+    const zipBlob = await zip.generateAsync({ type: 'blob' });
+    return zipBlob;
+  }
+
+  throw new Error('No export options selected');
 }
 
 /**

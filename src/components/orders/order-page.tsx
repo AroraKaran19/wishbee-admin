@@ -459,7 +459,7 @@ export function OrderPage() {
               },
               {
                 key: 'export',
-                label: 'Export PDF',
+                label: 'Export Page',
                 icon: <Upload className="w-4 h-4" />,
                 onClick: handleExportPDF,
                 variant: 'danger'
