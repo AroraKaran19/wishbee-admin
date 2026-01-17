@@ -299,6 +299,8 @@ export const customerApi = {
 
 // Helper function to convert API customer to UI customer format
 export const convertApiCustomerToUICustomer = (apiUser: any): Customer => {
+  // NOTE: totalSpend from API currently includes PENDING and CANCELLED orders
+  // This should be fixed on the backend API to exclude these statuses
   // Calculate total spend from orders (if available)
   const totalSpend = apiUser.totalSpend || apiUser.totalRevenue || 0;
 

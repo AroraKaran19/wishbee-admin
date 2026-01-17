@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { Enquiry } from '@/lib/api/enquiries';
 import { enquiryApi } from '@/lib/api/enquiries';
 import toast from 'react-hot-toast';
-import { CheckCircle, XCircle, Trash2, Eye, X } from 'lucide-react';
+import { CheckCircle, XCircle, Trash2, Eye, X, User, Phone, Mail, Calendar, MessageSquare, Image as ImageIcon, Tag } from 'lucide-react';
 import { Pagination } from '@/components/ui/pagination';
 
 interface SupportTableProps {
@@ -203,116 +203,192 @@ export function SupportTable({
 
       {/* Details Modal */}
       {isDetailsModalOpen && selectedEnquiry && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-            <div className="flex justify-between items-start mb-4">
-              <h2 className="text-xl font-bold text-gray-900">Enquiry Details</h2>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
+            {/* Header */}
+            <div className="flex items-center justify-between p-6 border-b bg-gradient-to-r from-blue-50 to-indigo-50">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-blue-100 rounded-lg">
+                  <MessageSquare className="h-6 w-6 text-blue-600" />
+                </div>
+                <div>
+                  <h2 className="text-2xl font-bold text-gray-900">Enquiry Details</h2>
+                  <p className="text-sm text-gray-600 mt-1">
+                    #{selectedEnquiry._id?.slice(-8).toUpperCase()}
+                  </p>
+                </div>
+              </div>
               <button
                 onClick={() => {
                   setIsDetailsModalOpen(false);
                   setSelectedEnquiry(null);
                 }}
-                className="text-gray-400 hover:text-gray-600"
+                className="text-gray-400 hover:text-gray-600 transition-colors cursor-pointer p-2 hover:bg-white rounded-lg"
+                title="Close"
               >
                 <X className="h-6 w-6" />
               </button>
             </div>
 
-            <div className="space-y-4">
-              {/* Customer Info */}
-              <div>
-                <h3 className="text-sm font-semibold text-gray-700 mb-2">Customer Information</h3>
-                <div className="bg-gray-50 rounded-lg p-4 space-y-2">
-                  <div>
-                    <span className="text-sm text-gray-600">Name: </span>
-                    <span className="text-sm font-medium text-gray-900">
-                      {selectedEnquiry.user.firstName} {selectedEnquiry.user.lastName}
+            {/* Content */}
+            <div className="flex-1 overflow-y-auto p-6">
+              <div className="space-y-6">
+                {/* Status and Type Badges */}
+                <div className="flex flex-wrap items-center gap-3 pb-4 border-b">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-medium text-gray-600">Status:</span>
+                    <span
+                      className={`px-3 py-1.5 rounded-full text-sm font-semibold inline-flex items-center gap-1.5 ${getStatusColor(
+                        selectedEnquiry.status
+                      )}`}
+                    >
+                      {selectedEnquiry.status === 'RESOLVED' && <CheckCircle className="h-4 w-4" />}
+                      {selectedEnquiry.status === 'CLOSED' && <XCircle className="h-4 w-4" />}
+                      {selectedEnquiry.status}
                     </span>
                   </div>
-                  <div>
-                    <span className="text-sm text-gray-600">Phone: </span>
-                    <span className="text-sm text-gray-900">{selectedEnquiry.user.phoneNumber}</span>
-                  </div>
-                  {selectedEnquiry.user.email && (
-                    <div>
-                      <span className="text-sm text-gray-600">Email: </span>
-                      <span className="text-sm text-gray-900">{selectedEnquiry.user.email}</span>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Enquiry Details */}
-              <div>
-                <h3 className="text-sm font-semibold text-gray-700 mb-2">Enquiry Details</h3>
-                <div className="bg-gray-50 rounded-lg p-4 space-y-2">
-                  <div>
-                    <span className="text-sm text-gray-600">Type: </span>
+                  <div className="flex items-center gap-2">
+                    <Tag className="h-4 w-4 text-gray-600" />
+                    <span className="text-sm font-medium text-gray-600">Type:</span>
                     <span
-                      className={`px-2 py-1 rounded-full text-xs font-medium inline-block ${getTypeColor(
+                      className={`px-3 py-1.5 rounded-full text-sm font-semibold inline-block ${getTypeColor(
                         selectedEnquiry.type
                       )}`}
                     >
                       {selectedEnquiry.type}
                     </span>
                   </div>
-                  <div>
-                    <span className="text-sm text-gray-600">Status: </span>
-                    <span
-                      className={`px-2 py-1 rounded-full text-xs font-medium inline-block ${getStatusColor(
-                        selectedEnquiry.status
-                      )}`}
-                    >
-                      {selectedEnquiry.status}
-                    </span>
-                  </div>
-                  <div>
-                    <span className="text-sm text-gray-600">Created: </span>
-                    <span className="text-sm text-gray-900">{formatDate(selectedEnquiry.createdAt)}</span>
-                  </div>
-                  <div>
-                    <span className="text-sm text-gray-600">Last Updated: </span>
-                    <span className="text-sm text-gray-900">{formatDate(selectedEnquiry.updatedAt)}</span>
-                  </div>
                 </div>
-              </div>
 
-              {/* Message */}
-              <div>
-                <h3 className="text-sm font-semibold text-gray-700 mb-2">Message</h3>
-                <div className="bg-gray-50 rounded-lg p-4">
-                  <p className="text-sm text-gray-900 whitespace-pre-wrap">{selectedEnquiry.message}</p>
-                </div>
-              </div>
-
-              {/* Images */}
-              {selectedEnquiry.images && selectedEnquiry.images.length > 0 && (
-                <div>
-                  <h3 className="text-sm font-semibold text-gray-700 mb-2">Images</h3>
-                  <div className="grid grid-cols-2 gap-4">
-                    {selectedEnquiry.images.map((imageUrl, index) => (
-                      <div key={index} className="relative">
-                        <img
-                          src={imageUrl}
-                          alt={`Enquiry image ${index + 1}`}
-                          className="w-full h-48 object-cover rounded-lg border border-gray-200"
-                        />
+                {/* Customer Information */}
+                <div className="bg-gradient-to-br from-gray-50 to-blue-50/30 rounded-xl p-5 border border-gray-200">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                    <User className="h-5 w-5 text-blue-600" />
+                    Customer Information
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="flex items-start gap-3">
+                      <div className="p-2 bg-white rounded-lg shadow-sm">
+                        <User className="h-5 w-5 text-gray-600" />
                       </div>
-                    ))}
+                      <div>
+                        <p className="text-xs text-gray-500 mb-1">Name</p>
+                        <p className="text-sm font-semibold text-gray-900">
+                          {selectedEnquiry.user.firstName} {selectedEnquiry.user.lastName}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-3">
+                      <div className="p-2 bg-white rounded-lg shadow-sm">
+                        <Phone className="h-5 w-5 text-gray-600" />
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-500 mb-1">Phone</p>
+                        <p className="text-sm font-semibold text-gray-900">{selectedEnquiry.user.phoneNumber}</p>
+                      </div>
+                    </div>
+                    {selectedEnquiry.user.email && (
+                      <div className="flex items-start gap-3 md:col-span-2">
+                        <div className="p-2 bg-white rounded-lg shadow-sm">
+                          <Mail className="h-5 w-5 text-gray-600" />
+                        </div>
+                        <div className="flex-1">
+                          <p className="text-xs text-gray-500 mb-1">Email</p>
+                          <p className="text-sm font-semibold text-gray-900 break-all">{selectedEnquiry.user.email}</p>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
-              )}
 
-              {/* Actions */}
-              <div className="flex gap-2 pt-4 border-t">
+                {/* Message */}
+                <div className="bg-white rounded-xl p-5 border border-gray-200 shadow-sm">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                    <MessageSquare className="h-5 w-5 text-blue-600" />
+                    Message
+                  </h3>
+                  <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                    <p className="text-sm text-gray-900 whitespace-pre-wrap leading-relaxed">
+                      {selectedEnquiry.message}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Images Gallery */}
+                {selectedEnquiry.images && selectedEnquiry.images.length > 0 && (
+                  <div className="bg-white rounded-xl p-5 border border-gray-200 shadow-sm">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                      <ImageIcon className="h-5 w-5 text-blue-600" />
+                      Attached Images ({selectedEnquiry.images.length})
+                    </h3>
+                    <div className={`grid gap-4 ${
+                      selectedEnquiry.images.length === 1 
+                        ? 'grid-cols-1' 
+                        : selectedEnquiry.images.length === 2
+                        ? 'grid-cols-1 md:grid-cols-2'
+                        : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3'
+                    }`}>
+                      {selectedEnquiry.images.map((imageUrl, index) => (
+                        <div key={index} className="relative group">
+                          <div className="relative overflow-hidden rounded-lg border-2 border-gray-200 hover:border-blue-400 transition-all shadow-sm hover:shadow-md">
+                            <img
+                              src={imageUrl}
+                              alt={`Enquiry attachment ${index + 1}`}
+                              className="w-full h-64 object-cover transition-transform group-hover:scale-105 cursor-pointer"
+                              onClick={() => window.open(imageUrl, '_blank')}
+                            />
+                            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center">
+                              <span className="text-white opacity-0 group-hover:opacity-100 text-sm font-medium">
+                                Click to view full size
+                              </span>
+                            </div>
+                          </div>
+                          <p className="text-xs text-gray-500 mt-2 text-center">Image {index + 1}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Timeline Information */}
+                <div className="bg-white rounded-xl p-5 border border-gray-200 shadow-sm">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                    <Calendar className="h-5 w-5 text-blue-600" />
+                    Timeline
+                  </h3>
+                  <div className="space-y-3">
+                    <div className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
+                      <Calendar className="h-5 w-5 text-gray-500 mt-0.5" />
+                      <div className="flex-1">
+                        <p className="text-xs text-gray-500 mb-1">Created At</p>
+                        <p className="text-sm font-medium text-gray-900">{formatDate(selectedEnquiry.createdAt)}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
+                      <Calendar className="h-5 w-5 text-gray-500 mt-0.5" />
+                      <div className="flex-1">
+                        <p className="text-xs text-gray-500 mb-1">Last Updated</p>
+                        <p className="text-sm font-medium text-gray-900">{formatDate(selectedEnquiry.updatedAt)}</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Footer Actions */}
+            <div className="border-t p-6 bg-gray-50">
+              <div className="flex flex-wrap gap-3">
                 {selectedEnquiry.status !== 'RESOLVED' && (
                   <button
                     onClick={() => {
                       handleStatusUpdate(selectedEnquiry._id, 'RESOLVED');
                       setIsDetailsModalOpen(false);
                     }}
-                    className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                    disabled={updatingId === selectedEnquiry._id}
+                    className="flex-1 min-w-[140px] px-4 py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium flex items-center justify-center gap-2 shadow-sm hover:shadow cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                   >
+                    <CheckCircle className="h-4 w-4" />
                     Mark as Resolved
                   </button>
                 )}
@@ -322,8 +398,10 @@ export function SupportTable({
                       handleStatusUpdate(selectedEnquiry._id, 'CLOSED');
                       setIsDetailsModalOpen(false);
                     }}
-                    className="flex-1 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
+                    disabled={updatingId === selectedEnquiry._id}
+                    className="flex-1 min-w-[140px] px-4 py-2.5 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors font-medium flex items-center justify-center gap-2 shadow-sm hover:shadow cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                   >
+                    <XCircle className="h-4 w-4" />
                     Close Enquiry
                   </button>
                 )}
@@ -332,9 +410,20 @@ export function SupportTable({
                     handleDelete(selectedEnquiry._id);
                     setIsDetailsModalOpen(false);
                   }}
-                  className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                  disabled={deletingId === selectedEnquiry._id}
+                  className="flex-1 min-w-[140px] px-4 py-2.5 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium flex items-center justify-center gap-2 shadow-sm hover:shadow cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                 >
+                  <Trash2 className="h-4 w-4" />
                   Delete
+                </button>
+                <button
+                  onClick={() => {
+                    setIsDetailsModalOpen(false);
+                    setSelectedEnquiry(null);
+                  }}
+                  className="px-4 py-2.5 bg-white text-gray-700 rounded-lg hover:bg-gray-100 transition-colors font-medium border border-gray-300 shadow-sm hover:shadow cursor-pointer"
+                >
+                  Close
                 </button>
               </div>
             </div>
