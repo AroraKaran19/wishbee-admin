@@ -8,6 +8,7 @@ interface InvoiceCSVRow {
   invoiceNo: string;
   date: string;
   totalBillValue: number;
+  gstValue: number; // Total GST amount for all items in the order
   gstNo: string;
 }
 
@@ -183,7 +184,7 @@ function formatDateForCSV(dateString: string): string {
  */
 function generateBulkInvoiceCSV(invoiceRows: InvoiceCSVRow[]): string {
   // CSV Header
-  const headers = ['Name/Store Name', 'Invoice No', 'Date', 'Total Bill Value', 'GST No.'];
+  const headers = ['Name/Store Name', 'Invoice No', 'Date', 'Total Bill Value', 'GST Value', 'GST No.'];
   
   // Escape CSV values (handle commas, quotes, newlines)
   const escapeCSVValue = (value: any): string => {
@@ -203,6 +204,7 @@ function generateBulkInvoiceCSV(invoiceRows: InvoiceCSVRow[]): string {
       escapeCSVValue(row.invoiceNo),
       escapeCSVValue(row.date),
       escapeCSVValue(row.totalBillValue.toFixed(2)),
+      escapeCSVValue(row.gstValue.toFixed(2)),
       escapeCSVValue(row.gstNo || ''),
     ].join(','))
   ];
@@ -252,12 +254,22 @@ export async function generateBulkInvoiceCSVFile(
       // Get total bill value
       const totalBillValue = orderForInvoice.totalAmount;
       
+      // Calculate total GST value for all items in the order
+      // GST Value = (priceAtPurchase * quantity) * (gst% / 100) for each item, then sum
+      const totalGSTValue = orderForInvoice.items.reduce((total: number, item: any) => {
+        const gstPercentage = item.product?.gst || 0;
+        const itemTotalPrice = item.priceAtPurchase * item.quantity;
+        const itemGST = (itemTotalPrice * gstPercentage) / 100;
+        return total + itemGST;
+      }, 0);
+      
       // Add to CSV rows
       csvRows.push({
         name: userInfo.name,
         invoiceNo: invoiceNumber,
         date: formatDateForCSV(orderForInvoice.createdAt),
         totalBillValue: totalBillValue,
+        gstValue: totalGSTValue,
         gstNo: userInfo.gstin || '',
       });
       
@@ -343,12 +355,22 @@ export async function generateBulkInvoices(
         // Get total bill value
         const totalBillValue = orderForInvoice.totalAmount;
         
+        // Calculate total GST value for all items in the order
+        // GST Value = (priceAtPurchase * quantity) * (gst% / 100) for each item, then sum
+        const totalGSTValue = orderForInvoice.items.reduce((total: number, item: any) => {
+          const gstPercentage = item.product?.gst || 0;
+          const itemTotalPrice = item.priceAtPurchase * item.quantity;
+          const itemGST = (itemTotalPrice * gstPercentage) / 100;
+          return total + itemGST;
+        }, 0);
+        
         // Add to CSV rows
         csvRows.push({
           name: userInfo.name,
           invoiceNo: invoiceNumber,
           date: formatDateForCSV(orderForInvoice.createdAt),
           totalBillValue: totalBillValue,
+          gstValue: totalGSTValue,
           gstNo: userInfo.gstin || '',
         });
       }

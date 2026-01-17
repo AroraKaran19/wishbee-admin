@@ -432,8 +432,6 @@ export function CustomerDetailsModal({ customerId, isOpen, onClose }: CustomerDe
                     <div>
                       <div className="text-gray-500">Total Spend</div>
                       <div className="text-xl font-semibold text-gray-900">
-                        {/* NOTE: totalSpend from API currently includes PENDING and CANCELLED orders */}
-                        {/* This should be fixed on the backend API to exclude these statuses */}
                         {formatCurrency(orderStatistics.totalSpend || 0)}
                       </div>
                     </div>
