@@ -8,6 +8,23 @@
 
 ---
 
+## Rate Limiting
+
+Rate limits apply per minute. **Admin users (ADMIN, SUPER_ADMIN) bypass all rate limits** when authenticated.
+
+| Endpoint | Limit | Key | Bypass |
+|----------|-------|-----|--------|
+| `POST /auth/verify-msg91-otp` | 10/min | IP | N/A (public) |
+| `POST /auth/login-admin` | 5/min | IP | N/A (public) |
+| `POST /auth/generate-access-token` | 20/min | User | Admin |
+| `POST /orders`, `POST /orders/verify` | 5/min | User | Admin |
+| `POST /enquiry` | 5/min | User | Admin |
+| `POST /upload/user/presigned-url`, `DELETE /upload/user/delete` | 20/min | User | Admin |
+| `POST /coupons/validate` | 30/min | User or IP | Admin |
+| `POST /cart/add`, `PUT /cart/update` | 30/min | User | Admin |
+
+---
+
 ## Session Management (Zustand Implementation)
 
 The frontend uses **Zustand** with persistence middleware for session management. This section explains how refresh tokens and access tokens are handled in the client-side implementation.
@@ -15,7 +32,7 @@ The frontend uses **Zustand** with persistence middleware for session management
 ### Overview
 
 The session management system implements a **dual-token authentication strategy**:
-- **Refresh Token**: Long-lived token (7 days) stored in HTTP-only cookies (managed by backend)
+- **Refresh Token**: Long-lived token (30 days / 1 month) stored in HTTP-only cookies (managed by backend)
 - **Access Token**: Short-lived token (15 minutes) stored in Zustand store
 
 **Note**: Some authentication endpoints are implemented as **Next.js frontend API routes** (located in `frontend/src/app/api/auth/`) rather than backend routes. These frontend routes act as proxies that:
@@ -53,8 +70,8 @@ interface SessionState {
 
 When a user successfully verifies OTP:
 
-1. **Refresh Token**: Backend sets refresh token in HTTP-only cookie (7 days expiry)
-2. **Refresh Token Expiry**: Store tracks expiry time (`refreshTokenExpiresAt`) - set to 7 days from login
+1. **Refresh Token**: Backend sets refresh token in HTTP-only cookie (30 days expiry)
+2. **Refresh Token Expiry**: Store tracks expiry time (`refreshTokenExpiresAt`) - set to 30 days from login
 3. **Access Token Generation**: Automatically calls `generateAccessToken()` after login
 4. **Access Token Storage**: Access token stored in Zustand with 15-minute expiry
 
@@ -63,7 +80,7 @@ When a user successfully verifies OTP:
 set({
   user: userData,
   status: "authenticated",
-  refreshTokenExpiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
+  refreshTokenExpiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
 });
 await generateAccessToken(); // Generates and stores access token
 ```
@@ -118,7 +135,7 @@ The store provides helper methods to check token validity:
 #### `refreshRefreshToken()`
 - Calls `/api/auth/refresh-token` endpoint (Next.js frontend API route)
 - This frontend route proxies to backend `/auth/refresh-token` endpoint
-- Updates `refreshTokenExpiresAt` to 7 days from now
+- Updates `refreshTokenExpiresAt` to 30 days from now
 - Can be called proactively before refresh token expires
 
 #### `checkRefreshTokenExists()`
@@ -185,7 +202,7 @@ On app load:
 ### Token Expiry Times
 
 - **Access Token**: 15 minutes
-- **Refresh Token**: 7 days
+- **Refresh Token**: 30 days (1 month)
 - **OTP**: 60 seconds
 
 ### Error Handling
@@ -1328,6 +1345,7 @@ On app load:
           "dotd": false,
           "pfy": false,
           "isEssential": false,
+          "productDiscountPage": false,
           "createdAt": "2024-01-01T00:00:00.000Z",
           "updatedAt": "2024-01-01T00:00:00.000Z"
         }
@@ -1343,6 +1361,9 @@ On app load:
     "message": "Products retrieved successfully"
   }
   ```
+
+- **Product Fields**:
+  - `productDiscountPage` (boolean) - When true, the product appears on the dedicated discounts page (`/discounts`). Default: false.
 
 ### Get Product by ID
 
@@ -1391,6 +1412,19 @@ On app load:
 - **Note**: 
   - Returns only products where `isEssential: true` and `status: "ACTIVE"` (OUT_OF_STOCK essential products are excluded from this endpoint)
   - Products are sorted by creation date (newest first)
+
+### Get Product Discount Page Products
+
+- **API**: `GET /api/products/product-discount-page`
+- **Access**: Public
+- **Query Parameters**:
+  - `page` (number, default: 1)
+  - `limit` (number, default: 10)
+- **Response**: Same as products list response
+- **Note**: 
+  - Returns only products where `productDiscountPage: true` and `status: "ACTIVE"`
+  - Products are sorted by status (ACTIVE first, then OUT_OF_STOCK) and creation date (newest first)
+  - Used to power the dedicated discounts page (`/discounts`) on the frontend
 
 ### Get Out of Stock Products
 
@@ -1502,6 +1536,7 @@ On app load:
           "dotd": false,
           "pfy": false,
           "isEssential": false,
+          "productDiscountPage": false,
           "lastSoldAt": "2024-01-01T00:00:00.000Z",
           "createdAt": "2024-01-01T00:00:00.000Z",
           "updatedAt": "2024-01-01T00:00:00.000Z"
@@ -1581,13 +1616,15 @@ On app load:
     "isB2B": false,
     "dotd": false,
     "pfy": false,
-    "isEssential": false
+    "isEssential": false,
+    "productDiscountPage": false
   }
   ```
 - **Note**:
   - `subCategory` is optional - products can be created without a subcategory
   - `category` is required for products with status other than "DISCONTINUED"
-  - `dotd`, `pfy`, and `isEssential` are boolean fields (default: false)
+  - `dotd`, `pfy`, `isEssential`, and `productDiscountPage` are boolean fields (default: false)
+  - `productDiscountPage` - when true, product appears on the discounts page (`/discounts`)
   - `title2`, `title3`, and `title4` are optional string fields
 - **Response**: Created product object
 
@@ -1890,7 +1927,40 @@ On app load:
 
 ---
 
-## 5. Combo Endpoints
+## 5. Shipping Charges Endpoints
+
+### Get Shipping Charges
+
+- **API**: `GET /api/shipping-charges`
+- **Access**: Public
+- **Response**:
+  ```json
+  {
+    "success": true,
+    "data": {
+      "charges": 50
+    },
+    "message": "Shipping charges retrieved successfully"
+  }
+  ```
+- **Note**: Used by cart and payment to display delivery charges. Returns 0 if no charges configured.
+
+### Update Shipping Charges
+
+- **API**: `PUT /api/shipping-charges`
+- **Access**: Admin
+- **Request**:
+  ```json
+  {
+    "charges": 50
+  }
+  ```
+- **Response**: Updated shipping charges document
+- **Note**: `charges` must be a non-negative number.
+
+---
+
+## 6. Combo Endpoints
 
 ### Get All Combos
 
@@ -2057,6 +2127,24 @@ On app load:
 
 ## 8. Coupon Endpoints
 
+### Coupon Access Types
+
+Coupons have two access types:
+- **GENERAL** (default): Accessible by everyone
+- **LIMITED**: Restricted to specific users only; requires `allowedUserIds` array
+
+When validating or fetching applicable coupons:
+- **Validate** (`POST /api/coupons/validate`): Send `Authorization: Bearer <token>` when logged in. LIMITED coupons require authentication and the user must be in `allowedUserIds`.
+- **Applicable for Product** (`GET /api/coupons/applicable-for-product/:productId`): Send `Authorization: Bearer <token>` when logged in. Returns only GENERAL coupons for unauthenticated requests; includes LIMITED coupons for allowed users when authenticated.
+
+### Applicable Products & Categories
+
+Coupons can be restricted by products and/or categories:
+- **applicableProducts** (optional): Array of product IDs. Leave empty to apply to all products. When set, cart must contain at least one of these products.
+- **applicableCategories** (optional): Array of category IDs. Leave empty to apply to all categories. When set, cart must contain at least one product from these categories.
+- When **both** are set, cart qualifies if it has a matching product **OR** a matching category (either condition is enough).
+- Validation uses `productIds` and `categoryIds` from the cart when calling `POST /api/coupons/validate`.
+
 ### Get All Coupons (Admin)
 
 - **API**: `GET /api/coupons`
@@ -2080,6 +2168,8 @@ On app load:
           "type": "percentage",
           "description": "string",
           "value": 10,
+          "accessType": "GENERAL",
+          "allowedUserIds": ["string"],
           "applicableProducts": ["string"],
           "applicableCategories": ["string"],
           "minimumPurchaseAmount": 100,
@@ -2087,7 +2177,7 @@ On app load:
           "validFrom": "2024-01-01T00:00:00.000Z",
           "validUntil": "2024-12-31T23:59:59.000Z",
           "maxUses": 100,
-          "usedCount": 25,
+          "currentUses": 25,
           "isActive": true,
           "createdAt": "2024-01-01T00:00:00.000Z",
           "updatedAt": "2024-01-01T00:00:00.000Z"
@@ -2138,7 +2228,7 @@ On app load:
 ### Create Coupon
 
 - **API**: `POST /api/coupons`
-- **Access**: Admin
+- **Access**: Admin (requires `verifyUser` + `verifyAdmin`)
 - **Request**:
   ```json
   {
@@ -2146,6 +2236,8 @@ On app load:
     "type": "percentage",
     "description": "string",
     "value": 10,
+    "accessType": "GENERAL",
+    "allowedUserIds": ["string"],
     "applicableProducts": ["string"],
     "applicableCategories": ["string"],
     "minimumPurchaseAmount": 100,
@@ -2156,12 +2248,19 @@ On app load:
     "isActive": true
   }
   ```
+- **Required**: `code`, `type`, `description`, `value`, `validFrom`, `validUntil`
+- **Optional**: `accessType`, `allowedUserIds`, `applicableProducts`, `applicableCategories`, `minimumPurchaseAmount`, `maximumDiscountAmount`, `maxUses`, `isActive`
+- **Notes**:
+  - `accessType` (optional, default: "GENERAL"): "GENERAL" for everyone, "LIMITED" for specific users only
+  - `allowedUserIds` (optional): Array of user IDs who can use the coupon; required when `accessType` is "LIMITED"
+  - `code` is automatically converted to uppercase
 - **Response**: Created coupon object
 
 ### Validate Coupon
 
 - **API**: `POST /api/coupons/validate`
-- **Access**: Public
+- **Access**: Public (optional auth for LIMITED coupons)
+- **Headers**: `Authorization: Bearer <accessToken>` (optional; required for LIMITED coupons)
 - **Request**:
   ```json
   {
@@ -2171,25 +2270,63 @@ On app load:
     "categoryIds": ["string"]
   }
   ```
-- **Response**:
+- **Response** (valid):
   ```json
   {
     "success": true,
     "data": {
       "isValid": true,
       "discountAmount": 20,
-      "finalAmount": 180,
-      "message": "Coupon applied successfully"
+      "message": "Coupon is valid",
+      "coupon": { }
     },
-    "message": "Coupon validation completed"
+    "message": "Coupon is valid"
   }
   ```
+- **Response** (invalid): `isValid: false`, `discountAmount: 0`, and a specific `message` (e.g. "Coupon not applicable to items in cart", "Minimum purchase amount of ₹X required")
+- **Note**:
+  - `productIds` and `categoryIds` should be extracted from cart items for applicability checks
+  - For LIMITED coupons: requires auth; returns "This coupon is restricted to specific users. Please log in to use it." when unauthenticated
+  - Returns "You are not eligible to use this coupon" when user is not in `allowedUserIds`
 
 ### Get Applicable Coupons for Product
 
 - **API**: `GET /api/coupons/applicable-for-product/:productId`
-- **Access**: Public
-- **Response**: Coupons list response
+- **Access**: Public (optional auth for LIMITED coupons)
+- **Headers**: `Authorization: Bearer <accessToken>` (optional; when present, includes LIMITED coupons if user is in `allowedUserIds`)
+- **Parameters**: `productId` - The product ID
+- **Response**: Array of coupon objects applicable to that product
+- **Note**:
+  - Unauthenticated: returns only GENERAL coupons
+  - Authenticated: returns GENERAL coupons + LIMITED coupons where user is in `allowedUserIds`
+
+### Get Applicable Coupons for Cart
+
+- **API**: `POST /api/coupons/applicable-for-cart`
+- **Access**: Public (optional auth for LIMITED coupons)
+- **Headers**: `Authorization: Bearer <accessToken>` (optional; when present, includes LIMITED coupons if user is in `allowedUserIds`)
+- **Request**:
+  ```json
+  {
+    "productIds": ["string"],
+    "categoryIds": ["string"],
+    "cartTotal": 200
+  }
+  ```
+- **Response**: Array of coupon objects applicable to the cart (filtered by products, categories, min purchase, usage limits)
+- **Note**: Returns only coupons that match cart items and meet minimum purchase; use `GET /api/coupons/available-for-display` to show all coupons regardless of applicability
+
+### Get Available Coupons for Display
+
+- **API**: `GET /api/coupons/available-for-display`
+- **Access**: Public (optional auth for LIMITED coupons)
+- **Headers**: `Authorization: Bearer <accessToken>` (optional; when present, includes LIMITED coupons if user is in `allowedUserIds`)
+- **Response**: Array of all displayable coupon objects (active, within valid dates, not maxed out)
+- **Note**:
+  - Returns **all** coupons without filtering by product/category or minimum purchase
+  - Use for displaying in cart/checkout; validation will reject non-applicable coupons when user attempts to apply
+  - Unauthenticated: returns only GENERAL coupons
+  - Authenticated: returns GENERAL + LIMITED coupons where user is in `allowedUserIds`
 
 ### Update Coupon
 
@@ -2356,6 +2493,7 @@ On app load:
         "dotd": false,
         "pfy": false,
         "isEssential": false,
+        "productDiscountPage": false,
         "soldQuantity": 150,
         "revenue": 13500,
         "createdAt": "2024-01-01T00:00:00.000Z",
@@ -2985,18 +3123,20 @@ On app load:
       "amount": 100
     },
     "orderNotes": "string",
-    "deliverySlot": "string"
+    "deliverySlot": "string",
+    "couponCode": "string"
   }
   ```
+- **Optional**: `couponCode` - Applied coupon code; validated and discount applied to order total; usage count incremented on success
 - **Note**:
-  - Payment method can be "COD" (Cash on Delivery) or other payment methods
-  - For COD orders, order is created directly
-  - For online payments, a Razorpay order is created first
+  - **COD**: Creates order directly and returns the order object
+  - **Online (CARD/UPI/etc.)**: Creates Razorpay order and returns `{ razorpayOrderId, amount, currency, key }` for checkout; call `POST /api/orders/verify` after payment to create the order
   - `shippingAddress`, `billingAddress`, and `payment` are required fields
   - `orderNotes` and `deliverySlot` are optional
   - **Order is automatically added to the user's `orders` array** (latest order appears first in the array)
   - Product stock is automatically decremented based on order items
   - User's cart is automatically cleared after successful order creation
+  - Coupon usage count is incremented when `couponCode` is applied and order is created successfully
 - **Response**:
   ```json
   {
@@ -3058,6 +3198,31 @@ On app load:
     "message": "Order created successfully"
   }
   ```
+
+- **Online payment flow**: When `payment.method` is not "COD", `POST /api/orders` returns `{ razorpayOrderId, amount, currency }` for Razorpay Checkout. Frontend uses `NEXT_PUBLIC_RAZORPAY_KEY_ID` for the key. Use `POST /api/orders/verify` after payment to create the order.
+- **Rate limit**: Order creation endpoints are limited to 5 requests per minute per user to prevent abuse.
+
+### Verify Payment and Create Order
+
+- **API**: `POST /api/orders/verify`
+- **Access**: User
+- **Request**:
+  ```json
+  {
+    "razorpayOrderId": "string",
+    "razorpayPaymentId": "string",
+    "razorpaySignature": "string",
+    "shippingAddress": { },
+    "billingAddress": { },
+    "payment": { "method": "CARD", "amount": 180 },
+    "orderNotes": "string",
+    "deliverySlot": "string",
+    "couponCode": "string"
+  }
+  ```
+- **Optional**: `couponCode` - Same coupon used when creating Razorpay order; validated before order creation
+- **Response**: Created order object
+- **Note**: Call after user completes Razorpay payment. Payment amount must match order total (items + shipping - coupon discount)
 
 ### Get User Orders
 
@@ -3251,6 +3416,8 @@ On app load:
   - If the order doesn't have an invoice number, it will be generated and assigned
   - Invoice numbers are sequential and unique
   - Format: 6-digit number with leading zeros (000001, 000002, etc.)
+  - **Invoice numbers are only generated when payment status is "COMPLETED" AND order status is "DELIVERED"**
+  - If payment is not completed or order is not delivered, returns an error
 
 ### Delete Order
 
@@ -3830,5 +3997,5 @@ All endpoints return consistent error responses:
 - All monetary values are in the base currency unit
 - Pagination is 1-indexed
 - Maximum file upload size: 50MB
-- Refresh tokens expire in 7 days
+- Refresh tokens expire in 30 days (1 month)
 - Access tokens expire in 15 minutes

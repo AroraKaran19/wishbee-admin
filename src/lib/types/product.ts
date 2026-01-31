@@ -70,6 +70,7 @@ export interface Product {
   dotd: boolean;
   pfy: boolean;
   isEssential: boolean;
+  productDiscountPage?: boolean; // When true, product appears on the discounts page (/discounts)
 
   createdAt?: Date;
   updatedAt?: Date;

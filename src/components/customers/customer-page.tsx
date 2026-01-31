@@ -3,9 +3,11 @@
 import React, { useState, useEffect } from 'react';
 import { SearchBar } from '@/components/ui/search-bar';
 import { CustomerTable } from './customer-table';
+import { CustomerExportModal, CustomerExportRange } from './customer-export-modal';
 import { customerApi, convertApiCustomerToUICustomer } from '@/lib/api/customers';
 import { Customer } from '@/lib/types';
 import { Upload } from 'lucide-react';
+import toast from 'react-hot-toast';
 
 export function CustomerPage() {
   const [currentPage, setCurrentPage] = useState(1);
@@ -17,6 +19,8 @@ export function CustomerPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [totalPages, setTotalPages] = useState(1);
+  const [exportModalOpen, setExportModalOpen] = useState(false);
+  const [exporting, setExporting] = useState(false);
   const itemsPerPage = 10;
 
   // Debounce search query - update debouncedSearchQuery after 500ms of no typing
@@ -100,30 +104,96 @@ export function CustomerPage() {
     }
   };
 
-  const handleExportCSV = () => {
-    // Create CSV content
+  const buildCSVFromCustomers = (list: Customer[]) => {
     const headers = ['Name', 'Phone', 'Email', 'Customer ID', 'Total Spend', 'Loyalty Tier', 'Last Order', 'Status'];
-    const csvContent = [
-      headers.join(','),
-      ...customers.map(customer => [
-        customer.name,
-        customer.phone,
-        customer.email,
-        customer.customerId,
-        customer.totalSpend,
-        customer.loyaltyTier,
-        customer.lastOrder,
-        customer.status
-      ].join(','))
-    ].join('\n');
+    const escape = (v: string | number | undefined) => {
+      const s = String(v ?? '');
+      return s.includes(',') || s.includes('"') || s.includes('\n') ? `"${s.replace(/"/g, '""')}"` : s;
+    };
+    const rows = list.map((customer) =>
+      [
+        escape(customer.name),
+        escape(customer.phone),
+        escape(customer.email),
+        escape(customer.customerId),
+        escape(customer.totalSpend),
+        escape(customer.loyaltyTier),
+        escape(customer.lastOrder),
+        escape(customer.status),
+      ].join(',')
+    );
+    return [headers.join(','), ...rows].join('\n');
+  };
 
-    const blob = new Blob([csvContent], { type: 'text/csv' });
+  const downloadCSV = (content: string, filename = 'customers.csv') => {
+    const blob = new Blob([content], { type: 'text/csv' });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'customers.csv';
+    a.download = filename;
     a.click();
     window.URL.revokeObjectURL(url);
+  };
+
+  const handleExportWithRange = async (range: CustomerExportRange) => {
+    setExporting(true);
+    try {
+      let list: Customer[];
+      if (range.rangeType === 'current') {
+        list = customers;
+      } else if (range.rangeType === 'all') {
+        const all: Customer[] = [];
+        let page = 1;
+        let hasMore = true;
+        while (hasMore) {
+          const res = await customerApi.getAll({
+            page,
+            limit: itemsPerPage,
+            search: debouncedSearchQuery || undefined,
+            sortBy,
+            sortOrder,
+          });
+          const ui = res.users.map(convertApiCustomerToUICustomer);
+          all.push(...ui);
+          hasMore = page < (res.pagination?.pages ?? 1);
+          page += 1;
+        }
+        list = all;
+      } else {
+        const from = range.fromPage ?? 1;
+        const to = range.toPage ?? from;
+        const all: Customer[] = [];
+        for (let p = from; p <= to; p++) {
+          const res = await customerApi.getAll({
+            page: p,
+            limit: itemsPerPage,
+            search: debouncedSearchQuery || undefined,
+            sortBy,
+            sortOrder,
+          });
+          all.push(...res.users.map(convertApiCustomerToUICustomer));
+        }
+        list = all;
+      }
+      if (list.length === 0) {
+        toast.error('No customers to export');
+        return;
+      }
+      const csv = buildCSVFromCustomers(list);
+      const name = range.rangeType === 'all' ? 'customers-all.csv' : 'customers.csv';
+      downloadCSV(csv, name);
+      toast.success(`Exported ${list.length} customer${list.length === 1 ? '' : 's'}`);
+    } catch (err) {
+      console.error(err);
+      toast.error(err instanceof Error ? err.message : 'Export failed');
+    } finally {
+      setExporting(false);
+      setExportModalOpen(false);
+    }
+  };
+
+  const handleExportCSV = () => {
+    setExportModalOpen(true);
   };
 
   return (
@@ -148,7 +218,8 @@ export function CustomerPage() {
                 label: 'Export CSV',
                 icon: <Upload className="w-4 h-4" />,
                 onClick: handleExportCSV,
-                variant: 'danger'
+                variant: 'danger',
+                disabled: exporting,
               }
             ]}
           />
@@ -218,6 +289,15 @@ export function CustomerPage() {
           )}
         </div>
       </div>
+
+      <CustomerExportModal
+        isOpen={exportModalOpen}
+        onClose={() => setExportModalOpen(false)}
+        onExport={handleExportWithRange}
+        currentPage={currentPage}
+        totalPages={totalPages}
+        isLoading={exporting}
+      />
     </div>
   );
 }

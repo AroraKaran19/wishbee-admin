@@ -13,6 +13,7 @@ export interface SearchBarAction {
   onClick: () => void;
   href?: string;
   className?: string;
+  disabled?: boolean;
 }
 
 export interface SearchBarProps {
@@ -103,6 +104,7 @@ export function SearchBar({
               icon={action.icon}
               onClick={() => handleActionClick(action)}
               className={action.className}
+              disabled={action.disabled}
             >
               <span className="hidden sm:inline">{action.label}</span>
               <span className="sm:hidden">{action.label.split(' ')[0]}</span>

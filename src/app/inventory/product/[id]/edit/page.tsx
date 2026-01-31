@@ -138,6 +138,7 @@ export default function InventoryEditProductPage() {
       isB2B: true,
       dotd: false,
       pfy: false,
+      productDiscountPage: false,
     },
   });
 
@@ -266,6 +267,7 @@ export default function InventoryEditProductPage() {
         setValue("isB2B", product.isB2B ?? true);
         setValue("dotd", product.dotd || false);
         setValue("pfy", product.pfy || false);
+        setValue("productDiscountPage", product.productDiscountPage ?? false);
 
         // Handle category and subcategory
         if (product.category) {
@@ -1584,6 +1586,7 @@ export default function InventoryEditProductPage() {
         isB2B: data.isB2B,
         dotd: data.dotd,
         pfy: data.pfy,
+        productDiscountPage: data.productDiscountPage,
         reviewsCount: 0,
         totalRating: 0,
       };
@@ -2830,6 +2833,16 @@ export default function InventoryEditProductPage() {
                             />
                             <span className="text-sm font-medium text-gray-700">
                               Pick for You
+                            </span>
+                          </label>
+                          <label className="flex items-center gap-2">
+                            <input
+                              type="checkbox"
+                              {...register("productDiscountPage")}
+                              className="rounded border-gray-300"
+                            />
+                            <span className="text-sm font-medium text-gray-700">
+                              Show on Discounts Page
                             </span>
                           </label>
                         </div>

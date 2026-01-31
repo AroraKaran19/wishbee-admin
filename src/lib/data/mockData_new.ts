@@ -81,7 +81,20 @@ export const navigationItems: NavItem[] = [
     id: 'offers-banners',
     label: 'Offers & Banners',
     icon: 'Tag',
-    href: '/offers-banners'
+    href: '/offers-banners',
+    hasDropdown: true,
+    subItems: [
+      {
+        id: 'banners',
+        label: 'Banners',
+        href: '/offers-banners'
+      },
+      {
+        id: 'coupons',
+        label: 'Coupons',
+        href: '/coupons'
+      }
+    ]
   },
   {
     id: 'analytics',
@@ -99,7 +112,20 @@ export const navigationItems: NavItem[] = [
     id: 'settings',
     label: 'Settings',
     icon: 'Settings',
-    href: '/settings'
+    href: '/settings',
+    hasDropdown: true,
+    subItems: [
+      {
+        id: 'profile',
+        label: 'Profile',
+        href: '/settings'
+      },
+      {
+        id: 'shipping',
+        label: 'Shipping Price',
+        href: '/settings/shipping'
+      }
+    ]
   },
   {
     id: 'admins',

@@ -124,11 +124,13 @@ export function Sidebar({ onClose }: SidebarProps) {
                 pathname.startsWith("/inventory")) ||
               // (item.href === "/auto-reorders" && pathname.startsWith("/auto-reorders")) ||
               (item.href === "/offers-banners" &&
-                pathname.startsWith("/offers-banners")) ||
+                (pathname.startsWith("/offers-banners") || pathname === "/coupons")) ||
               (item.href === "/analytics" &&
                 pathname.startsWith("/analytics")) ||
               (item.href === "/most-selling" &&
-                pathname.startsWith("/most-selling"));
+                pathname.startsWith("/most-selling")) ||
+              (item.href === "/settings" &&
+                pathname.startsWith("/settings"));
             const isExpanded = isItemExpanded(item.id);
 
             return (

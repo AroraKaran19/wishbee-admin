@@ -70,6 +70,7 @@ export function exportProductsToCSV(products: any[], filename = "products") {
     { key: "isB2B", label: "B2B" },
     { key: "dotd", label: "Deal of the Day" },
     { key: "pfy", label: "Pick for You" },
+    { key: "productDiscountPage", label: "Discount Page" },
   ];
 
   // Transform products to handle nested objects
@@ -91,6 +92,7 @@ export function exportProductsToCSV(products: any[], filename = "products") {
     isB2B: product.isB2B ? "Yes" : "No",
     dotd: product.dotd ? "Yes" : "No",
     pfy: product.pfy ? "Yes" : "No",
+    productDiscountPage: product.productDiscountPage ? "Yes" : "No",
   }));
 
   exportToCSV(transformedProducts, filename, columns);

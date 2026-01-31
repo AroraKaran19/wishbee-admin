@@ -137,6 +137,7 @@ export default function InventoryAddProductPage() {
       dotd: false,
       pfy: false,
       isEssential: false,
+      productDiscountPage: false,
     },
   });
 
@@ -1348,6 +1349,7 @@ export default function InventoryAddProductPage() {
         dotd: boolean;
         pfy: boolean;
         isEssential: boolean;
+        productDiscountPage: boolean;
         reviewsCount: number;
         totalRating: number;
       } = {
@@ -1444,7 +1446,8 @@ export default function InventoryAddProductPage() {
         isB2B: data.isB2B,
         dotd: data.dotd,
         pfy: data.pfy,
-        isEssential: data.isEssential,
+        isEssential: data.isEssential ?? false,
+        productDiscountPage: data.productDiscountPage ?? false,
         reviewsCount: 0,
         totalRating: 0,
       };
@@ -2652,6 +2655,16 @@ export default function InventoryAddProductPage() {
                           />
                           <span className="text-sm font-medium text-gray-700">
                             Pick for You
+                          </span>
+                        </label>
+                        <label className="flex items-center gap-2">
+                          <input
+                            type="checkbox"
+                            {...register("productDiscountPage")}
+                            className="rounded border-gray-300"
+                          />
+                          <span className="text-sm font-medium text-gray-700">
+                            Show on Discounts Page
                           </span>
                         </label>
                       </div>

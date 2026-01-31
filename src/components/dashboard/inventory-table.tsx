@@ -83,6 +83,30 @@ export function InventoryTable({
       setTogglingId(null);
     }
   };
+
+  const handleToggleDiscountPage = async (product: Product) => {
+    if (!product._id) return;
+
+    try {
+      setTogglingId(product._id);
+      await productApi.update(product._id, {
+        productDiscountPage: !(product.productDiscountPage ?? false),
+      });
+      toast.success(
+        `Product ${!(product.productDiscountPage ?? false) ? "added to" : "removed from"} discounts page`
+      );
+      window.location.reload();
+    } catch (error) {
+      console.error("Error toggling discounts page:", error);
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Failed to update discounts page status"
+      );
+    } finally {
+      setTogglingId(null);
+    }
+  };
   const tableConfig: TableConfig<Product> = {
     columns: [
       {
@@ -180,6 +204,37 @@ export function InventoryTable({
                 <div
                   className={`absolute top-[2px] left-[2px] bg-white border border-gray-300 rounded-full h-5 w-5 transition-transform ${
                     isEssential ? "translate-x-5" : "translate-x-0"
+                  }`}
+                ></div>
+              </div>
+            </label>
+          );
+        },
+      },
+      {
+        key: "productDiscountPage",
+        title: "Discount Page",
+        align: "center",
+        render: (value, record) => {
+          const onDiscountPage = record.productDiscountPage ?? false;
+          const isDisabled = togglingId === record._id;
+          return (
+            <label className="relative inline-flex items-center cursor-pointer">
+              <input
+                type="checkbox"
+                checked={onDiscountPage}
+                onChange={() => handleToggleDiscountPage(record)}
+                disabled={isDisabled}
+                className="sr-only"
+              />
+              <div
+                className={`relative w-11 h-6 rounded-full transition-colors ${
+                  onDiscountPage ? "bg-amber-500" : "bg-gray-200"
+                } ${isDisabled ? "opacity-50 cursor-not-allowed" : ""}`}
+              >
+                <div
+                  className={`absolute top-[2px] left-[2px] bg-white border border-gray-300 rounded-full h-5 w-5 transition-transform ${
+                    onDiscountPage ? "translate-x-5" : "translate-x-0"
                   }`}
                 ></div>
               </div>
