@@ -29,6 +29,13 @@ interface OrderForInvoice {
   invoiceNumber?: string;
   items: any[];
   totalAmount: number;
+  itemsTotal?: number;
+  shippingCharges?: number;
+  couponDiscount?: number;
+  couponCode?: string;
+  loyaltyDiscountPercent?: number;
+  loyaltyDiscountAmount?: number;
+  originalAmount?: number;
   status: string;
   shippingAddress: any;
   payment: any;
@@ -128,11 +135,18 @@ async function prepareOrderForInvoice(apiOrder: OrderForInvoice) {
       discountApplied: item.discountApplied || 0,
     })),
     totalAmount: apiOrder.totalAmount,
+    itemsTotal: apiOrder.itemsTotal,
+    shippingCharges: apiOrder.shippingCharges,
+    couponDiscount: apiOrder.couponDiscount,
+    couponCode: apiOrder.couponCode,
+    loyaltyDiscountPercent: apiOrder.loyaltyDiscountPercent,
+    loyaltyDiscountAmount: apiOrder.loyaltyDiscountAmount,
+    originalAmount: apiOrder.originalAmount,
     status: apiOrder.status,
     shippingAddress: {
       type: apiOrder.shippingAddress?.type || 'HOME',
       addressLine: apiOrder.shippingAddress?.addressLine || '',
-      landmark: apiOrder.shippingAddress?.landmark || '',
+      landmark: apiOrder.shippingAddress?.landmark,
       city: apiOrder.shippingAddress?.city || '',
       state: apiOrder.shippingAddress?.state || '',
       postalCode: apiOrder.shippingAddress?.postalCode || '',

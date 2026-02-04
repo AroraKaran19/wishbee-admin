@@ -264,6 +264,7 @@ export const convertApiOrderToUIOrder = (apiOrder: any): Order => {
     customer: apiOrder.user?.phoneNumber || apiOrder.user?.name || "Unknown",
     customerFirstName: apiOrder.user?.firstName,
     customerLastName: apiOrder.user?.lastName,
+    customerStoreName: apiOrder.storeName ?? apiOrder.user?.storeName,
     status:
       apiOrder.status === "DELIVERED"
         ? "Delivered"
@@ -291,6 +292,9 @@ export const convertApiOrderToUIOrder = (apiOrder: any): Order => {
     items:
       apiOrder.items?.map((item: any) => ({
         productName: item.product?.name || `Product ${item.product}`,
+        title2: item.product?.title2,
+        title3: item.product?.title3,
+        title4: item.product?.title4,
         productId:
           typeof item.product === "string" ? item.product : item.product?._id,
         productType: item.productType,
@@ -306,6 +310,8 @@ export const convertApiOrderToUIOrder = (apiOrder: any): Order => {
       landmark: apiOrder.shippingAddress?.landmark,
       country: apiOrder.shippingAddress?.country,
       type: apiOrder.shippingAddress?.type,
+      latitude: apiOrder.shippingAddress?.latitude,
+      longitude: apiOrder.shippingAddress?.longitude,
     },
     billingAddress: apiOrder.billingAddress
       ? {
@@ -316,6 +322,8 @@ export const convertApiOrderToUIOrder = (apiOrder: any): Order => {
           landmark: apiOrder.billingAddress?.landmark,
           country: apiOrder.billingAddress?.country,
           type: apiOrder.billingAddress?.type,
+          latitude: apiOrder.billingAddress?.latitude,
+          longitude: apiOrder.billingAddress?.longitude,
         }
       : undefined,
     trackingNumber: apiOrder.trackingNumber,
@@ -345,6 +353,12 @@ export const convertApiOrderToUIOrder = (apiOrder: any): Order => {
           timeWindow: apiOrder.deliverySlot.timeWindow,
         }
       : undefined,
+    itemsTotal: apiOrder.itemsTotal,
+    shippingCharges: apiOrder.shippingCharges,
+    couponDiscount: apiOrder.couponDiscount,
+    couponCode: apiOrder.couponCode,
+    loyaltyDiscountPercent: apiOrder.loyaltyDiscountPercent,
+    loyaltyDiscountAmount: apiOrder.loyaltyDiscountAmount,
     createdAt: apiOrder.createdAt,
     updatedAt: apiOrder.updatedAt,
   };

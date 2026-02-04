@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { DataTable } from '@/components/ui/data-table';
 import { Order, TableConfig } from '@/lib/types';
-import { Edit, Trash2, Download } from 'lucide-react';
+import { Edit, Trash2, Download, MapPin } from 'lucide-react';
 import { OrderStatusModal } from './order-status-modal';
 import { OrderDetailsModal } from './order-details-modal';
 import { downloadOrderInvoice } from '@/lib/utils/invoice';
@@ -159,15 +159,19 @@ export function OrderTable({
         title: 'Customer',
         align: 'center',
         render: (value, record) => {
-          const customerName = [record.customerFirstName, record.customerLastName].filter(Boolean).join(" ");
+          const customerName = [record.customerFirstName, record.customerLastName].filter(Boolean).join(" ") || "N/A";
+          const storeName = record.customerStoreName?.trim();
           return (
-            <div className="text-sm text-gray-900">
-              {customerName ? (
-                <div className="font-medium">
-                  {customerName}
+            <div className="text-sm text-gray-900 space-y-0.5">
+              <div className="font-medium">
+                {customerName}
+              </div>
+              {storeName ? (
+                <div className="text-xs text-gray-600">
+                  {storeName}
                 </div>
               ) : null}
-              <div className={`text-xs ${customerName ? 'text-gray-600' : 'text-gray-900'}`}>
+              <div className="text-xs text-gray-600">
                 {value || "N/A"}
               </div>
             </div>
@@ -215,6 +219,28 @@ export function OrderTable({
       }
     ],
     actions: [
+      {
+        key: 'map',
+        label: '',
+        icon: <MapPin className="h-4 w-4" />,
+        onClick: (record) => {
+          const billing = record.billingAddress;
+          if (billing?.latitude != null && billing?.longitude != null) {
+            window.open(
+              `https://www.google.com/maps?q=${billing.latitude},${billing.longitude}`,
+              '_blank',
+              'noopener,noreferrer'
+            );
+          }
+        },
+        variant: 'secondary',
+        size: 'sm',
+        disabled: (record: Order) => {
+          const billing = record.billingAddress;
+          return !billing || billing.latitude == null || billing.longitude == null;
+        },
+        className: 'text-gray-600 hover:text-gray-800 bg-transparent hover:bg-gray-100 border-0 shadow-none rounded-full pr-1.5 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed'
+      },
       {
         key: 'download',
         label: '',

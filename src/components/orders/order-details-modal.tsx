@@ -163,31 +163,110 @@ export function OrderDetailsModal({ orderId, isOpen, onClose }: OrderDetailsModa
                       {[order.customerFirstName, order.customerLastName].filter(Boolean).join(" ") || "N/A"}
                     </p>
                   )}
+                  {order.customerStoreName?.trim() && (
+                    <p>
+                      <span className="font-medium">Store:</span> {order.customerStoreName.trim()}
+                    </p>
+                  )}
                   <p>
                     <span className="font-medium">Phone:</span> {order.customer}
                   </p>
                 </div>
               </div>
 
+              {/* Order Summary (breakdown) */}
+              {(typeof order.itemsTotal === 'number' ||
+                typeof order.shippingCharges === 'number' ||
+                typeof order.couponDiscount === 'number' ||
+                typeof order.loyaltyDiscountAmount === 'number') && (
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-3">Order Summary</h3>
+                  <div className="space-y-2 text-sm">
+                    {typeof order.itemsTotal === 'number' && (
+                      <div className="flex justify-between text-gray-700">
+                        <span>Items Total</span>
+                        <span className="font-medium">{formatCurrency(order.itemsTotal)}</span>
+                      </div>
+                    )}
+                    {typeof order.shippingCharges === 'number' && (
+                      <div className="flex justify-between text-gray-700">
+                        <span>Shipping Charges</span>
+                        <span className="font-medium">
+                          {order.shippingCharges === 0 ? 'Free' : formatCurrency(order.shippingCharges)}
+                        </span>
+                      </div>
+                    )}
+                    {typeof order.couponDiscount === 'number' && order.couponDiscount > 0 && (
+                      <div className="flex justify-between text-gray-700">
+                        <span>
+                          Coupon Discount{order.couponCode ? ` (${order.couponCode})` : ''}
+                        </span>
+                        <span className="font-medium text-green-600">
+                          - {formatCurrency(order.couponDiscount)}
+                        </span>
+                      </div>
+                    )}
+                    {typeof order.loyaltyDiscountAmount === 'number' && order.loyaltyDiscountAmount > 0 && (
+                      <div className="flex justify-between text-gray-700">
+                        <span>
+                          Loyalty Tier Discount
+                          {typeof order.loyaltyDiscountPercent === 'number' && order.loyaltyDiscountPercent > 0
+                            ? ` (${order.loyaltyDiscountPercent}%)`
+                            : ''}
+                        </span>
+                        <span className="font-medium text-green-600">
+                          - {formatCurrency(order.loyaltyDiscountAmount)}
+                        </span>
+                      </div>
+                    )}
+                    <div className="flex justify-between text-gray-900 font-semibold pt-2 border-t border-gray-200">
+                      <span>Grand Total</span>
+                      <span>{formatCurrency(order.amount)}</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* Order Items */}
               <div className="bg-gray-50 p-4 rounded-lg">
                 <h3 className="text-lg font-semibold text-gray-900 mb-3">Order Items</h3>
                 <div className="space-y-2">
-                  {order.items.map((item, index) => (
-                    <div key={index} className="bg-white p-3 rounded border">
-                      <div className="flex justify-between items-start">
-                        <div className="flex-1">
-                          <p className="font-medium text-gray-900">{item.productName}</p>
-                          <p className="text-sm text-gray-500">
-                            Quantity: {item.quantity} x {formatCurrency(item.price)}
+                  {order.items.map((item, index) => {
+                    const titles = [
+                      item.productName,
+                      item.title2,
+                      item.title3,
+                      item.title4,
+                    ].filter(Boolean);
+                    return (
+                      <div key={index} className="bg-white p-3 rounded border">
+                        <div className="flex justify-between items-start">
+                          <div className="flex-1">
+                            {titles.length > 0 ? (
+                              <div className="space-y-0.5">
+                                {titles.map((title, i) => (
+                                  <p
+                                    key={i}
+                                    className={i === 0 ? "font-medium text-gray-900" : "text-sm text-gray-600"}
+                                  >
+                                    {title}
+                                  </p>
+                                ))}
+                              </div>
+                            ) : (
+                              <p className="font-medium text-gray-900">{item.productName}</p>
+                            )}
+                            <p className="text-sm text-gray-500 mt-1">
+                              Quantity: {item.quantity} x {formatCurrency(item.price)}
+                            </p>
+                          </div>
+                          <p className="font-semibold text-gray-900">
+                            {formatCurrency(item.quantity * item.price - (item.discountApplied || 0))}
                           </p>
                         </div>
-                        <p className="font-semibold text-gray-900">
-                          {formatCurrency(item.quantity * item.price - (item.discountApplied || 0))}
-                        </p>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
 
@@ -220,6 +299,16 @@ export function OrderDetailsModal({ orderId, isOpen, onClose }: OrderDetailsModa
                     {order.billingAddress.country && <p>{order.billingAddress.country}</p>}
                     {order.billingAddress.type && (
                       <p className="text-sm text-gray-500 mt-1">Type: {order.billingAddress.type}</p>
+                    )}
+                    {order.billingAddress.latitude != null && order.billingAddress.longitude != null && (
+                      <a
+                        href={`https://www.google.com/maps?q=${order.billingAddress.latitude},${order.billingAddress.longitude}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-block mt-2 text-sm text-blue-600 hover:text-blue-800 hover:underline"
+                      >
+                        View on Google Maps
+                      </a>
                     )}
                   </div>
                 </div>

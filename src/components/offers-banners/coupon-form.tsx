@@ -52,6 +52,8 @@ const emptyForm: CreateCouponData = {
   minimumPurchaseAmount: undefined,
   maximumDiscountAmount: undefined,
   maxUses: undefined,
+  maxUsesPerUser: undefined,
+  perUserResetHours: undefined,
   isActive: true,
 };
 
@@ -116,6 +118,8 @@ export function CouponForm({
         minimumPurchaseAmount: coupon.minimumPurchaseAmount,
         maximumDiscountAmount: coupon.maximumDiscountAmount,
         maxUses: coupon.maxUses,
+        maxUsesPerUser: coupon.maxUsesPerUser,
+        perUserResetHours: coupon.perUserResetHours,
         isActive: coupon.isActive ?? true,
       });
       if (coupon.allowedUserIds?.length) {
@@ -818,20 +822,56 @@ export function CouponForm({
         </div>
       </div>
 
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">Max uses</label>
-        <Input
-          type="number"
-          min={0}
-          value={form.maxUses ?? ''}
-          onChange={(e) =>
-            setForm((f) => ({
-              ...f,
-              maxUses: e.target.value ? parseInt(e.target.value, 10) : undefined,
-            }))
-          }
-          placeholder="Unlimited if empty"
-        />
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Max uses (global)</label>
+          <Input
+            type="number"
+            min={0}
+            value={form.maxUses ?? ''}
+            onChange={(e) =>
+              setForm((f) => ({
+                ...f,
+                maxUses: e.target.value ? parseInt(e.target.value, 10) : undefined,
+              }))
+            }
+            placeholder="Unlimited if empty"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Max uses per user
+          </label>
+          <Input
+            type="number"
+            min={0}
+            value={form.maxUsesPerUser ?? ''}
+            onChange={(e) =>
+              setForm((f) => ({
+                ...f,
+                maxUsesPerUser: e.target.value ? parseInt(e.target.value, 10) : undefined,
+              }))
+            }
+            placeholder="Optional"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Per-user reset (hours)
+          </label>
+          <Input
+            type="number"
+            min={0}
+            value={form.perUserResetHours ?? ''}
+            onChange={(e) =>
+              setForm((f) => ({
+                ...f,
+                perUserResetHours: e.target.value ? parseInt(e.target.value, 10) : undefined,
+              }))
+            }
+            placeholder="e.g. 24 = once/day"
+          />
+        </div>
       </div>
 
       <div className="flex items-center gap-2">

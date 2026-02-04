@@ -124,6 +124,11 @@ export const navigationItems: NavItem[] = [
         id: 'shipping',
         label: 'Shipping Price',
         href: '/settings/shipping'
+      },
+      {
+        id: 'loyalty-tiers',
+        label: 'Loyalty tiers',
+        href: '/settings/loyalty-tiers'
       }
     ]
   },

@@ -211,7 +211,7 @@ export const productApi = {
         value: string;
       }[];
       category: string;
-      subCategory: string;
+      subCategory: string | null;
       images: string[];
       status: "ACTIVE" | "OUT_OF_STOCK" | "DISCONTINUED";
       isOrganic: boolean;
@@ -221,13 +221,13 @@ export const productApi = {
         quantity_end: number;
         price: number;
       }[];
-      discount?: {
+      discount: {
         type: "percentage" | "fixed";
         value: number;
         startDate?: Date;
         endDate?: Date;
         isActive: boolean;
-      };
+      } | null;
       stock: number;
       weight: {
         value: number;

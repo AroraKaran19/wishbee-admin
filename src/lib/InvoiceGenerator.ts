@@ -19,11 +19,25 @@ interface OrderItem {
     discountApplied?: number;
   }[];
   totalAmount: number;
+  /** Sum of items at purchase price (optional; present on new orders) */
+  itemsTotal?: number;
+  /** Delivery fee; 0 when free (optional) */
+  shippingCharges?: number;
+  /** Discount from applied coupon (optional) */
+  couponDiscount?: number;
+  /** Applied coupon code when discount was used (optional) */
+  couponCode?: string;
+  /** Loyalty tier discount percentage (optional) */
+  loyaltyDiscountPercent?: number;
+  /** Loyalty tier discount amount ₹ (optional) */
+  loyaltyDiscountAmount?: number;
+  /** Items total for older orders when itemsTotal not present */
+  originalAmount?: number;
   status: string;
   shippingAddress: {
     type: string;
     addressLine: string;
-    landmark: string;
+    landmark?: string;
     city: string;
     state: string;
     postalCode: string;
@@ -791,8 +805,85 @@ export class InvoiceGenerator {
     }
   }
 
-  private addSummary(_order: OrderItem): void {
-    // This is handled in the table summary
+  private addSummary(order: OrderItem): void {
+    // Order breakdown: itemsTotal + shippingCharges - couponDiscount - loyaltyDiscountAmount = totalAmount (per API)
+    const hasBreakdown =
+      typeof order.itemsTotal === "number" ||
+      typeof order.shippingCharges === "number" ||
+      typeof order.couponDiscount === "number" ||
+      typeof order.loyaltyDiscountAmount === "number";
+
+    if (hasBreakdown) {
+      if (this.currentY > this.pageHeight - 45) {
+        this.doc.addPage();
+        this.currentPage++;
+        this.currentY = 25;
+      }
+      this.currentY += 5;
+
+      const rightX = this.pageWidth - 15;
+      const amountRightX = rightX; // Right edge for amount strings (align: "right")
+      const lineHeight = 6;
+      this.doc.setFontSize(8);
+
+      const itemsTotal =
+        order.itemsTotal ??
+        order.originalAmount ??
+        order.items.reduce(
+          (sum, item) => sum + item.priceAtPurchase * item.quantity,
+          0
+        );
+      const shippingCharges = order.shippingCharges ?? 0;
+      const couponDiscount = order.couponDiscount ?? 0;
+
+      this.doc.setFont("helvetica", "normal");
+      this.doc.text("Items Total:", 15, this.currentY);
+      this.doc.text(`Rs. ${itemsTotal.toFixed(2)}`, amountRightX, this.currentY, {
+        align: "right",
+      });
+      this.currentY += lineHeight;
+
+      this.doc.text("Shipping Charges:", 15, this.currentY);
+      this.doc.text(
+        shippingCharges === 0 ? "Free" : `Rs. ${shippingCharges.toFixed(2)}`,
+        amountRightX,
+        this.currentY,
+        { align: "right" }
+      );
+      this.currentY += lineHeight;
+
+      if (couponDiscount > 0) {
+        const couponLabel = order.couponCode
+          ? `Coupon Discount (${order.couponCode}):`
+          : "Coupon Discount:";
+        this.doc.text(couponLabel, 15, this.currentY);
+        this.doc.text(`- Rs. ${couponDiscount.toFixed(2)}`, amountRightX, this.currentY, {
+          align: "right",
+        });
+        this.currentY += lineHeight;
+      }
+
+      const loyaltyDiscountAmount = order.loyaltyDiscountAmount ?? 0;
+      if (loyaltyDiscountAmount > 0) {
+        const loyaltyLabel =
+          typeof order.loyaltyDiscountPercent === "number" && order.loyaltyDiscountPercent > 0
+            ? `Loyalty Tier Discount (${order.loyaltyDiscountPercent}%):`
+            : "Loyalty Tier Discount:";
+        this.doc.text(loyaltyLabel, 15, this.currentY);
+        this.doc.text(`- Rs. ${loyaltyDiscountAmount.toFixed(2)}`, amountRightX, this.currentY, {
+          align: "right",
+        });
+        this.currentY += lineHeight;
+      }
+
+      this.doc.setFont("helvetica", "bold");
+      this.doc.text("Grand Total:", 15, this.currentY);
+      this.doc.text(`Rs. ${order.totalAmount.toFixed(2)}`, amountRightX, this.currentY, {
+        align: "right",
+      });
+      this.doc.setFont("helvetica", "normal");
+      this.currentY += lineHeight + 3;
+    }
   }
 
   private addDeclarationAndContact(): void {

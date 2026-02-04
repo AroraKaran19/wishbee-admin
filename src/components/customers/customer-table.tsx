@@ -93,14 +93,20 @@ export function CustomerTable({
         key: 'name',
         title: 'Name',
         align: 'center',
-        render: (value, record) => (
-          <button
-            onClick={() => handleNameClick(record)}
-            className="text-sm text-blue-600 hover:text-blue-800 hover:underline font-medium transition-colors"
-          >
-            {value}
-          </button>
-        )
+        render: (value, record) => {
+          const storeName = record.storeName?.trim();
+          return (
+            <button
+              onClick={() => handleNameClick(record)}
+              className="text-center text-sm text-blue-600 hover:text-blue-800 hover:underline font-medium transition-colors block w-full mx-auto"
+            >
+              <span className="block">{value}</span>
+              {storeName ? (
+                <span className="block text-xs text-gray-600 font-normal mt-0.5">{storeName}</span>
+              ) : null}
+            </button>
+          );
+        }
       },
       {
         key: 'contact',

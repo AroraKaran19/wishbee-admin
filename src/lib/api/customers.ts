@@ -394,6 +394,7 @@ export const convertApiCustomerToUICustomer = (apiUser: any): Customer => {
   return {
     id: apiUser._id,
     name: getName(apiUser),
+    storeName: apiUser.storeName,
     phone: apiUser.phoneNumber || "N/A",
     email: getEmail(apiUser),
     customerId: getCustomerId(apiUser),

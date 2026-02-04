@@ -70,7 +70,7 @@ export async function downloadOrderInvoice(orderId: string): Promise<void> {
       gstin,
     };
 
-    // Convert API order format to InvoiceGenerator format
+    // Convert API order format to InvoiceGenerator format (per API order schema)
     const orderForInvoice = {
       _id: apiOrder._id,
       refId: apiOrder.refId,
@@ -87,11 +87,18 @@ export async function downloadOrderInvoice(orderId: string): Promise<void> {
         discountApplied: item.discountApplied || 0,
       })),
       totalAmount: apiOrder.totalAmount,
+      itemsTotal: apiOrder.itemsTotal,
+      shippingCharges: apiOrder.shippingCharges,
+      couponDiscount: apiOrder.couponDiscount,
+      couponCode: apiOrder.couponCode,
+      loyaltyDiscountPercent: apiOrder.loyaltyDiscountPercent,
+      loyaltyDiscountAmount: apiOrder.loyaltyDiscountAmount,
+      originalAmount: apiOrder.originalAmount,
       status: apiOrder.status,
       shippingAddress: {
         type: apiOrder.shippingAddress?.type || 'HOME',
         addressLine: apiOrder.shippingAddress?.addressLine || '',
-        landmark: apiOrder.shippingAddress?.landmark || '',
+        landmark: apiOrder.shippingAddress?.landmark,
         city: apiOrder.shippingAddress?.city || '',
         state: apiOrder.shippingAddress?.state || '',
         postalCode: apiOrder.shippingAddress?.postalCode || '',

@@ -1493,6 +1493,28 @@ export default function InventoryEditProductPage() {
       }
 
       // Prepare data for backend - matching API documentation exactly
+      // When removing discount, send discount: null
+      const discountPayload =
+        !showDiscountFields
+          ? null
+          : showDiscountFields && data.discount
+            ? {
+                type: data.discount.type,
+                value:
+                  data.discount.value !== null &&
+                  data.discount.value !== undefined
+                    ? Number(data.discount.value)
+                    : 0,
+                startDate: data.discount.startDate
+                  ? new Date(data.discount.startDate)
+                  : undefined,
+                endDate: data.discount.endDate
+                  ? new Date(data.discount.endDate)
+                  : undefined,
+                isActive: data.discount.isActive,
+              }
+            : null;
+
       const productData = {
         sku: data.sku.trim(),
         hsn: data.hsn?.trim() || undefined,
@@ -1504,7 +1526,7 @@ export default function InventoryEditProductPage() {
         description: data.description.trim(),
         highlights: data.highlights,
         category: data.categoryId,
-        subCategory: data.subCategoryId?.trim() || undefined,
+        subCategory: data.subCategoryId?.trim() || null,
         images: data.images,
         status: data.status as "ACTIVE" | "OUT_OF_STOCK" | "DISCONTINUED",
         isOrganic: data.isOrganic,
@@ -1527,25 +1549,7 @@ export default function InventoryEditProductPage() {
               ? Number(range.price)
               : 0,
         })),
-        ...(showDiscountFields && data.discount
-          ? {
-              discount: {
-                type: data.discount.type,
-                value:
-                  data.discount.value !== null &&
-                  data.discount.value !== undefined
-                    ? Number(data.discount.value)
-                    : 0,
-                startDate: data.discount.startDate
-                  ? new Date(data.discount.startDate)
-                  : undefined,
-                endDate: data.discount.endDate
-                  ? new Date(data.discount.endDate)
-                  : undefined,
-                isActive: data.discount.isActive,
-              },
-            }
-          : {}), // Omit discount field to remove it
+        discount: discountPayload,
         minimumOrderQuantity: Number(data.minimumOrderQuantity) || 1,
         maximumOrderQuantity: Number(data.maximumOrderQuantity) || 100,
         stock:
@@ -1587,8 +1591,6 @@ export default function InventoryEditProductPage() {
         dotd: data.dotd,
         pfy: data.pfy,
         productDiscountPage: data.productDiscountPage,
-        reviewsCount: 0,
-        totalRating: 0,
       };
 
       // Submit to backend

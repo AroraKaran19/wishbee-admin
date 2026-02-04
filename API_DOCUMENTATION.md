@@ -403,7 +403,8 @@ On app load:
       },
       "storeName": "string",
       "loyaltyTier": "BRONZE",
-      "loyaltyPoints": 100,
+      "totalSpend": 0,
+      "loyaltyDiscountPercent": 0,
       "defaultAddress": {
         "type": "HOME",
         "addressLine": "string",
@@ -438,9 +439,38 @@ On app load:
   ```
 - **Note**:
   - For admin users, the response includes `permissions` array
-  - For customer users, the response includes customer-specific fields like `govtId`, `storeName`, `loyaltyTier`, `loyaltyPoints`, and `defaultAddress`
+  - For customer users, the response includes customer-specific fields like `govtId`, `storeName`, `loyaltyTier`, `totalSpend`, and `defaultAddress`
   - `govtId` is an optional object with `type` (enum: "GST", "PAN", "UDYAM", "SHOP_LICENSE", "OTHER") and `number` (string) fields
   - `SUPER_ADMIN` users will have permissions array (handled on frontend as all permissions)
+
+### Get current loyalty tier and discount
+
+- **API**: `GET /api/user/loyalty-discount`
+- **Access**: User (authenticated)
+- **Request**: None (requires Bearer token in Authorization header)
+- **Description**: Returns the authenticated user's current loyalty tier and the discount percentage for that tier (from loyalty tier config). For admins, returns `currentTier: null` and `discountPercent: 0`.
+- **Response** (Consumer):
+  ```json
+  {
+    "success": true,
+    "data": {
+      "currentTier": "SILVER",
+      "discountPercent": 5
+    },
+    "message": "Current tier and discount fetched"
+  }
+  ```
+- **Response** (Admin/SUPER_ADMIN):
+  ```json
+  {
+    "success": true,
+    "data": {
+      "currentTier": null,
+      "discountPercent": 0
+    },
+    "message": "Current tier and discount fetched"
+  }
+  ```
 
 ### Update Profile
 
@@ -476,7 +506,8 @@ On app load:
       },
       "storeName": "string",
       "loyaltyTier": "BRONZE",
-      "loyaltyPoints": 100,
+      "totalSpend": 0,
+      "loyaltyDiscountPercent": 0,
       "defaultAddress": {
         "type": "HOME",
         "addressLine": "string",
@@ -652,7 +683,8 @@ On app load:
           },
           "storeName": "string",
           "loyaltyTier": "BRONZE",
-          "loyaltyPoints": 100,
+          "totalSpend": 0,
+          "loyaltyDiscountPercent": 0,
           "addresses": [
             {
               "type": "HOME",
@@ -688,7 +720,7 @@ On app load:
   - Results are paginated and sortable
   - **Sorting by `totalSpend`**: When `sortBy=totalSpend`, users are sorted by their total spending amount. Use `sortOrder=asc` for ascending (lowest spend first) or `sortOrder=desc` for descending (highest spend first)
   - `orders`: Array of order IDs belonging to the user. Orders are automatically added to this array when created (latest order appears first). Defaults to empty array `[]` if user has no orders
-  - `totalSpend`: Total amount spent by the user across all orders (sum of all order `totalAmount` values). Defaults to `0` if user has no orders
+  - `totalSpend`: Total amount spent by the user across all **DELIVERED** orders (sum of `totalAmount` for orders where `status === "DELIVERED"`). Automatically kept in sync when orders are marked as DELIVERED or when delivered orders are deleted. Defaults to `0` if user has no delivered orders
 
 ### Get User by ID (Admin)
 
@@ -716,7 +748,8 @@ On app load:
       },
       "storeName": "string",
       "loyaltyTier": "BRONZE",
-      "loyaltyPoints": 100,
+      "totalSpend": 0,
+      "loyaltyDiscountPercent": 0,
       "orders": ["string"],
       "defaultAddress": {
         "type": "HOME",
@@ -794,7 +827,8 @@ On app load:
         },
         "storeName": "string",
         "loyaltyTier": "BRONZE",
-        "loyaltyPoints": 100,
+        "totalSpend": 0,
+        "loyaltyDiscountPercent": 0,
         "addresses": [
           {
             "type": "HOME",
@@ -924,7 +958,8 @@ On app load:
     },
     "storeName": "string",
     "loyaltyTier": "BRONZE",
-    "loyaltyPoints": 100,
+    "totalSpend": 0,
+    "loyaltyDiscountPercent": 0,
     "password": "string"
   }
   ```
@@ -956,7 +991,7 @@ On app load:
       },
       "storeName": "string",
       "loyaltyTier": "BRONZE",
-      "loyaltyPoints": 100,
+      "totalSpend": 0,
       "defaultAddress": {
         "type": "HOME",
         "addressLine": "string",
@@ -1117,6 +1152,50 @@ On app load:
 - **Error Responses**:
   - `400` - Bad Request: Cannot delete the last active SUPER_ADMIN
   - `404` - Not Found: User not found
+
+---
+
+## 2.1 Loyalty Tier Config (Spend-based tiers)
+
+Tiers are based on **total spend** (sum of delivered order totals). Admins set spend thresholds; when a customer's total spend reaches a threshold, they are promoted to the next tier. Tier names are fixed: BRONZE, SILVER, GOLD, PLATINUM, DIAMOND.
+
+### Get loyalty tier thresholds
+
+- **API**: `GET /api/loyalty-tier-config`
+- **Access**: Public
+- **Response**:
+  ```json
+  {
+    "success": true,
+    "data": {
+      "thresholds": [
+        { "amount": 0, "tier": "BRONZE", "discountPercentage": 5 },
+        { "amount": 50000, "tier": "SILVER", "discountPercentage": 10 },
+        { "amount": 100000, "tier": "GOLD", "discountPercentage": 15 },
+        { "amount": 200000, "tier": "PLATINUM", "discountPercentage": 20 },
+        { "amount": 400000, "tier": "DIAMOND", "discountPercentage": 25 }
+      ]
+    }
+  }
+  ```
+
+### Update loyalty tier thresholds (Admin)
+
+- **API**: `PATCH /api/loyalty-tier-config`
+- **Access**: Admin
+- **Request**:
+  ```json
+  {
+    "thresholds": [
+      { "amount": 0, "tier": "BRONZE", "discountPercentage": 5 },
+      { "amount": 50000, "tier": "SILVER", "discountPercentage": 10 },
+      { "amount": 100000, "tier": "GOLD", "discountPercentage": 15 }
+    ]
+  }
+  ```
+- **Notes**:
+  - `amount` is in ₹. When a customer's `totalSpend` (updated on order DELIVERED) meets or exceeds a threshold, their `loyaltyTier` is set to that tier. Tier names must be one of: BRONZE, SILVER, GOLD, PLATINUM, DIAMOND.
+  - `discountPercentage` (optional) defines the **loyalty discount** for that tier. This percentage is applied on the order total **after coupons** and is reflected in both cart totals and invoices.
 
 ---
 
@@ -2178,6 +2257,8 @@ Coupons can be restricted by products and/or categories:
           "validUntil": "2024-12-31T23:59:59.000Z",
           "maxUses": 100,
           "currentUses": 25,
+          "maxUsesPerUser": 1,
+          "perUserResetHours": 24,
           "isActive": true,
           "createdAt": "2024-01-01T00:00:00.000Z",
           "updatedAt": "2024-01-01T00:00:00.000Z"
@@ -2235,25 +2316,30 @@ Coupons can be restricted by products and/or categories:
     "code": "string",
     "type": "percentage",
     "description": "string",
-    "value": 10,
-    "accessType": "GENERAL",
-    "allowedUserIds": ["string"],
-    "applicableProducts": ["string"],
-    "applicableCategories": ["string"],
-    "minimumPurchaseAmount": 100,
-    "maximumDiscountAmount": 50,
-    "validFrom": "2024-01-01T00:00:00.000Z",
-    "validUntil": "2024-12-31T23:59:59.000Z",
-    "maxUses": 100,
-    "isActive": true
+      "value": 10,
+      "accessType": "GENERAL",
+      "allowedUserIds": ["string"],
+      "applicableProducts": ["string"],
+      "applicableCategories": ["string"],
+      "minimumPurchaseAmount": 100,
+      "maximumDiscountAmount": 50,
+      "validFrom": "2024-01-01T00:00:00.000Z",
+      "validUntil": "2024-12-31T23:59:59.000Z",
+      "maxUses": 100,
+      "maxUsesPerUser": 1,
+      "perUserResetHours": 24,
+      "isActive": true
   }
   ```
 - **Required**: `code`, `type`, `description`, `value`, `validFrom`, `validUntil`
-- **Optional**: `accessType`, `allowedUserIds`, `applicableProducts`, `applicableCategories`, `minimumPurchaseAmount`, `maximumDiscountAmount`, `maxUses`, `isActive`
+- **Optional**: `accessType`, `allowedUserIds`, `applicableProducts`, `applicableCategories`, `minimumPurchaseAmount`, `maximumDiscountAmount`, `maxUses`, `maxUsesPerUser`, `perUserResetHours`, `isActive`
 - **Notes**:
   - `accessType` (optional, default: "GENERAL"): "GENERAL" for everyone, "LIMITED" for specific users only
   - `allowedUserIds` (optional): Array of user IDs who can use the coupon; required when `accessType` is "LIMITED"
   - `code` is automatically converted to uppercase
+  - `maxUses` (optional): Global usage cap across all users
+  - `maxUsesPerUser` (optional): Maximum number of times a single user can use this coupon within the reset window
+  - `perUserResetHours` (optional): Rolling reset window in hours for `maxUsesPerUser` (e.g. `24` = once per day per user, `6` = once every 6 hours per user). If omitted, `maxUsesPerUser` applies over the coupon's entire lifetime
 - **Response**: Created coupon object
 
 ### Validate Coupon
@@ -3129,8 +3215,8 @@ Coupons can be restricted by products and/or categories:
   ```
 - **Optional**: `couponCode` - Applied coupon code; validated and discount applied to order total; usage count incremented on success
 - **Note**:
-  - **COD**: Creates order directly and returns the order object
-  - **Online (CARD/UPI/etc.)**: Creates Razorpay order and returns `{ razorpayOrderId, amount, currency, key }` for checkout; call `POST /api/orders/verify` after payment to create the order
+  - **COD**: Creates order directly and returns the order object. Backend uses its calculated total as source of truth; frontend `payment.amount` must be within ₹1 of backend total (allows rounding tolerance).
+  - **Online (CARD/UPI/etc.)**: Creates Razorpay order and returns `{ razorpayOrderId, amount, currency }`; frontend uses `NEXT_PUBLIC_RAZORPAY_KEY_ID`; call `POST /api/orders/verify` after payment to create the order
   - `shippingAddress`, `billingAddress`, and `payment` are required fields
   - `orderNotes` and `deliverySlot` are optional
   - **Order is automatically added to the user's `orders` array** (latest order appears first in the array)
@@ -3155,6 +3241,13 @@ Coupons can be restricted by products and/or categories:
         }
       ],
       "totalAmount": 200,
+      "itemsTotal": 180,
+      "shippingCharges": 40,
+      "couponDiscount": 20,
+      "couponCode": "SAVE10",
+      "loyaltyDiscountPercent": 5,
+      "loyaltyDiscountAmount": 10,
+      "storeName": "My Store Pvt Ltd",
       "shippingAddress": {
         "type": "HOME",
         "addressLine": "string",
@@ -3201,6 +3294,7 @@ Coupons can be restricted by products and/or categories:
 
 - **Online payment flow**: When `payment.method` is not "COD", `POST /api/orders` returns `{ razorpayOrderId, amount, currency }` for Razorpay Checkout. Frontend uses `NEXT_PUBLIC_RAZORPAY_KEY_ID` for the key. Use `POST /api/orders/verify` after payment to create the order.
 - **Rate limit**: Order creation endpoints are limited to 5 requests per minute per user to prevent abuse.
+- **Order breakdown** (returned in order object): `itemsTotal` = sum of items at purchase price; `shippingCharges` = delivery fee (stored on order schema); `couponDiscount` = discount from coupon; `loyaltyDiscountAmount` = loyalty tier discount; `totalAmount` = itemsTotal + shippingCharges - couponDiscount - loyaltyDiscountAmount. These fields appear on Order Summary and invoices.
 
 ### Verify Payment and Create Order
 
@@ -3222,7 +3316,7 @@ Coupons can be restricted by products and/or categories:
   ```
 - **Optional**: `couponCode` - Same coupon used when creating Razorpay order; validated before order creation
 - **Response**: Created order object
-- **Note**: Call after user completes Razorpay payment. Payment amount must match order total (items + shipping - coupon discount)
+- **Note**: Call after user completes Razorpay payment. Payment amount must match order total (items + shipping - coupon discount - loyalty discount)
 
 ### Get User Orders
 
@@ -3253,6 +3347,12 @@ Coupons can be restricted by products and/or categories:
             }
           ],
           "totalAmount": 200,
+          "itemsTotal": 180,
+          "shippingCharges": 40,
+          "couponDiscount": 20,
+          "couponCode": "SAVE10",
+          "loyaltyDiscountPercent": 5,
+          "loyaltyDiscountAmount": 4.30,
           "shippingAddress": {
             "type": "HOME",
             "addressLine": "string",
@@ -3347,13 +3447,32 @@ Coupons can be restricted by products and/or categories:
 
 - **API**: `GET /api/orders/:orderId`
 - **Access**: User/Admin
-- **Response**: Single order object
+- **Response**: Single order object (includes `itemsTotal`, `shippingCharges`, `couponDiscount`, `couponCode`, `loyaltyDiscountPercent`, `loyaltyDiscountAmount` when available)
 
 ### Get Order by Reference ID
 
 - **API**: `GET /api/orders/ref/:refId`
 - **Access**: User/Admin
-- **Response**: Single order object
+- **Response**: Single order object (same structure as Get Order by ID)
+
+### Order Object Fields (Breakdown)
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `itemsTotal` | number | Sum of items at purchase price (optional; present on new orders) |
+| `shippingCharges` | number | Delivery/shipping fee from order schema; 0 when free (optional) |
+| `couponDiscount` | number | Discount from applied coupon (optional) |
+| `couponCode` | string | Applied coupon code when discount was used (optional) |
+| `loyaltyDiscountPercent` | number | User's loyalty tier discount % at order time (optional) |
+| `loyaltyDiscountAmount` | number | Loyalty discount amount applied (optional) |
+| `storeName` | string | Customer's store/business name at order time (optional; from user profile) |
+| `totalAmount` | number | Final amount paid: itemsTotal + shippingCharges - couponDiscount - loyaltyDiscountAmount |
+
+- These fields appear on Order Summary (track-order page) and invoices. Older orders may not have them; UI falls back to `originalAmount` for items total.
+- **Shipping**: `shippingCharges` comes from the order schema (set at order creation). Order Summary and invoices use this value.
+- **Loyalty discount**: When present, `loyaltyDiscountAmount` is shown as a separate line in Order Summary and on the invoice.
+- `storeName` is captured from the user's profile when the order is created and used for invoice "Bill To" name (B2B).
+- **Order items** (when product is populated): Include `name`, `title2`, `title3`, `title4` (product titles), `description`, `images`, `category`, `subCategory`, `price`, `mrp`, `gst`, `hsn`, `slug`.
 
 ### Update Order Status
 
@@ -3381,6 +3500,7 @@ Coupons can be restricted by products and/or categories:
     - `transactionId`: string (optional, can be set to empty string to clear it)
   - All payment fields are optional - you can update just the status, just payment info, or both together
   - Payment changes are logged in the order's update history
+  - **Loyalty totals**: When status changes to `"DELIVERED"` (from any other status), the backend automatically recalculates the customer's `totalSpend` as the sum of all their DELIVERED orders and updates their `loyaltyTier` based on the configured spend thresholds
 - **Response**: Updated order object
 
 ### Cancel Order
@@ -3436,6 +3556,7 @@ Coupons can be restricted by products and/or categories:
 - **Note**:
   - Permanently deletes the order from the database
   - Removes order reference from user's orders array
+  - If the deleted order had status `"DELIVERED"`, the backend automatically recalculates the customer's `totalSpend` (sum of remaining DELIVERED orders) and updates their `loyaltyTier` accordingly
   - Returns 404 if order not found
 - **Error Responses**:
   - `404` - Not Found: Order not found

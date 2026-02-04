@@ -22,6 +22,8 @@ export interface Coupon {
   validUntil: string;
   maxUses?: number;
   currentUses?: number;
+  maxUsesPerUser?: number;
+  perUserResetHours?: number;
   isActive: boolean;
   createdAt?: string;
   updatedAt?: string;
@@ -63,6 +65,8 @@ export interface CreateCouponData {
   minimumPurchaseAmount?: number;
   maximumDiscountAmount?: number;
   maxUses?: number;
+  maxUsesPerUser?: number;
+  perUserResetHours?: number;
   isActive?: boolean;
 }
 

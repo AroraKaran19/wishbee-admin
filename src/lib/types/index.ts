@@ -127,6 +127,7 @@ export interface ProductDetail {
 export interface Customer {
   id: string;
   name: string;
+  storeName?: string;
   phone: string;
   email: string;
   customerId: string;
@@ -162,12 +163,16 @@ export interface Order {
   customer: string;
   customerFirstName?: string;
   customerLastName?: string;
+  customerStoreName?: string;
   status: "Delivered" | "Pending" | "Processing" | "Shipped" | "Cancelled" | "Refunded" | "Returned";
   payment: "UPI" | "COD" | "Card" | "Net Banking";
   deliveryDate: string;
   orderDate: string;
   items: {
     productName: string;
+    title2?: string;
+    title3?: string;
+    title4?: string;
     quantity: number;
     price: number;
     productId?: string;
@@ -182,6 +187,8 @@ export interface Order {
     landmark?: string;
     country?: string;
     type?: string;
+    latitude?: number;
+    longitude?: number;
   };
   billingAddress?: {
     street: string;
@@ -191,6 +198,8 @@ export interface Order {
     landmark?: string;
     country?: string;
     type?: string;
+    latitude?: number;
+    longitude?: number;
   };
   trackingNumber?: string;
   orderNotes?: string;
@@ -205,6 +214,18 @@ export interface Order {
     date: string;
     timeWindow?: string;
   };
+  /** Order breakdown: items total before shipping/discounts */
+  itemsTotal?: number;
+  /** Delivery fee; 0 when free */
+  shippingCharges?: number;
+  /** Discount from applied coupon */
+  couponDiscount?: number;
+  /** Applied coupon code when discount was used */
+  couponCode?: string;
+  /** Loyalty tier discount percentage applied */
+  loyaltyDiscountPercent?: number;
+  /** Loyalty tier discount amount (₹) */
+  loyaltyDiscountAmount?: number;
   createdAt?: string;
   updatedAt?: string;
 }
