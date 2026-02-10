@@ -19,6 +19,9 @@ export const ADMIN_PERMISSIONS = {
   // Customers permission (for viewing and managing customers)
   CUSTOMERS: "CUSTOMERS",
   
+  // Cashier permission (point-of-sale / cashier access)
+  CASHIER: "CASHIER",
+  
   // Offers & Banners permission (for managing offers, banners, coupons)
   OFFERS_BANNERS: "OFFERS_BANNERS",
   

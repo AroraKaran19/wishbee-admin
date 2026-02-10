@@ -105,7 +105,7 @@ export function CustomerPage() {
   };
 
   const buildCSVFromCustomers = (list: Customer[]) => {
-    const headers = ['Name', 'Phone', 'Email', 'Customer ID', 'Total Spend', 'Loyalty Tier', 'Last Order', 'Status'];
+    const headers = ['Name', 'Store Name', 'Phone', 'Email', 'Customer ID', 'Total Spend', 'Loyalty Tier', 'Last Order', 'Status'];
     const escape = (v: string | number | undefined) => {
       const s = String(v ?? '');
       return s.includes(',') || s.includes('"') || s.includes('\n') ? `"${s.replace(/"/g, '""')}"` : s;
@@ -113,6 +113,7 @@ export function CustomerPage() {
     const rows = list.map((customer) =>
       [
         escape(customer.name),
+        escape(customer.storeName),
         escape(customer.phone),
         escape(customer.email),
         escape(customer.customerId),

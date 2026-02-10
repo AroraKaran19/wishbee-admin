@@ -18,6 +18,7 @@ const PERMISSION_LABELS: Record<string, string> = {
   INVENTORY: "Inventory",
   ORDERS: "Orders",
   CUSTOMERS: "Customers",
+  CASHIER: "Cashier",
   OFFERS_BANNERS: "Offers & Banners",
   ANALYTICS: "Analytics",
   MOST_SELLING: "Most Selling",

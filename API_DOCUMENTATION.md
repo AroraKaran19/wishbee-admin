@@ -1039,6 +1039,7 @@ On app load:
     - `DASHBOARD` - Dashboard access
     - `INVENTORY` - Inventory management
     - `ORDERS` - Orders management
+    - `CASHIER` - Cashier / point-of-sale access
     - `CUSTOMERS` - Customers management
     - `OFFERS_BANNERS` - Offers & Banners management
     - `ANALYTICS` - Analytics access
@@ -1093,6 +1094,7 @@ On app load:
     - `DASHBOARD` - Dashboard access
     - `INVENTORY` - Inventory management
     - `ORDERS` - Orders management
+    - `CASHIER` - Cashier / point-of-sale access
     - `CUSTOMERS` - Customers management
     - `OFFERS_BANNERS` - Offers & Banners management
     - `ANALYTICS` - Analytics access

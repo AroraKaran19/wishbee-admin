@@ -1898,15 +1898,37 @@ export default function InventoryEditProductPage() {
                         />
                       </div>
                       <div className="space-y-2">
-                        <label className="text-sm font-medium text-gray-700">
-                          SKU *
-                        </label>
+                        <div className="flex items-center justify-between gap-2">
+                          <label className="text-sm font-medium text-gray-700">
+                            SKU *
+                          </label>
+                          <Button
+                            type="button"
+                            variant="secondary"
+                            size="sm"
+                            onClick={() => {
+                              const input = document.getElementById("product-sku-input-edit") as HTMLInputElement;
+                              if (input) {
+                                input.focus();
+                                input.select(); // Select all text so scanner input overwrites it
+                              }
+                            }}
+                            className="shrink-0 text-xs"
+                          >
+                            <ScanBarcode className="w-3.5 h-3.5 mr-1.5" />
+                            Scan barcode
+                          </Button>
+                        </div>
                         <Input
+                          id="product-sku-input-edit"
                           variant="muted"
                           icon={<ScanBarcode className="w-4 h-4" />}
                           className="text-sm"
-                          placeholder="Enter product SKU"
+                          placeholder="Enter product SKU or scan with barcode scanner"
                           {...register("sku", { required: "SKU is required" })}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") e.preventDefault();
+                          }}
                         />
                         {errors.sku && (
                           <p className="text-red-500 text-xs mt-1">

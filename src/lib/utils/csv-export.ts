@@ -170,6 +170,9 @@ export function exportCustomerDataToCSV(
     .filter(Boolean)
     .join(" ") || "N/A";
 
+  // Format store name
+  const storeName = customer.storeName?.trim() || "N/A";
+
   // Format phone number
   const phoneNumber = customer.phoneNumber || "N/A";
 
@@ -224,6 +227,7 @@ export function exportCustomerDataToCSV(
   const customerData = [
     {
       name,
+      storeName,
       phoneNumber,
       address,
       govtDocument,
@@ -236,6 +240,7 @@ export function exportCustomerDataToCSV(
 
   const columns: { key: keyof CustomerDataItem; label: string }[] = [
     { key: "name", label: "Name" },
+    { key: "storeName", label: "Store Name" },
     { key: "phoneNumber", label: "Phone Number" },
     { key: "address", label: "Address" },
     { key: "govtDocument", label: "GST Number/Document" },
