@@ -3456,14 +3456,89 @@ Session is one per cashier per day (date in UTC). No dedicated "start session" A
   ```
 - **Note**:
   - Creates an order from the given `items` (no cart). Items are validated (stock, active), prices resolved from DB; coupon and loyalty discounts applied; `payment.amount` must match backend-calculated total (₹1 tolerance).
-  - **customerId** is optional. If provided, it must be a valid Consumer (e.g. lookup by phone). If omitted, the order is attributed to a single internal "Walk-in" consumer (unregistered customers); no need to create a user for each walk-in sale.
-  - **walkinCustomerName** – optional; use for walk-in customers to store their name on the order (e.g. "John Doe").
+  - **customerId** is optional. If provided, it must be a valid Consumer (e.g. lookup by phone). If omitted, the order is created with **`user: null`** (no user account is created or linked). The customer name is stored in **`walkinCustomerName`** for invoice and display purposes.
+  - **walkinCustomerName** – optional; use for walk-in customers to store their name on the order (e.g. "John Doe"). This name is used in invoices when `user` is null.
   - Every order created via this endpoint has **walkin: true** and may include **walkinCustomerName** in the response.
-  - **createdByCashier** is set automatically to the logged-in user's ID (the cashier creating the order); use it to link the order to the cashier (e.g. populate with User to show name).
+  - **Walk-in orders (no customerId)**: Orders with `user: null` **do not appear** in customer's "My Orders" (`GET /api/orders`) since they are not linked to any user account. They are only visible to **admin** via `GET /api/orders/all` or `GET /api/orders/:orderId` (admin access). For invoice generation, the customer name comes from `walkinCustomerName` (or `storeName` if set).
+  - **Coupon**: GENERAL coupons can be applied to walk-in orders (no customerId). LIMITED coupons require a registered customer (`customerId`).
+  - **Loyalty discount**: Only applied when `customerId` is provided (requires a registered customer with loyalty tier).
+  - **createdByCashier** is set automatically to the logged-in user's ID (the cashier creating the order). When the order is fetched via `GET /api/orders/:orderId` or `GET /api/orders/all`, the backend populates `createdByCashier` with `{ _id, firstName, lastName, email }` so the cashier name can be displayed without a separate lookup.
   - If `shippingAddress` / `billingAddress` are omitted, a default in-store address is used.
   - `shippingCharges` defaults to 0. `payment.status` defaults to `"COMPLETED"` for offline POS.
   - POS orders are created with **order status `DELIVERED`** and **payment status `COMPLETED`** (in-store, paid at counter), so invoice number is available immediately via `GET /api/orders/:orderId/invoice-number`.
-- **Response**: Created order object (same structure as other order endpoints; includes `walkin: true`, `createdByCashier` (cashier user id), and `walkinCustomerName` when provided)
+  - When `customerId` is provided, the order is linked to that customer (`user` is set), loyalty tier discount is applied (if applicable), and the order appears in that customer's "My Orders" and contributes to their `totalSpend` for loyalty tier calculation.
+- **Response**: Created order object (same structure as other order endpoints; includes `walkin: true`, `createdByCashier` (cashier user id), `walkinCustomerName` when provided, and `user: null` when no `customerId` was provided). When fetched via GET order APIs, `user` (when present) and `createdByCashier` are populated (see Get Order by ID / Get All Orders).
+
+### List POS orders created by cashier
+
+- **API**: `GET /api/orders/pos/cashier-orders`
+- **Access**: **SUPER_ADMIN** or Admin with **CASHIER** permission
+- **Query Parameters**:
+  - `cashierId` (string, **required**) – ID of the cashier (admin user) who created the POS orders (`createdByCashier`).
+  - `fromDate` (string, optional) – Start date (inclusive) in `YYYY-MM-DD` format; filters by `createdAt >= fromDate 00:00:00`.
+  - `toDate` (string, optional) – End date (inclusive) in `YYYY-MM-DD` format; filters by `createdAt <= toDate 23:59:59`.
+  - `page` (number, optional, default: 1) – Page number (1-based). Used only when `limit` is provided.
+  - `limit` (number, optional) – Page size. When provided, results are paginated. **When omitted, all matching orders are returned in a single page** (no pagination).
+- **Behavior**:
+  - Returns **only POS orders** (`walkin: true`) where `createdByCashier` matches the given `cashierId`.
+  - Applies date filters on `createdAt` when `fromDate` and/or `toDate` are provided.
+  - Populates:
+    - `user` (when present) with `_id`, `firstName`, `lastName`, `phoneNumber`, `email`, `role`, `loyaltyTier`, `storeName`.
+    - `createdByCashier` with `_id`, `firstName`, `lastName`, `email`.
+  - Each order also includes `originalAmount` (sum of items at original price) for reporting, as in other admin order APIs.
+- **Response**:
+  ```json
+  {
+    "success": true,
+    "data": {
+      "orders": [
+        {
+          "_id": "string",
+          "refId": "ORD-XXXX",
+          "user": null,
+          "walkin": true,
+          "walkinCustomerName": "Test Customer",
+          "createdByCashier": {
+            "_id": "adminUserId",
+            "firstName": "Cashier",
+            "lastName": "Name",
+            "email": "cashier@example.com"
+          },
+          "items": [
+            {
+              "product": "productId",
+              "productType": "product",
+              "quantity": 1,
+              "priceAtPurchase": 100,
+              "discountApplied": 0
+            }
+          ],
+          "itemsTotal": 100,
+          "shippingCharges": 0,
+          "couponDiscount": 0,
+          "loyaltyDiscountAmount": 0,
+          "totalAmount": 100,
+          "status": "DELIVERED",
+          "payment": {
+            "method": "COD",
+            "status": "COMPLETED",
+            "amount": 100
+          },
+          "originalAmount": 100,
+          "createdAt": "2026-02-11T07:58:58.320Z",
+          "updatedAt": "2026-02-11T07:58:58.320Z"
+        }
+      ],
+      "pagination": {
+        "page": 1,
+        "limit": 20,
+        "total": 1,
+        "pages": 1
+      }
+    },
+    "message": "Cashier POS orders fetched successfully"
+  }
+  ```
 
 ### Get User Orders
 
@@ -3474,6 +3549,9 @@ Session is one per cashier per day (date in UTC). No dedicated "start session" A
   - `search` (string) - Search in order reference ID
   - `page` (number, default: 1)
   - `limit` (number, default: 10)
+- **Note**: 
+  - Returns only orders where `user` matches the authenticated user's ID. **Walk-in POS orders** (with `user: null`) **do not appear** in this list since they are not linked to any user account.
+  - Each order's **user** (customer) is populated with: `_id`, `firstName`, `lastName`, `phoneNumber`, `email`, `role`, `loyaltyTier`, `storeName`. For POS orders the response may also include `walkin`, `walkinCustomerName`, and populated `createdByCashier` when applicable.
 - **Response**:
   ```json
   {
@@ -3483,7 +3561,7 @@ Session is one per cashier per day (date in UTC). No dedicated "start session" A
         {
           "_id": "string",
           "refId": "string",
-          "user": "string",
+          "user": { "_id": "string", "firstName": "string", "lastName": "string", "phoneNumber": "string", "email": "string", "role": "string", "loyaltyTier": "string", "storeName": "string" },
           "items": [
             {
               "product": "string",
@@ -3560,7 +3638,7 @@ Session is one per cashier per day (date in UTC). No dedicated "start session" A
 - **Query Parameters**:
   - `status` (string) - Filter by order status
   - `userId` (string) - Filter by user ID
-  - `search` (string) - Search term to search across order ID, reference ID, customer name, customer phone number, and product/combo names
+  - `search` (string) - Search term to search across order ID, reference ID, customer name, customer phone number, **cashier name** (POS orders), and product/combo names
   - `page` (number, default: 1)
   - `limit` (number, default: 10)
   - `sortBy` (string, default: "createdAt")
@@ -3574,6 +3652,7 @@ Session is one per cashier per day (date in UTC). No dedicated "start session" A
     - Order reference ID (`refId`)
     - Customer first name and last name
     - Customer phone number
+    - **Cashier first name, last name, and full name** (for POS orders; the admin user who created the order via `createdByCashier`)
     - Product names in order items
     - Combo names in order items
   - **Period Filtering**:
@@ -3588,37 +3667,46 @@ Session is one per cashier per day (date in UTC). No dedicated "start session" A
       - `"6months"`: Last 6 months
       - `"12months"`: Last 12 months
       - `"all-time"`: All orders from the beginning
-- **Response**: Same as user orders response
+- **Response**: Same as user orders response. Each order includes populated `user` (customer, when present) and, when present, populated `createdByCashier` (see below). **Walk-in POS orders** (with `user: null`) are included in admin order lists; their `user` field is `null` and customer name comes from `walkinCustomerName`.
 
 ### Get Order by ID
 
 - **API**: `GET /api/orders/:orderId`
 - **Access**: User/Admin
-- **Response**: Single order object (includes `itemsTotal`, `shippingCharges`, `couponDiscount`, `couponCode`, `loyaltyDiscountPercent`, `loyaltyDiscountAmount` when available)
+- **Response**: Single order object (includes `itemsTotal`, `shippingCharges`, `couponDiscount`, `couponCode`, `loyaltyDiscountPercent`, `loyaltyDiscountAmount` when available). 
+  - **Customer (`user`)**: When present, populated with: `_id`, `firstName`, `lastName`, `phoneNumber`, `email`, `role`, `loyaltyTier`, `storeName`. For **walk-in POS orders** (no `customerId`), `user` is `null` and customer name comes from `walkinCustomerName`.
+  - **createdByCashier**: For POS orders, when set, populated with: `_id`, `firstName`, `lastName`, `email` (the cashier who created the order).
+  - **Access control**: Non-admin users can only access orders where `user` matches their user ID. Walk-in orders (`user: null`) are only accessible to admin.
 
 ### Get Order by Reference ID
 
 - **API**: `GET /api/orders/ref/:refId`
 - **Access**: User/Admin
-- **Response**: Single order object (same structure as Get Order by ID)
+- **Response**: Single order object (same structure and populated fields as Get Order by ID). **Walk-in POS orders** (`user: null`) are only accessible to admin; non-admin users can only access orders where `user` matches their user ID.
 
 ### Order Object Fields (Breakdown)
 
 | Field | Type | Description |
 |-------|------|-------------|
+| `user` | string \| null | Consumer ID who placed the order; **`null` for walk-in POS orders** (when no `customerId` was provided). When populated in GET responses, includes `{ _id, firstName, lastName, phoneNumber, email, role, loyaltyTier, storeName }`. |
+| `walkin` | boolean | True when order was created via POS (point-of-sale). |
+| `walkinCustomerName` | string | Customer name for walk-in / POS orders when customer is not registered (stored on order; used in invoices when `user` is null). |
+| `createdByCashier` | string \| object | User ID of the cashier (admin) who created this POS order. When populated in GET responses, includes `{ _id, firstName, lastName, email }`. |
 | `itemsTotal` | number | Sum of items at purchase price (optional; present on new orders) |
 | `shippingCharges` | number | Delivery/shipping fee from order schema; 0 when free (optional) |
 | `couponDiscount` | number | Discount from applied coupon (optional) |
 | `couponCode` | string | Applied coupon code when discount was used (optional) |
-| `loyaltyDiscountPercent` | number | User's loyalty tier discount % at order time (optional) |
-| `loyaltyDiscountAmount` | number | Loyalty discount amount applied (optional) |
-| `storeName` | string | Customer's store/business name at order time (optional; from user profile) |
+| `loyaltyDiscountPercent` | number | User's loyalty tier discount % at order time (optional; only when order has a `user`) |
+| `loyaltyDiscountAmount` | number | Loyalty discount amount applied (optional; only when order has a `user`) |
+| `storeName` | string | Customer's store/business name at order time (optional; from user profile or order data) |
 | `totalAmount` | number | Final amount paid: itemsTotal + shippingCharges - couponDiscount - loyaltyDiscountAmount |
 
 - These fields appear on Order Summary (track-order page) and invoices. Older orders may not have them; UI falls back to `originalAmount` for items total.
+- **User field**: For walk-in POS orders (no `customerId`), `user` is `null`. These orders **do not appear** in customer's "My Orders" (`GET /api/orders`) since they are not linked to any user account. They are only visible to admin via `GET /api/orders/all` or admin access to `GET /api/orders/:orderId`.
 - **Shipping**: `shippingCharges` comes from the order schema (set at order creation). Order Summary and invoices use this value.
-- **Loyalty discount**: When present, `loyaltyDiscountAmount` is shown as a separate line in Order Summary and on the invoice.
-- `storeName` is captured from the user's profile when the order is created and used for invoice "Bill To" name (B2B).
+- **Loyalty discount**: When present, `loyaltyDiscountAmount` is shown as a separate line in Order Summary and on the invoice. Only applies to orders with a `user` (registered customers).
+- **Customer name in invoices**: For orders with `user`, the invoice uses the customer's name from the populated `user` object (or `storeName` from order/user). For walk-in orders (`user: null`), the invoice uses `walkinCustomerName` (or `storeName` if set, or "Customer" as fallback).
+- `storeName` is captured from the user's profile when the order is created (for registered customers) or can be set in the order data (for walk-in). Used for invoice "Bill To" name (B2B).
 - **Order items** (when product is populated): Include `name`, `title2`, `title3`, `title4` (product titles), `description`, `images`, `category`, `subCategory`, `price`, `mrp`, `gst`, `hsn`, `slug`.
 
 ### Update Order Status
@@ -3686,14 +3774,18 @@ Session is one per cashier per day (date in UTC). No dedicated "start session" A
   - **Invoice numbers are only generated when payment status is "COMPLETED" AND order status is "DELIVERED"**
   - If payment is not completed or order is not delivered, returns an error
 
-### Invoice PDF content (discounts)
+### Invoice PDF content (discounts and BILL TO / SHIP TO)
 
-- Invoice PDFs (backend and frontend generators) include the following discount-related content:
-  - **Line-item discount**: Per line, the table shows Rate (MRP), Discount (difference between MRP total and price-at-purchase total for that line—includes product-level discount from `product.discount` and pricing range). **If the discount for that line is 0, the cell shows "-" (not "Rs. 0.00").**
-  - **Total discount row**: Summary row has a Total Discount column. **If total line-item discount is 0, it shows "-".**
-  - **Coupon**: A "Coupon (code): - Rs. X.XX" line appears **only when** `couponDiscount > 0`. If 0, the line is omitted.
-  - **Loyalty discount**: A "Loyalty discount (X%): - Rs. X.XX" line appears **only when** `loyaltyDiscountAmount > 0`. If 0, the line is omitted.
-- So **no discount is mentioned** (either omitted or shown as "-") when its value is 0, for product discount, coupon, or loyalty.
+- Invoice PDFs (backend and frontend generators) include the following:
+  - **Discount-related content**:
+    - **Line-item discount**: Per line, the table shows Rate (MRP), Discount (difference between MRP total and price-at-purchase total for that line—includes product-level discount from `product.discount` and pricing range). **If the discount for that line is 0, the cell shows "-" (not "Rs. 0.00").**
+    - **Total discount row**: Summary row has a Total Discount column. **If total line-item discount is 0, it shows "-".**
+    - **Coupon**: A "Coupon (code): - Rs. X.XX" line appears **only when** `couponDiscount > 0`. If 0, the line is omitted.
+    - **Loyalty discount**: A "Loyalty discount (X%): - Rs. X.XX" line appears **only when** `loyaltyDiscountAmount > 0`. If 0, the line is omitted.
+  - So **no discount is mentioned** (either omitted or shown as "-") when its value is 0, for product discount, coupon, or loyalty.
+  - **BILL TO / SHIP TO section**:
+    - **Customer name**: For orders with a `user`, the invoice uses the customer's name from the populated `user` object (or `storeName` from order/user). For walk-in orders (`user: null`), the invoice uses `walkinCustomerName` (or `storeName` if set, or "Customer" as fallback).
+    - **Address display**: For the default in-store (POS) address (e.g. when `shippingAddress.type === "STORE"` or city/state/postalCode are the placeholder "Store"/"Store"/"000000"), the invoice **does not show** the city/state line or the PIN line (so "Store, Store" and "PIN: 000000" are omitted). The customer name and address line (e.g. "In-Store Purchase") are still shown. For all other addresses, city, state, and PIN are shown as usual.
 
 ### Delete Order
 

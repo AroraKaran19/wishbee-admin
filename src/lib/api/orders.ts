@@ -55,6 +55,24 @@ export interface OrderAnalyticsResponse {
   message: string;
 }
 
+export interface CashierPosOrdersFilters {
+  cashierId: string;
+  fromDate?: string;
+  toDate?: string;
+  page?: number;
+  limit?: number;
+}
+
+export interface CashierPosOrdersResponse {
+  orders: any[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    pages: number;
+  };
+}
+
 export const orderApi = {
   // Get all orders (Admin)
   getAll: async (filters: OrderFilters = {}): Promise<OrderResponse> => {
@@ -251,6 +269,48 @@ export const orderApi = {
         errorData.message || `Failed to delete order: ${response.statusText}`
       );
     }
+  },
+
+  // Get POS orders created by a specific cashier (for summaries)
+  getCashierPosOrders: async (
+    filters: CashierPosOrdersFilters
+  ): Promise<CashierPosOrdersResponse> => {
+    const params = new URLSearchParams();
+
+    params.append("cashierId", filters.cashierId);
+    if (filters.fromDate) params.append("fromDate", filters.fromDate);
+    if (filters.toDate) params.append("toDate", filters.toDate);
+    if (filters.page) params.append("page", filters.page.toString());
+    if (filters.limit) params.append("limit", filters.limit.toString());
+
+    const response = await fetch(
+      `${API_BASE_URL}/orders/pos/cashier-orders?${params.toString()}`,
+      {
+        method: "GET",
+        headers: await getAuthHeaders(),
+      }
+    );
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(
+        errorData.message ||
+          `Failed to fetch cashier POS orders: ${response.statusText}`
+      );
+    }
+
+    const result = await response.json();
+    const data = result.data || {};
+
+    return {
+      orders: data.orders || [],
+      pagination: data.pagination || {
+        page: filters.page ?? 1,
+        limit: filters.limit ?? (data.orders ? data.orders.length : 0),
+        total: data.pagination?.total ?? (data.orders ? data.orders.length : 0),
+        pages: data.pagination?.pages ?? 1,
+      },
+    };
   },
 
 };

@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { CashierSessionsTable } from './cashier-sessions-table';
 import { cashierSessionsApi, CashierSession } from '@/lib/api/cashier-sessions';
 import { customerApi } from '@/lib/api/customers';
+import { orderApi, CashierPosOrdersResponse } from '@/lib/api/orders';
 import toast from 'react-hot-toast';
 
 interface AdminOption {
@@ -14,6 +15,26 @@ interface AdminOption {
   firstName?: string;
   lastName?: string;
   email: string;
+}
+
+interface CashierSummaryByMethod {
+  orders: number;
+  amount: number;
+}
+
+interface CashierSummary {
+  totalOrders: number;
+  totalCustomers: number;
+  totalSale: number;
+  totalCash: number;
+  byMethod: {
+    COD: CashierSummaryByMethod;
+    UPI: CashierSummaryByMethod;
+    CARD: CashierSummaryByMethod;
+    NET_BANKING: CashierSummaryByMethod;
+  };
+  openingBalance: number | null;
+  finalAmount: number;
 }
 
 const ITEMS_PER_PAGE = 20;
@@ -53,6 +74,13 @@ export function CashierManagementPage() {
   const selectedCashierLabel = cashierId
     ? (cashiers.find((c) => c._id === cashierId) ? getCashierLabel(cashiers.find((c) => c._id === cashierId)!) : null) || `ID: ${cashierId.slice(-6)}`
     : null;
+
+  const todayStr = new Date().toISOString().split('T')[0];
+  const [summaryStartDate, setSummaryStartDate] = useState(todayStr);
+  const [summaryEndDate, setSummaryEndDate] = useState(todayStr);
+  const [summaryLoading, setSummaryLoading] = useState(false);
+  const [summaryError, setSummaryError] = useState<string | null>(null);
+  const [summary, setSummary] = useState<CashierSummary | null>(null);
 
   useEffect(() => {
     if (!fromDate && !toDate) {
@@ -211,6 +239,122 @@ export function CashierManagementPage() {
     setCurrentPage(1);
   }, [fromDate, toDate]);
 
+  const handleLoadSummary = useCallback(async () => {
+    if (!cashierId) {
+      toast.error('Select a cashier to view summary');
+      return;
+    }
+
+    if (!summaryStartDate || !summaryEndDate) {
+      toast.error('Select a date range for summary');
+      return;
+    }
+
+    // Prevent future dates
+    if (summaryStartDate > todayStr || summaryEndDate > todayStr) {
+      toast.error('Summary cannot be viewed for future dates');
+      return;
+    }
+
+    if (summaryStartDate > summaryEndDate) {
+      toast.error('Start date must be before end date');
+      return;
+    }
+
+    try {
+      setSummaryLoading(true);
+      setSummaryError(null);
+
+      const [ordersRes, sessionsRes] = await Promise.all([
+        orderApi.getCashierPosOrders({
+          cashierId,
+          fromDate: summaryStartDate,
+          toDate: summaryEndDate,
+        }),
+        cashierSessionsApi.getSessions({
+          cashierId,
+          fromDate: summaryStartDate,
+          toDate: summaryEndDate,
+          page: 1,
+          limit: 100,
+        }),
+      ]);
+
+      const orders = (ordersRes as CashierPosOrdersResponse).orders || [];
+
+      const byMethod: CashierSummary['byMethod'] = {
+        COD: { orders: 0, amount: 0 },
+        UPI: { orders: 0, amount: 0 },
+        CARD: { orders: 0, amount: 0 },
+        NET_BANKING: { orders: 0, amount: 0 },
+      };
+
+      let totalSale = 0;
+
+      orders.forEach((order: any) => {
+        const methodRaw = (order.payment?.method || '').toUpperCase();
+        const method =
+          methodRaw === 'CARD' ||
+          methodRaw === 'UPI' ||
+          methodRaw === 'COD' ||
+          methodRaw === 'NET_BANKING'
+            ? methodRaw
+            : 'COD';
+
+        const amount =
+          typeof order.totalAmount === 'number'
+            ? order.totalAmount
+            : typeof order.payment?.amount === 'number'
+            ? order.payment.amount
+            : 0;
+
+        totalSale += amount;
+
+        const bucket = byMethod[method as keyof CashierSummary['byMethod']];
+        bucket.orders += 1;
+        bucket.amount += amount;
+      });
+
+      const totalOrders = orders.length;
+      const totalCustomers = totalOrders; // each order = one served customer
+      const totalCash = byMethod.COD.amount;
+
+      const openingBalanceTotal =
+        sessionsRes.sessions?.reduce(
+          (sum: number, s: any) =>
+            sum +
+            (typeof s.openingBalance === 'number' ? s.openingBalance : 0),
+          0
+        ) ?? 0;
+      const openingBalance =
+        openingBalanceTotal > 0 ? openingBalanceTotal : null;
+
+      const finalAmount =
+        openingBalanceTotal +
+        byMethod.COD.amount +
+        byMethod.UPI.amount +
+        byMethod.CARD.amount +
+        byMethod.NET_BANKING.amount;
+
+      setSummary({
+        totalOrders,
+        totalCustomers,
+        totalSale,
+        totalCash,
+        byMethod,
+        openingBalance,
+        finalAmount,
+      });
+    } catch (err) {
+      const msg =
+        err instanceof Error ? err.message : 'Failed to load cashier summary';
+      setSummaryError(msg);
+      toast.error(msg);
+    } finally {
+      setSummaryLoading(false);
+    }
+  }, [cashierId, summaryStartDate, summaryEndDate]);
+
   return (
     <div className="space-y-6">
       <div>
@@ -325,6 +469,110 @@ export function CashierManagementPage() {
         </div>
 
         <div className="p-4 flex flex-col gap-4">
+          {/* Summary section */}
+          <div className="bg-white border border-gray-200 rounded-lg p-3">
+            <div className="flex flex-wrap items-end justify-between gap-3">
+              <div>
+                <p className="text-sm font-semibold text-gray-800">Summary</p>
+                <p className="text-xs text-gray-500">
+                  POS overview for{' '}
+                  <span className="font-medium">
+                    {selectedCashierLabel || 'select a cashier above'}
+                  </span>
+                </p>
+              </div>
+              <div className="flex items-end gap-3">
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs font-medium text-gray-500">
+                    Date range
+                  </label>
+                  <DateRangePicker
+                    startDate={summaryStartDate}
+                    endDate={summaryEndDate}
+                    onStartDateChange={setSummaryStartDate}
+                    onEndDateChange={setSummaryEndDate}
+                  />
+                </div>
+                <Button
+                  variant="primary"
+                  size="sm"
+                  disabled={!cashierId || summaryLoading}
+                  onClick={handleLoadSummary}
+                  className="h-[42px] px-4"
+                >
+                  {summaryLoading ? 'Loading...' : 'View Summary'}
+                </Button>
+              </div>
+            </div>
+
+            {summaryError && (
+              <p className="mt-2 text-xs text-red-600">{summaryError}</p>
+            )}
+
+            {summary && !summaryLoading && (
+              <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
+                <div className="bg-[#d9f4ff] rounded-lg px-3 py-3">
+                  <p className="text-[11px] text-gray-600">
+                    Total customers served
+                  </p>
+                  <p className="mt-1 text-lg font-semibold text-gray-900">
+                    {summary.totalCustomers}
+                  </p>
+                </div>
+                <div className="bg-[#fff3e0] rounded-lg px-3 py-3">
+                  <p className="text-[11px] text-gray-600">
+                    Total cash (incoming)
+                  </p>
+                  <p className="mt-1 text-lg font-semibold text-gray-900">
+                    ₹{summary.totalCash.toFixed(2)}
+                  </p>
+                </div>
+                <div className="bg-[#e8f5e9] rounded-lg px-3 py-3">
+                  <p className="text-[11px] text-gray-600">Total sale</p>
+                  <p className="mt-1 text-lg font-semibold text-gray-900">
+                    ₹{summary.totalSale.toFixed(2)}
+                  </p>
+                </div>
+                <div className="bg-[#f3e8ff] rounded-lg px-3 py-3">
+                  <p className="text-[11px] text-gray-600">
+                    Final amount (EOD incl. opening)
+                  </p>
+                  <p className="mt-1 text-lg font-semibold text-gray-900">
+                    ₹{summary.finalAmount.toFixed(2)}
+                  </p>
+                </div>
+                <div className="bg-white border border-dashed border-gray-200 rounded-lg px-3 py-3 sm:col-span-2 lg:col-span-4">
+                  <p className="text-[11px] font-medium text-gray-700 mb-1">
+                    By payment method (amount • orders)
+                  </p>
+                  <div className="flex flex-wrap gap-3 text-[11px] text-gray-700">
+                    <span>
+                      Cash: ₹{summary.byMethod.COD.amount.toFixed(2)} •{' '}
+                      {summary.byMethod.COD.orders}
+                    </span>
+                    <span>
+                      UPI: ₹{summary.byMethod.UPI.amount.toFixed(2)} •{' '}
+                      {summary.byMethod.UPI.orders}
+                    </span>
+                    <span>
+                      Card: ₹{summary.byMethod.CARD.amount.toFixed(2)} •{' '}
+                      {summary.byMethod.CARD.orders}
+                    </span>
+                    <span>
+                      Net banking: ₹
+                      {summary.byMethod.NET_BANKING.amount.toFixed(2)} •{' '}
+                      {summary.byMethod.NET_BANKING.orders}
+                    </span>
+                  </div>
+                  {summary.openingBalance != null && (
+                    <p className="mt-1 text-[11px] text-gray-500">
+                      Opening balance: ₹{summary.openingBalance.toFixed(2)}
+                    </p>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
           {error && (
             <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
               <p className="text-red-600 text-sm">{error}</p>
