@@ -34,6 +34,7 @@ export const NAVIGATION_PERMISSIONS: Record<string, string> = {
   settings: ADMIN_PERMISSIONS.SETTINGS,
   admins: ADMIN_PERMISSIONS.ADMINS,
   support: ADMIN_PERMISSIONS.SUPPORT,
+  "cashier-management": ADMIN_PERMISSIONS.ADMINS,
 };
 
 /**

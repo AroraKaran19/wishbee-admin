@@ -265,6 +265,7 @@ export const convertApiOrderToUIOrder = (apiOrder: any): Order => {
     customerFirstName: apiOrder.user?.firstName,
     customerLastName: apiOrder.user?.lastName,
     customerStoreName: apiOrder.storeName ?? apiOrder.user?.storeName,
+    walkinCustomerName: apiOrder.walkinCustomerName?.trim() || undefined,
     status:
       apiOrder.status === "DELIVERED"
         ? "Delivered"
@@ -359,6 +360,13 @@ export const convertApiOrderToUIOrder = (apiOrder: any): Order => {
     couponCode: apiOrder.couponCode,
     loyaltyDiscountPercent: apiOrder.loyaltyDiscountPercent,
     loyaltyDiscountAmount: apiOrder.loyaltyDiscountAmount,
+    walkin: apiOrder.walkin === true,
+    cashierName:
+      apiOrder.createdByCashier && typeof apiOrder.createdByCashier === "object"
+        ? [apiOrder.createdByCashier.firstName, apiOrder.createdByCashier.lastName]
+            .filter(Boolean)
+            .join(" ") || apiOrder.createdByCashier.email
+        : undefined,
     createdAt: apiOrder.createdAt,
     updatedAt: apiOrder.updatedAt,
   };

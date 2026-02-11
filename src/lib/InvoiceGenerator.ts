@@ -33,6 +33,8 @@ interface OrderItem {
   loyaltyDiscountAmount?: number;
   /** Items total for older orders when itemsTotal not present */
   originalAmount?: number;
+  /** True when order was created via POS (point-of-sale); hide shipping charges */
+  walkin?: boolean;
   status: string;
   shippingAddress: {
     type: string;
@@ -387,84 +389,89 @@ export class InvoiceGenerator {
     });
     maxSectionHeight = Math.max(maxSectionHeight, shipFromY - this.currentY);
 
-    // BILL TO / SHIP TO section - with text wrapping
+    // BILL TO / SHIP TO section - with text wrapping (skip address details for POS / walk-in)
     this.doc.setFont("helvetica", "bold");
     this.doc.text("BILL TO / SHIP TO:", billToX, this.currentY);
     this.doc.setFont("helvetica", "normal");
 
     let billToY = this.currentY + 5;
 
-    // Name
-    const nameLines = this.doc.splitTextToSize(
-      userInfo.name || "Customer",
-      sectionMaxWidth
-    );
-    this.doc.text(nameLines, billToX, billToY);
-    billToY += nameLines.length * lineHeight;
-
-    // Address line
-    const addressLines = this.doc.splitTextToSize(
-      order.shippingAddress.addressLine,
-      sectionMaxWidth
-    );
-    this.doc.text(addressLines, billToX, billToY);
-    billToY += addressLines.length * lineHeight;
-
-    // City, State
-    const cityStateLines = this.doc.splitTextToSize(
-      `${order.shippingAddress.city}, ${order.shippingAddress.state}`,
-      sectionMaxWidth
-    );
-    this.doc.text(cityStateLines, billToX, billToY);
-    billToY += cityStateLines.length * lineHeight;
-
-    // PIN
-    this.doc.text(`PIN: ${order.shippingAddress.postalCode}`, billToX, billToY);
-    billToY += lineHeight;
-
-    // Google Maps link if latitude and longitude are available
-    if (
-      order.shippingAddress.latitude &&
-      order.shippingAddress.longitude
-    ) {
-      const mapsUrl = `https://www.google.com/maps?q=${order.shippingAddress.latitude},${order.shippingAddress.longitude}`;
-      const linkText = "View on Google Maps";
-      
-      // Set link styling
-      this.doc.setTextColor(0, 123, 255); // Blue color for link
-      this.doc.setFont("helvetica", "normal");
-      
-      // Calculate text width and height for link area
-      const linkTextWidth = this.doc.getTextWidth(linkText);
-      const linkX = billToX;
-      const linkY = billToY;
-      const linkHeight = lineHeight;
-      
-      // Add the text
-      this.doc.text(linkText, linkX, linkY);
-      
-      // Add underline for link appearance
-      this.doc.setDrawColor(0, 123, 255);
-      this.doc.setLineWidth(0.1);
-      this.doc.line(linkX, linkY + 0.5, linkX + linkTextWidth, linkY + 0.5);
-      
-      // Add clickable link area
-      this.doc.link(linkX, linkY - linkHeight + 1, linkTextWidth, linkHeight, {
-        url: mapsUrl,
-      });
-      
+    if (order.walkin) {
+      this.doc.text("In-Store / Walk-in", billToX, billToY);
       billToY += lineHeight;
-      this.doc.setTextColor(0, 0, 0); // Reset to black
-    }
-
-    // GSTIN
-    if (userInfo.gstin) {
-      const gstinLines = this.doc.splitTextToSize(
-        `GSTIN: ${userInfo.gstin}`,
+    } else {
+      // Name
+      const nameLines = this.doc.splitTextToSize(
+        userInfo.name || "Customer",
         sectionMaxWidth
       );
-      this.doc.text(gstinLines, billToX, billToY);
-      billToY += gstinLines.length * lineHeight;
+      this.doc.text(nameLines, billToX, billToY);
+      billToY += nameLines.length * lineHeight;
+
+      // Address line
+      const addressLines = this.doc.splitTextToSize(
+        order.shippingAddress.addressLine,
+        sectionMaxWidth
+      );
+      this.doc.text(addressLines, billToX, billToY);
+      billToY += addressLines.length * lineHeight;
+
+      // City, State
+      const cityStateLines = this.doc.splitTextToSize(
+        `${order.shippingAddress.city}, ${order.shippingAddress.state}`,
+        sectionMaxWidth
+      );
+      this.doc.text(cityStateLines, billToX, billToY);
+      billToY += cityStateLines.length * lineHeight;
+
+      // PIN
+      this.doc.text(`PIN: ${order.shippingAddress.postalCode}`, billToX, billToY);
+      billToY += lineHeight;
+
+      // Google Maps link if latitude and longitude are available
+      if (
+        order.shippingAddress.latitude &&
+        order.shippingAddress.longitude
+      ) {
+        const mapsUrl = `https://www.google.com/maps?q=${order.shippingAddress.latitude},${order.shippingAddress.longitude}`;
+        const linkText = "View on Google Maps";
+        
+        // Set link styling
+        this.doc.setTextColor(0, 123, 255); // Blue color for link
+        this.doc.setFont("helvetica", "normal");
+        
+        // Calculate text width and height for link area
+        const linkTextWidth = this.doc.getTextWidth(linkText);
+        const linkX = billToX;
+        const linkY = billToY;
+        const linkHeight = lineHeight;
+        
+        // Add the text
+        this.doc.text(linkText, linkX, linkY);
+        
+        // Add underline for link appearance
+        this.doc.setDrawColor(0, 123, 255);
+        this.doc.setLineWidth(0.1);
+        this.doc.line(linkX, linkY + 0.5, linkX + linkTextWidth, linkY + 0.5);
+        
+        // Add clickable link area
+        this.doc.link(linkX, linkY - linkHeight + 1, linkTextWidth, linkHeight, {
+          url: mapsUrl,
+        });
+        
+        billToY += lineHeight;
+        this.doc.setTextColor(0, 0, 0); // Reset to black
+      }
+
+      // GSTIN
+      if (userInfo.gstin) {
+        const gstinLines = this.doc.splitTextToSize(
+          `GSTIN: ${userInfo.gstin}`,
+          sectionMaxWidth
+        );
+        this.doc.text(gstinLines, billToX, billToY);
+        billToY += gstinLines.length * lineHeight;
+      }
     }
     maxSectionHeight = Math.max(maxSectionHeight, billToY - this.currentY);
 
@@ -843,14 +850,16 @@ export class InvoiceGenerator {
       });
       this.currentY += lineHeight;
 
-      this.doc.text("Shipping Charges:", 15, this.currentY);
-      this.doc.text(
-        shippingCharges === 0 ? "Free" : `Rs. ${shippingCharges.toFixed(2)}`,
-        amountRightX,
-        this.currentY,
-        { align: "right" }
-      );
-      this.currentY += lineHeight;
+      if (!order.walkin) {
+        this.doc.text("Shipping Charges:", 15, this.currentY);
+        this.doc.text(
+          shippingCharges === 0 ? "Free" : `Rs. ${shippingCharges.toFixed(2)}`,
+          amountRightX,
+          this.currentY,
+          { align: "right" }
+        );
+        this.currentY += lineHeight;
+      }
 
       if (couponDiscount > 0) {
         const couponLabel = order.couponCode

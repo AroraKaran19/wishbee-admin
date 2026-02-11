@@ -104,7 +104,14 @@ export function OrderDetailsModal({ orderId, isOpen, onClose }: OrderDetailsModa
       <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b">
-          <h2 className="text-2xl font-bold text-gray-900">Order Details</h2>
+          <div className="flex items-center gap-3">
+            <h2 className="text-2xl font-bold text-gray-900">Order Details</h2>
+            {order?.walkin && (
+              <span className="inline-flex items-center px-2.5 py-1 rounded-md text-sm font-medium bg-amber-100 text-amber-800">
+                POS
+              </span>
+            )}
+          </div>
           <button
             onClick={onClose}
             className="text-gray-400 hover:text-gray-600 transition-colors"
@@ -157,20 +164,31 @@ export function OrderDetailsModal({ orderId, isOpen, onClose }: OrderDetailsModa
               <div className="bg-gray-50 p-4 rounded-lg">
                 <h3 className="text-lg font-semibold text-gray-900 mb-3">Customer Information</h3>
                 <div className="space-y-2 text-gray-700">
-                  {(order.customerFirstName || order.customerLastName) && (
+                  {order.walkin && order.walkinCustomerName?.trim() ? (
+                    <p>
+                      <span className="font-medium">Name:</span> {order.walkinCustomerName.trim()}
+                    </p>
+                  ) : (order.customerFirstName || order.customerLastName) ? (
                     <p>
                       <span className="font-medium">Name:</span>{" "}
                       {[order.customerFirstName, order.customerLastName].filter(Boolean).join(" ") || "N/A"}
                     </p>
+                  ) : null}
+                  {order.walkin && (
+                    <p>
+                      <span className="font-medium">Type:</span> Walk-in (POS)
+                    </p>
                   )}
-                  {order.customerStoreName?.trim() && (
+                  {order.customerStoreName?.trim() && !order.walkin && (
                     <p>
                       <span className="font-medium">Store:</span> {order.customerStoreName.trim()}
                     </p>
                   )}
-                  <p>
-                    <span className="font-medium">Phone:</span> {order.customer}
-                  </p>
+                  {!order.walkin && (
+                    <p>
+                      <span className="font-medium">Phone:</span> {order.customer}
+                    </p>
+                  )}
                 </div>
               </div>
 
@@ -188,7 +206,7 @@ export function OrderDetailsModal({ orderId, isOpen, onClose }: OrderDetailsModa
                         <span className="font-medium">{formatCurrency(order.itemsTotal)}</span>
                       </div>
                     )}
-                    {typeof order.shippingCharges === 'number' && (
+                    {!order.walkin && typeof order.shippingCharges === 'number' && (
                       <div className="flex justify-between text-gray-700">
                         <span>Shipping Charges</span>
                         <span className="font-medium">

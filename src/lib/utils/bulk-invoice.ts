@@ -31,6 +31,7 @@ interface OrderForInvoice {
   totalAmount: number;
   itemsTotal?: number;
   shippingCharges?: number;
+  walkin?: boolean;
   couponDiscount?: number;
   couponCode?: string;
   loyaltyDiscountPercent?: number;
@@ -137,6 +138,7 @@ async function prepareOrderForInvoice(apiOrder: OrderForInvoice) {
     totalAmount: apiOrder.totalAmount,
     itemsTotal: apiOrder.itemsTotal,
     shippingCharges: apiOrder.shippingCharges,
+    walkin: apiOrder.walkin === true,
     couponDiscount: apiOrder.couponDiscount,
     couponCode: apiOrder.couponCode,
     loyaltyDiscountPercent: apiOrder.loyaltyDiscountPercent,

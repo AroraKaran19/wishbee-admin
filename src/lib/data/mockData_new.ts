@@ -143,6 +143,12 @@ export const navigationItems: NavItem[] = [
     label: 'Support',
     icon: 'Headphones',
     href: '/support'
+  },
+  {
+    id: 'cashier-management',
+    label: 'Cashier Management',
+    icon: 'Calculator',
+    href: '/cashier-management'
   }
 ];
 

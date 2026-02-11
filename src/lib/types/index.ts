@@ -226,6 +226,12 @@ export interface Order {
   loyaltyDiscountPercent?: number;
   /** Loyalty tier discount amount (₹) */
   loyaltyDiscountAmount?: number;
+  /** True when order was created via POS (point-of-sale) */
+  walkin?: boolean;
+  /** Customer name for walk-in / POS orders (when no registered customer) */
+  walkinCustomerName?: string;
+  /** Cashier name for POS orders (when createdByCashier is populated) */
+  cashierName?: string;
   createdAt?: string;
   updatedAt?: string;
 }

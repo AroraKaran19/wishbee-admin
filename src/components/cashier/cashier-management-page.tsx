@@ -1,0 +1,372 @@
+'use client';
+
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { Calculator, User, ChevronDown } from 'lucide-react';
+import { DateRangePicker } from '@/components/ui/date-range-picker';
+import { Button } from '@/components/ui/button';
+import { CashierSessionsTable } from './cashier-sessions-table';
+import { cashierSessionsApi, CashierSession } from '@/lib/api/cashier-sessions';
+import { customerApi } from '@/lib/api/customers';
+import toast from 'react-hot-toast';
+
+interface AdminOption {
+  _id: string;
+  firstName?: string;
+  lastName?: string;
+  email: string;
+}
+
+const ITEMS_PER_PAGE = 20;
+const CASHIERS_PAGE_SIZE = 20;
+
+function getCashierLabel(c: AdminOption): string {
+  return [c.firstName, c.lastName].filter(Boolean).join(' ') || c.email || '—';
+}
+
+export function CashierManagementPage() {
+  const [fromDate, setFromDate] = useState('');
+  const [toDate, setToDate] = useState('');
+  const [appliedFromDate, setAppliedFromDate] = useState('');
+  const [appliedToDate, setAppliedToDate] = useState('');
+  const [cashierId, setCashierId] = useState<string>('');
+  const [statusFilter, setStatusFilter] = useState<'ACTIVE' | 'CLOSED' | ''>('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [sessions, setSessions] = useState<CashierSession[]>([]);
+  const [totalPages, setTotalPages] = useState(1);
+  const [total, setTotal] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [cashiers, setCashiers] = useState<AdminOption[]>([]);
+  const [cashierPage, setCashierPage] = useState(1);
+  const [cashierTotalPages, setCashierTotalPages] = useState(1);
+  const [cashierLoading, setCashierLoading] = useState(true);
+  const [cashierLoadingMore, setCashierLoadingMore] = useState(false);
+  const [cashierDropdownOpen, setCashierDropdownOpen] = useState(false);
+  const loadMoreRef = useRef<HTMLDivElement>(null);
+  const cashierLoadMoreRef = useRef<HTMLDivElement>(null);
+  const cashierListRef = useRef<HTMLDivElement>(null);
+  const cashierDropdownContainerRef = useRef<HTMLDivElement>(null);
+
+  const hasMore = currentPage < totalPages && total > 0;
+  const cashierHasMore = cashierPage < cashierTotalPages;
+  const selectedCashierLabel = cashierId
+    ? (cashiers.find((c) => c._id === cashierId) ? getCashierLabel(cashiers.find((c) => c._id === cashierId)!) : null) || `ID: ${cashierId.slice(-6)}`
+    : null;
+
+  useEffect(() => {
+    if (!fromDate && !toDate) {
+      const end = new Date();
+      const start = new Date(end);
+      start.setDate(start.getDate() - 30);
+      const endStr = end.toISOString().split('T')[0];
+      const startStr = start.toISOString().split('T')[0];
+      setToDate(endStr);
+      setFromDate(startStr);
+      setAppliedToDate(endStr);
+      setAppliedFromDate(startStr);
+    }
+  }, []);
+
+  useEffect(() => {
+    const loadFirstPage = async () => {
+      try {
+        setCashierLoading(true);
+        const res = await customerApi.getAll({
+          page: 1,
+          limit: CASHIERS_PAGE_SIZE,
+          role: 'ADMIN',
+        });
+        const admins = (res.users || []).filter(
+          (u: { role?: string }) => u.role === 'ADMIN' || u.role === 'SUPER_ADMIN'
+        ) as AdminOption[];
+        setCashiers(admins);
+        setCashierPage(1);
+        setCashierTotalPages(res.pagination?.pages ?? 1);
+      } catch {
+        setCashierTotalPages(1);
+      } finally {
+        setCashierLoading(false);
+      }
+    };
+    loadFirstPage();
+  }, []);
+
+  useEffect(() => {
+    if (!cashierDropdownOpen || !cashierHasMore || cashierLoading || cashierLoadingMore) return;
+
+    const root = cashierListRef.current;
+    const el = cashierLoadMoreRef.current;
+    if (!el || !root) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) {
+          setCashierPage((p) => p + 1);
+        }
+      },
+      { root, rootMargin: '80px', threshold: 0.1 }
+    );
+    observer.observe(el);
+    return () => observer.unobserve(el);
+  }, [cashierDropdownOpen, cashierHasMore, cashierLoading, cashierLoadingMore]);
+
+  useEffect(() => {
+    if (cashierPage <= 1) return;
+
+    const loadMoreCashiers = async () => {
+      try {
+        setCashierLoadingMore(true);
+        const res = await customerApi.getAll({
+          page: cashierPage,
+          limit: CASHIERS_PAGE_SIZE,
+          role: 'ADMIN',
+        });
+        const admins = (res.users || []).filter(
+          (u: { role?: string }) => u.role === 'ADMIN' || u.role === 'SUPER_ADMIN'
+        ) as AdminOption[];
+        setCashiers((prev) => [...prev, ...admins]);
+      } catch {
+        setCashierPage((p) => p - 1);
+      } finally {
+        setCashierLoadingMore(false);
+      }
+    };
+    loadMoreCashiers();
+  }, [cashierPage]);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (cashierDropdownContainerRef.current && !cashierDropdownContainerRef.current.contains(e.target as Node)) {
+        setCashierDropdownOpen(false);
+      }
+    };
+    if (cashierDropdownOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [cashierDropdownOpen]);
+
+  useEffect(() => {
+    if (!appliedFromDate || !appliedToDate) return;
+
+    const isFirstPage = currentPage === 1;
+
+    const fetchSessions = async () => {
+      try {
+        if (isFirstPage) {
+          setLoading(true);
+        } else {
+          setLoadingMore(true);
+        }
+        setError(null);
+
+        const res = await cashierSessionsApi.getSessions({
+          fromDate: appliedFromDate,
+          toDate: appliedToDate,
+          cashierId: cashierId || undefined,
+          status: statusFilter || undefined,
+          page: currentPage,
+          limit: ITEMS_PER_PAGE,
+        });
+
+        setTotalPages(res.totalPages);
+        setTotal(res.total);
+        setSessions((prev) =>
+          isFirstPage ? res.sessions : [...prev, ...res.sessions]
+        );
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : 'Failed to fetch sessions';
+        setError(msg);
+        toast.error(msg);
+      } finally {
+        setLoading(false);
+        setLoadingMore(false);
+      }
+    };
+
+    fetchSessions();
+  }, [appliedFromDate, appliedToDate, cashierId, statusFilter, currentPage]);
+
+  useEffect(() => {
+    if (!hasMore || loading || loadingMore) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) {
+          setCurrentPage((p) => p + 1);
+        }
+      },
+      { rootMargin: '200px', threshold: 0.1 }
+    );
+
+    const el = loadMoreRef.current;
+    if (el) observer.observe(el);
+    return () => (el ? observer.unobserve(el) : undefined);
+  }, [hasMore, loading, loadingMore]);
+
+  const handleApplyFilters = useCallback(() => {
+    setAppliedFromDate(fromDate);
+    setAppliedToDate(toDate);
+    setCurrentPage(1);
+  }, [fromDate, toDate]);
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+          <Calculator className="h-6 w-6 text-gray-600" />
+          Cashier Management
+        </h1>
+        <p className="text-gray-500 mt-1 text-sm">
+          View and manage cashier sessions, opening and closing balances, and POS activity.
+        </p>
+      </div>
+
+      <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
+        <div className="px-5 py-4 border-b border-gray-100 bg-gray-50/50">
+          <h2 className="text-sm font-semibold text-gray-800 mb-4 flex items-center gap-2">
+            <User className="h-4 w-4 text-gray-500" />
+            Sessions history
+          </h2>
+
+          <div className="flex flex-wrap items-end gap-4">
+            <DateRangePicker
+              startDate={fromDate}
+              endDate={toDate}
+              onStartDateChange={setFromDate}
+              onEndDateChange={setToDate}
+            />
+            <div className="flex flex-col gap-1 relative" ref={cashierDropdownContainerRef}>
+              <label className="text-xs font-medium text-gray-500">Cashier</label>
+              <button
+                type="button"
+                onClick={() => setCashierDropdownOpen((o) => !o)}
+                className="min-w-[180px] px-3 py-2.5 border border-gray-300 rounded-lg text-sm bg-white text-left focus:outline-none focus:ring-2 focus:ring-[#13aaff] focus:border-transparent flex items-center justify-between gap-2"
+              >
+                <span className="truncate">
+                  {selectedCashierLabel ?? 'All cashiers'}
+                </span>
+                <ChevronDown
+                  className={`h-4 w-4 shrink-0 text-gray-500 transition-transform ${cashierDropdownOpen ? 'rotate-180' : ''}`}
+                />
+              </button>
+              {cashierDropdownOpen && (
+                <div className="absolute top-full left-0 mt-1 w-full min-w-[200px] max-h-[280px] flex flex-col bg-white border border-gray-200 rounded-lg shadow-lg z-20 overflow-hidden">
+                  <div
+                    ref={cashierListRef}
+                    className="overflow-y-auto overscroll-contain flex-1 py-1"
+                    style={{ maxHeight: 260 }}
+                  >
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setCashierId('');
+                        setCurrentPage(1);
+                        setCashierDropdownOpen(false);
+                      }}
+                      className={`w-full px-3 py-2 text-left text-sm hover:bg-gray-100 ${!cashierId ? 'bg-primary/10 text-primary font-medium' : 'text-gray-700'}`}
+                    >
+                      All cashiers
+                    </button>
+                    {cashierLoading ? (
+                      <div className="px-3 py-4 text-center text-sm text-gray-500">
+                        Loading cashiers...
+                      </div>
+                    ) : (
+                      <>
+                        {cashiers.map((c) => (
+                          <button
+                            key={c._id}
+                            type="button"
+                            onClick={() => {
+                              setCashierId(c._id);
+                              setCurrentPage(1);
+                              setCashierDropdownOpen(false);
+                            }}
+                            className={`w-full px-3 py-2 text-left text-sm hover:bg-gray-100 truncate ${cashierId === c._id ? 'bg-primary/10 text-primary font-medium' : 'text-gray-700'}`}
+                          >
+                            {getCashierLabel(c)}
+                          </button>
+                        ))}
+                        <div ref={cashierLoadMoreRef} className="h-2" />
+                        {cashierLoadingMore && (
+                          <div className="px-3 py-2 text-center text-xs text-gray-500 flex items-center justify-center gap-1">
+                            <span className="animate-spin rounded-full h-3 w-3 border-2 border-gray-200 border-t-[#13aaff]" />
+                            Loading more...
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+            <div className="flex flex-col gap-1">
+              <label className="text-xs font-medium text-gray-500">Status</label>
+              <select
+                value={statusFilter}
+                onChange={(e) => {
+                  setStatusFilter(e.target.value as 'ACTIVE' | 'CLOSED' | '');
+                  setCurrentPage(1);
+                }}
+                className="min-w-[120px] px-3 py-2.5 border border-gray-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#13aaff] focus:border-transparent appearance-none cursor-pointer"
+                style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%236b7280'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 0.5rem center', backgroundSize: '1.25rem', paddingRight: '2rem' }}
+              >
+                <option value="">All</option>
+                <option value="ACTIVE">Active</option>
+                <option value="CLOSED">Closed</option>
+              </select>
+            </div>
+            <Button variant="primary" size="sm" onClick={handleApplyFilters} className="h-[42px] px-4">
+              Apply
+            </Button>
+          </div>
+        </div>
+
+        <div className="p-4 flex flex-col gap-4">
+          {error && (
+            <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+              <p className="text-red-600 text-sm">{error}</p>
+            </div>
+          )}
+
+          {!appliedFromDate || !appliedToDate ? (
+            <div className="py-12 text-center text-gray-500 text-sm">
+              Select a date range and click Apply to load sessions.
+            </div>
+          ) : loading && sessions.length === 0 ? (
+            <div className="flex items-center justify-center h-64">
+              <div className="text-center">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#13aaff] mx-auto mb-4" />
+                <p className="text-gray-500">Loading sessions...</p>
+              </div>
+            </div>
+          ) : sessions.length === 0 ? (
+            <div className="flex items-center justify-center h-64">
+              <div className="text-center">
+                <p className="text-gray-500 text-lg mb-2">No sessions found</p>
+                <p className="text-gray-400 text-sm">
+                  Try adjusting the date range or filters.
+                </p>
+              </div>
+            </div>
+          ) : (
+            <>
+              <p className="text-xs text-gray-500">
+                Showing {sessions.length} of {total} session{total !== 1 ? 's' : ''}
+                {hasMore && ' · scroll for more'}
+              </p>
+              <CashierSessionsTable sessions={sessions} loadingMore={loadingMore} />
+              <div ref={loadMoreRef} className="h-4 flex items-center justify-center py-4" aria-hidden>
+                {loadingMore && (
+                  <div className="animate-spin rounded-full h-6 w-6 border-2 border-gray-200 border-t-[#13aaff]" />
+                )}
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}

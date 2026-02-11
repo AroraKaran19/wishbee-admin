@@ -22,6 +22,7 @@ import {
   ChevronUp,
   LogOut,
   Package,
+  Calculator,
 } from "lucide-react";
 import Image from "next/image";
 
@@ -37,6 +38,7 @@ const iconMap = {
   UserCheck,
   Headphones,
   Package,
+  Calculator,
 };
 
 interface SidebarProps {

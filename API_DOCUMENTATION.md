@@ -327,6 +327,7 @@ On app load:
   - If admin has no permissions assigned, returns empty array `[]`
   - Returns 401 error if account is not active
   - For `SUPER_ADMIN` users, the `role` field will be `"SUPER_ADMIN"` instead of `"ADMIN"`
+  - **Cashier shift ended**: If the user is an **Admin with CASHIER permission** (not SUPER_ADMIN) and has already ended their session for today (closed with closing balance), login returns **403** with message `"You have already ended your shift for today. You can log in again tomorrow."` (next calendar day UTC). **SUPER_ADMIN** is exempt and can always log in.
 
 ### Generate Access Token
 
@@ -3320,6 +3321,150 @@ Coupons can be restricted by products and/or categories:
 - **Response**: Created order object
 - **Note**: Call after user completes Razorpay payment. Payment amount must match order total (items + shipping - coupon discount - loyalty discount)
 
+### Cashier session (POS)
+
+Session is one per cashier per day (date in UTC). No dedicated "start session" API; the first read of the day creates the session record so the frontend can prompt for opening balance when needed.
+
+#### List cashier sessions (date-wise, opening/closing balance)
+
+- **API**: `GET /api/orders/pos/sessions`
+- **Access**: **SUPER_ADMIN** or **Admin** (any admin)
+- **Query parameters**:
+  - `fromDate` (string, optional) – Start date inclusive, `YYYY-MM-DD`
+  - `toDate` (string, optional) – End date inclusive, `YYYY-MM-DD`
+  - `cashierId` (string, optional) – Filter by cashier user ID
+  - `status` (string, optional) – `ACTIVE` or `CLOSED`
+  - `page` (number, optional, default 1)
+  - `limit` (number, optional, default 20, max 100)
+- **Response**:
+  ```json
+  {
+    "success": true,
+    "data": {
+      "sessions": [
+        {
+          "_id": "sessionId",
+          "cashier": { "_id": "userId", "firstName": "string", "lastName": "string", "email": "string" },
+          "date": "YYYY-MM-DD",
+          "openingBalance": 1000,
+          "closingBalance": 5000,
+          "status": "CLOSED",
+          "startedAt": "ISO date",
+          "endedAt": "ISO date",
+          "createdAt": "ISO date",
+          "updatedAt": "ISO date"
+        }
+      ],
+      "total": 50,
+      "totalPages": 3,
+      "page": 1,
+      "limit": 20
+    }
+  }
+  ```
+- **Note**: Use to review cashiers’ opening and closing balances by date range or by cashier. Results are sorted by date descending, then startedAt descending.
+
+#### Get today's cashier session
+
+- **API**: `GET /api/orders/pos/session`
+- **Access**: **SUPER_ADMIN** or Admin with **CASHIER** permission only
+- **Response** (Admin with CASHIER):
+  ```json
+  {
+    "success": true,
+    "data": {
+      "_id": "sessionId",
+      "cashier": "userId",
+      "date": "YYYY-MM-DD",
+      "openingBalance": null,
+      "closingBalance": null,
+      "status": "ACTIVE",
+      "startedAt": "ISO date",
+      "createdAt": "ISO date",
+      "updatedAt": "ISO date"
+    }
+  }
+  ```
+- **Response** (SUPER_ADMIN): No cashier session is created or returned. Response is `{ "success": true, "data": { "session": null, "isSuperAdmin": true } }`. Frontend should skip opening-balance / end-session flows for SUPER_ADMIN.
+- **Note**: For Admin with CASHIER, if no session exists for today, one is created with `openingBalance: null`, `status: "ACTIVE"`. Use `openingBalance === null` to show "Enter opening balance" in the frontend.
+
+#### Set opening balance
+
+- **API**: `PATCH /api/orders/pos/session`
+- **Access**: **SUPER_ADMIN** or Admin with **CASHIER**
+- **Request**: `{ "openingBalance": number }` (non-negative)
+- **Note**: Allowed only once per day; returns 400 if already set or session is CLOSED.
+
+#### End session (closing balance)
+
+- **API**: `PATCH /api/orders/pos/session/end`
+- **Access**: **SUPER_ADMIN** or Admin with **CASHIER**; only the session's cashier or **SUPER_ADMIN** can end a session
+- **Request**: `{ "sessionId": "string", "closingBalance": number }` (non-negative). Use `_id` from GET session response as `sessionId`.
+- **Note**: Sets `closingBalance`, `endedAt`, and `status: "CLOSED"`. Returns 403 if caller is not the session cashier or SUPER_ADMIN.
+
+#### Get customer loyalty discount (for POS)
+
+- **API**: `GET /api/orders/pos/customer-discount`
+- **Access**: **SUPER_ADMIN** or Admin with **CASHIER** permission only
+- **Query parameters**:
+  - `customerId` (string, required) – Consumer/customer user ID
+  - `amount` (number, optional) – If provided, response includes `discountAmount` (discount in ₹ for this amount)
+- **Response**:
+  ```json
+  {
+    "success": true,
+    "data": {
+      "currentTier": "GOLD",
+      "discountPercent": 5,
+      "totalSpend": 125000,
+      "discountAmount": 50.00
+    }
+  }
+  ```
+  - `discountAmount` is present only when `amount` query is provided; it is `amount * discountPercent / 100` (rounded to 2 decimals).
+- **Note**: Use when an existing customer is selected in POS to get their loyalty tier and discount % (and optionally the discount in ₹ for a given cart/order amount). **Tier** is read from the customer’s stored `loyaltyTier` on the user model; **discount percent** is then looked up from the loyalty tier config (LoyaltyTierConfig) for that tier.
+
+### Create POS (Point-of-Sale) Offline Order
+
+- **API**: `POST /api/orders/pos`
+- **Access**: **SUPER_ADMIN** or Admin with **CASHIER** permission only
+- **Request**:
+  ```json
+  {
+    "customerId": "string (optional) – Consumer _id; omit for walk-in/unregistered customers",
+    "items": [
+      {
+        "productId": "string (required)",
+        "productType": "product | combo (required)",
+        "quantity": 1
+      }
+    ],
+    "payment": {
+      "method": "CARD | UPI | COD | NET_BANKING (required)",
+      "amount": 0,
+      "status": "COMPLETED",
+      "transactionId": "string (optional)"
+    },
+    "shippingAddress": { "optional – default In-Store address used if omitted" },
+    "billingAddress": { "optional – defaults to shippingAddress" },
+    "shippingCharges": 0,
+    "couponCode": "string (optional)",
+    "orderNotes": "string (optional)",
+    "storeName": "string (optional)",
+    "walkinCustomerName": "string (optional) – customer name for walk-in; stored on order"
+  }
+  ```
+- **Note**:
+  - Creates an order from the given `items` (no cart). Items are validated (stock, active), prices resolved from DB; coupon and loyalty discounts applied; `payment.amount` must match backend-calculated total (₹1 tolerance).
+  - **customerId** is optional. If provided, it must be a valid Consumer (e.g. lookup by phone). If omitted, the order is attributed to a single internal "Walk-in" consumer (unregistered customers); no need to create a user for each walk-in sale.
+  - **walkinCustomerName** – optional; use for walk-in customers to store their name on the order (e.g. "John Doe").
+  - Every order created via this endpoint has **walkin: true** and may include **walkinCustomerName** in the response.
+  - **createdByCashier** is set automatically to the logged-in user's ID (the cashier creating the order); use it to link the order to the cashier (e.g. populate with User to show name).
+  - If `shippingAddress` / `billingAddress` are omitted, a default in-store address is used.
+  - `shippingCharges` defaults to 0. `payment.status` defaults to `"COMPLETED"` for offline POS.
+  - POS orders are created with **order status `DELIVERED`** and **payment status `COMPLETED`** (in-store, paid at counter), so invoice number is available immediately via `GET /api/orders/:orderId/invoice-number`.
+- **Response**: Created order object (same structure as other order endpoints; includes `walkin: true`, `createdByCashier` (cashier user id), and `walkinCustomerName` when provided)
+
 ### Get User Orders
 
 - **API**: `GET /api/orders`
@@ -3540,6 +3685,15 @@ Coupons can be restricted by products and/or categories:
   - Format: 6-digit number with leading zeros (000001, 000002, etc.)
   - **Invoice numbers are only generated when payment status is "COMPLETED" AND order status is "DELIVERED"**
   - If payment is not completed or order is not delivered, returns an error
+
+### Invoice PDF content (discounts)
+
+- Invoice PDFs (backend and frontend generators) include the following discount-related content:
+  - **Line-item discount**: Per line, the table shows Rate (MRP), Discount (difference between MRP total and price-at-purchase total for that line—includes product-level discount from `product.discount` and pricing range). **If the discount for that line is 0, the cell shows "-" (not "Rs. 0.00").**
+  - **Total discount row**: Summary row has a Total Discount column. **If total line-item discount is 0, it shows "-".**
+  - **Coupon**: A "Coupon (code): - Rs. X.XX" line appears **only when** `couponDiscount > 0`. If 0, the line is omitted.
+  - **Loyalty discount**: A "Loyalty discount (X%): - Rs. X.XX" line appears **only when** `loyaltyDiscountAmount > 0`. If 0, the line is omitted.
+- So **no discount is mentioned** (either omitted or shown as "-") when its value is 0, for product discount, coupon, or loyalty.
 
 ### Delete Order
 

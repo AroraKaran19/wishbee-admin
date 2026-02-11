@@ -136,12 +136,19 @@ export function OrderTable({
         title: 'Order ID',
         align: 'center',
         render: (value, record) => (
-          <button
-            onClick={() => handleOrderIdClick(record)}
-            className="text-sm text-blue-600 hover:text-blue-800 hover:underline font-medium transition-colors"
-          >
-            {value}
-          </button>
+          <div className="flex flex-col items-center gap-1">
+            {record.walkin && (
+              <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-800">
+                POS
+              </span>
+            )}
+            <button
+              onClick={() => handleOrderIdClick(record)}
+              className="text-sm text-blue-600 hover:text-blue-800 hover:underline font-medium transition-colors"
+            >
+              {value}
+            </button>
+          </div>
         )
       },
       {
@@ -159,21 +166,62 @@ export function OrderTable({
         title: 'Customer',
         align: 'center',
         render: (value, record) => {
-          const customerName = [record.customerFirstName, record.customerLastName].filter(Boolean).join(" ") || "N/A";
-          const storeName = record.customerStoreName?.trim();
+          const isPOS = record.walkin === true;
+          const hasRegisteredCustomer = Boolean(
+            record.customerFirstName || record.customerLastName || record.customerStoreName?.trim()
+          );
+
+          // Non-POS: name, store (if any), phone
+          if (!isPOS) {
+            const customerName =
+              [record.customerFirstName, record.customerLastName].filter(Boolean).join(" ") || "N/A";
+            const storeName = record.customerStoreName?.trim();
+            return (
+              <div className="text-sm text-gray-900 space-y-0.5">
+                <div className="font-medium">{customerName}</div>
+                {storeName ? (
+                  <div className="text-xs text-gray-600">{storeName}</div>
+                ) : null}
+                <div className="text-xs text-gray-600">{value || "N/A"}</div>
+              </div>
+            );
+          }
+
+          // POS – Registered customer: name + store name + phone (same layout as non-POS)
+          if (hasRegisteredCustomer) {
+            const customerName =
+              [record.customerFirstName, record.customerLastName].filter(Boolean).join(" ") || "N/A";
+            const storeName = record.customerStoreName?.trim();
+            const phone = value && value !== "Unknown" ? value : null;
+            return (
+              <div className="text-sm text-gray-900 space-y-0.5">
+                <div className="font-medium">{customerName}</div>
+                {storeName ? (
+                  <div className="text-xs text-gray-600">{storeName}</div>
+                ) : null}
+                {phone ? (
+                  <div className="text-xs text-gray-600">{phone}</div>
+                ) : null}
+                {record.cashierName?.trim() ? (
+                  <div className="text-xs text-gray-500">Cashier: {record.cashierName}</div>
+                ) : null}
+              </div>
+            );
+          }
+
+          // POS – Walk-in customer: name + number (only show number if present)
+          const walkinName = record.walkinCustomerName?.trim() || "Walk-in";
+          const walkinNumber = value && value !== "Unknown" ? value : null;
           return (
             <div className="text-sm text-gray-900 space-y-0.5">
-              <div className="font-medium">
-                {customerName}
-              </div>
-              {storeName ? (
-                <div className="text-xs text-gray-600">
-                  {storeName}
-                </div>
+              <div className="font-medium">{walkinName}</div>
+              {walkinNumber ? (
+                <div className="text-xs text-gray-600">{walkinNumber}</div>
               ) : null}
-              <div className="text-xs text-gray-600">
-                {value || "N/A"}
-              </div>
+              <div className="text-xs text-gray-500">Walk-in</div>
+              {record.cashierName?.trim() ? (
+                <div className="text-xs text-gray-500">Cashier: {record.cashierName}</div>
+              ) : null}
             </div>
           );
         }
