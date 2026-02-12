@@ -968,7 +968,7 @@ On app load:
   - All fields are optional, but at least one field must be provided
   - Only allowed fields can be updated (filters out unauthorized fields)
   - `gender` must be one of: "MALE", "FEMALE", "OTHER"
-  - `loyaltyTier` must be one of: "BRONZE", "SILVER", "GOLD", "PLATINUM", "DIAMOND"
+- `loyaltyTier` must be one of: "BRONZE", "SILVER", "GOLD", "TITANIUM", "PLATINUM", "DIAMOND", "KOHINOOR"
   - `isActive` is a boolean field
   - `govtId` is an optional object with `type` (enum: "GST", "PAN", "UDYAM", "SHOP_LICENSE", "OTHER") and `number` (string) fields
   - `password`: Only applicable for Admin users. Password is automatically hashed using bcrypt before storing. For Consumer users, password field is ignored (they use OTP authentication)
@@ -1160,7 +1160,7 @@ On app load:
 
 ## 2.1 Loyalty Tier Config (Spend-based tiers)
 
-Tiers are based on **total spend** (sum of delivered order totals). Admins set spend thresholds; when a customer's total spend reaches a threshold, they are promoted to the next tier. Tier names are fixed: BRONZE, SILVER, GOLD, PLATINUM, DIAMOND.
+Tiers are based on **total spend** (sum of delivered order totals). Admins set spend thresholds; when a customer's total spend reaches a threshold, they are promoted to the next tier. Tier names are fixed: BRONZE, SILVER, GOLD, TITANIUM, PLATINUM, DIAMOND, KOHINOOR.
 
 ### Get loyalty tier thresholds
 
@@ -1172,11 +1172,13 @@ Tiers are based on **total spend** (sum of delivered order totals). Admins set s
     "success": true,
     "data": {
       "thresholds": [
-        { "amount": 0, "tier": "BRONZE", "discountPercentage": 5 },
-        { "amount": 50000, "tier": "SILVER", "discountPercentage": 10 },
-        { "amount": 100000, "tier": "GOLD", "discountPercentage": 15 },
-        { "amount": 200000, "tier": "PLATINUM", "discountPercentage": 20 },
-        { "amount": 400000, "tier": "DIAMOND", "discountPercentage": 25 }
+        { "amount": 0, "tier": "BRONZE", "discountPercentage": 0 },
+        { "amount": 50000, "tier": "SILVER", "discountPercentage": 0.75 },
+        { "amount": 100000, "tier": "GOLD", "discountPercentage": 1 },
+        { "amount": 150000, "tier": "TITANIUM", "discountPercentage": 0.5 },
+        { "amount": 200000, "tier": "PLATINUM", "discountPercentage": 1.5 },
+        { "amount": 400000, "tier": "DIAMOND", "discountPercentage": 0.75 },
+        { "amount": 600000, "tier": "KOHINOOR", "discountPercentage": 2 }
       ]
     }
   }
@@ -1190,14 +1192,18 @@ Tiers are based on **total spend** (sum of delivered order totals). Admins set s
   ```json
   {
     "thresholds": [
-      { "amount": 0, "tier": "BRONZE", "discountPercentage": 5 },
-      { "amount": 50000, "tier": "SILVER", "discountPercentage": 10 },
-      { "amount": 100000, "tier": "GOLD", "discountPercentage": 15 }
+      { "amount": 0, "tier": "BRONZE", "discountPercentage": 0 },
+      { "amount": 50000, "tier": "SILVER", "discountPercentage": 0.75 },
+      { "amount": 100000, "tier": "GOLD", "discountPercentage": 1 },
+      { "amount": 150000, "tier": "TITANIUM", "discountPercentage": 0.5 },
+      { "amount": 200000, "tier": "PLATINUM", "discountPercentage": 1.5 },
+      { "amount": 400000, "tier": "DIAMOND", "discountPercentage": 0.75 },
+      { "amount": 600000, "tier": "KOHINOOR", "discountPercentage": 2 }
     ]
   }
   ```
 - **Notes**:
-  - `amount` is in ₹. When a customer's `totalSpend` (updated on order DELIVERED) meets or exceeds a threshold, their `loyaltyTier` is set to that tier. Tier names must be one of: BRONZE, SILVER, GOLD, PLATINUM, DIAMOND.
+  - `amount` is in ₹. When a customer's `totalSpend` (updated on order DELIVERED) meets or exceeds a threshold, their `loyaltyTier` is set to that tier. Tier names must be one of: BRONZE, SILVER, GOLD, TITANIUM, PLATINUM, DIAMOND, KOHINOOR.
   - `discountPercentage` (optional) defines the **loyalty discount** for that tier. This percentage is applied on the order total **after coupons** and is reflected in both cart totals and invoices.
 
 ---

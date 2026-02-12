@@ -65,7 +65,7 @@ export interface Consumer extends User {
   orders?: string[]; // Array of order IDs (strings) instead of Order objects
   totalSpend?: number; // Total amount spent across all orders
 
-  loyaltyTier?: "BRONZE" | "SILVER" | "GOLD" | "PLATINUM" | "DIAMOND";
+  loyaltyTier?: "BRONZE" | "SILVER" | "GOLD" | "TITANIUM" | "PLATINUM" | "DIAMOND" | "KOHINOOR";
   loyaltyPoints?: number;
   loyaltyPointsHistory?: {
     date: Date;

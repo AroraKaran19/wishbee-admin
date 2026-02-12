@@ -17,8 +17,10 @@ const LOYALTY_TIERS = [
   { value: 'BRONZE', label: 'Bronze' },
   { value: 'SILVER', label: 'Silver' },
   { value: 'GOLD', label: 'Gold' },
+  { value: 'TITANIUM', label: 'Titanium' },
   { value: 'PLATINUM', label: 'Platinum' },
   { value: 'DIAMOND', label: 'Diamond' },
+  { value: 'KOHINOOR', label: 'Kohinoor' },
 ];
 
 const GENDER_OPTIONS = [
@@ -50,7 +52,7 @@ export function CustomerEditModal({
     govtIdType: '' as '' | 'GST' | 'PAN' | 'UDYAM' | 'SHOP_LICENSE' | 'OTHER',
     govtIdNumber: '',
     storeName: '',
-    loyaltyTier: 'BRONZE' as 'BRONZE' | 'SILVER' | 'GOLD' | 'PLATINUM' | 'DIAMOND',
+    loyaltyTier: 'BRONZE' as 'BRONZE' | 'SILVER' | 'GOLD' | 'TITANIUM' | 'PLATINUM' | 'DIAMOND' | 'KOHINOOR',
     loyaltyPoints: 0,
     password: '',
   });
@@ -92,13 +94,15 @@ export function CustomerEditModal({
           const firstName = nameParts[0] || '';
           const lastName = nameParts.slice(1).join(' ') || '';
 
-          const mapLoyaltyTierToAPI = (tier: string): 'BRONZE' | 'SILVER' | 'GOLD' | 'PLATINUM' | 'DIAMOND' => {
-            const tierMap: Record<string, 'BRONZE' | 'SILVER' | 'GOLD' | 'PLATINUM' | 'DIAMOND'> = {
+          const mapLoyaltyTierToAPI = (tier: string): 'BRONZE' | 'SILVER' | 'GOLD' | 'TITANIUM' | 'PLATINUM' | 'DIAMOND' | 'KOHINOOR' => {
+            const tierMap: Record<string, 'BRONZE' | 'SILVER' | 'GOLD' | 'TITANIUM' | 'PLATINUM' | 'DIAMOND' | 'KOHINOOR'> = {
               'Bronze': 'BRONZE',
               'Silver': 'SILVER',
               'Gold': 'GOLD',
+              'Titanium': 'TITANIUM',
               'Platinum': 'PLATINUM',
               'Diamond': 'DIAMOND',
+              'Kohinoor': 'KOHINOOR',
             };
             return tierMap[tier] || 'BRONZE';
           };
@@ -347,7 +351,7 @@ export function CustomerEditModal({
             </label>
             <select
               value={formData.loyaltyTier}
-              onChange={(e) => setFormData({ ...formData, loyaltyTier: e.target.value as 'BRONZE' | 'SILVER' | 'GOLD' | 'PLATINUM' | 'DIAMOND' })}
+              onChange={(e) => setFormData({ ...formData, loyaltyTier: e.target.value as 'BRONZE' | 'SILVER' | 'GOLD' | 'TITANIUM' | 'PLATINUM' | 'DIAMOND' | 'KOHINOOR' })}
               disabled={isUpdating}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
             >

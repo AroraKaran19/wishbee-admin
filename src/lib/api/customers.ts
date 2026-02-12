@@ -172,7 +172,7 @@ export const customerApi = {
         number: string;
       };
       storeName?: string;
-      loyaltyTier?: "BRONZE" | "SILVER" | "GOLD" | "PLATINUM" | "DIAMOND";
+      loyaltyTier?: "BRONZE" | "SILVER" | "GOLD" | "TITANIUM" | "PLATINUM" | "DIAMOND" | "KOHINOOR";
       loyaltyPoints?: number;
       password?: string;
     }
@@ -309,23 +309,28 @@ export const convertApiCustomerToUICustomer = (apiUser: any): Customer => {
   // Calculate average order value
   const averageOrderValue = totalOrders > 0 ? totalSpend / totalOrders : 0;
 
-  // Map loyalty tier from API (BRONZE, SILVER, GOLD, PLATINUM) to UI format
+  // Map loyalty tier from API to UI format (per API: BRONZE, SILVER, GOLD, TITANIUM, PLATINUM, DIAMOND, KOHINOOR)
   const mapLoyaltyTier = (
     tier?: string
-  ): "Bronze" | "Silver" | "Gold" | "Platinum" => {
+  ): "Bronze" | "Silver" | "Gold" | "Titanium" | "Platinum" | "Diamond" | "Kohinoor" => {
     if (!tier) {
       // Fallback: Determine loyalty tier based on total spend if not provided
-      if (totalSpend >= 50000) return "Platinum";
-      if (totalSpend >= 25000) return "Gold";
-      if (totalSpend >= 10000) return "Silver";
+      if (totalSpend >= 600000) return "Kohinoor";
+      if (totalSpend >= 400000) return "Diamond";
+      if (totalSpend >= 200000) return "Platinum";
+      if (totalSpend >= 150000) return "Titanium";
+      if (totalSpend >= 100000) return "Gold";
+      if (totalSpend >= 50000) return "Silver";
       return "Bronze";
     }
-    // Map API tier to UI format
-    const tierMap: Record<string, "Bronze" | "Silver" | "Gold" | "Platinum"> = {
+    const tierMap: Record<string, "Bronze" | "Silver" | "Gold" | "Titanium" | "Platinum" | "Diamond" | "Kohinoor"> = {
       BRONZE: "Bronze",
       SILVER: "Silver",
       GOLD: "Gold",
+      TITANIUM: "Titanium",
       PLATINUM: "Platinum",
+      DIAMOND: "Diamond",
+      KOHINOOR: "Kohinoor",
     };
     return tierMap[tier.toUpperCase()] || "Bronze";
   };

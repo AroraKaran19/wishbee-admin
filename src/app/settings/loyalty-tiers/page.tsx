@@ -20,8 +20,10 @@ const ALL_TIERS: LoyaltyTierName[] = [
   'BRONZE',
   'SILVER',
   'GOLD',
+  'TITANIUM',
   'PLATINUM',
   'DIAMOND',
+  'KOHINOOR',
 ];
 
 interface EditableThreshold extends LoyaltyTierThreshold {

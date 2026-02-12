@@ -7,8 +7,10 @@ export type LoyaltyTierName =
   | "BRONZE"
   | "SILVER"
   | "GOLD"
+  | "TITANIUM"
   | "PLATINUM"
-  | "DIAMOND";
+  | "DIAMOND"
+  | "KOHINOOR";
 
 export interface LoyaltyTierThreshold {
   amount: number;
