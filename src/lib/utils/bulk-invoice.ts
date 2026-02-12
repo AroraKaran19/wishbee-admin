@@ -2,6 +2,7 @@ import JSZip from 'jszip';
 import { apiClient } from '@/lib/api/apiClient';
 import { generateInvoicePDFBlob } from '@/lib/InvoiceGenerator';
 import { customerApi } from '@/lib/api/customers';
+import { orderApi, PosOrdersFilters } from '@/lib/api/orders';
 
 interface InvoiceCSVRow {
   name: string;
@@ -16,6 +17,12 @@ interface BulkInvoiceFilters {
   startDate: string;
   endDate: string;
   statuses: string[];
+}
+
+interface PosBulkInvoiceFilters {
+  startDate: string;
+  endDate: string;
+  cashierId?: string;
 }
 
 export interface BulkInvoiceOptions {
@@ -414,6 +421,190 @@ export async function generateBulkInvoices(
   if (options.includePDFs || (options.includeCSV && csvRows.length > 0)) {
     const zipBlob = await zip.generateAsync({ type: 'blob' });
     return zipBlob;
+  }
+
+  throw new Error('No export options selected');
+}
+
+/**
+ * Fetches POS orders based on filters
+ */
+async function fetchPosOrders(filters: PosBulkInvoiceFilters): Promise<OrderForInvoice[]> {
+  try {
+    const response = await orderApi.getPosOrders({
+      fromDate: filters.startDate,
+      toDate: filters.endDate,
+      cashierId: filters.cashierId,
+      // Omit limit to get all orders in one page
+    });
+    
+    return response.orders || [];
+  } catch (error) {
+    console.error('Error fetching POS orders:', error);
+    throw error;
+  }
+}
+
+/**
+ * Generates CSV file for POS bulk invoices
+ */
+export async function generatePosBulkInvoiceCSVFile(
+  filters: PosBulkInvoiceFilters,
+  onProgress?: (current: number, total: number) => void
+): Promise<Blob> {
+  const orders = await fetchPosOrders(filters);
+  
+  if (orders.length === 0) {
+    throw new Error('No POS orders found for the selected filters');
+  }
+
+  // POS orders are always DELIVERED with COMPLETED payment, but filter just in case
+  const eligibleOrders = orders.filter((order) => {
+    const orderStatus = order.status?.toUpperCase();
+    const paymentStatus = order.payment?.status?.toUpperCase();
+    return orderStatus === 'DELIVERED' && paymentStatus === 'COMPLETED';
+  });
+
+  if (eligibleOrders.length === 0) {
+    throw new Error('No eligible POS orders found. Only delivered orders with completed payment can have invoices.');
+  }
+
+  const csvRows: InvoiceCSVRow[] = [];
+  let processed = 0;
+
+  for (const order of eligibleOrders) {
+    try {
+      const { orderForInvoice, userInfo } = await prepareOrderForInvoice(order);
+      
+      const invoiceNumber = orderForInvoice.invoiceNumber 
+        ? `WB${orderForInvoice.invoiceNumber}` 
+        : orderForInvoice.refId;
+      
+      const totalBillValue = orderForInvoice.totalAmount;
+      
+      const totalGSTValue = orderForInvoice.items.reduce((total: number, item: any) => {
+        const gstPercentage = item.product?.gst || 0;
+        const itemTotalPrice = item.priceAtPurchase * item.quantity;
+        const itemGST = (itemTotalPrice * gstPercentage) / 100;
+        return total + itemGST;
+      }, 0);
+      
+      csvRows.push({
+        name: userInfo.name,
+        invoiceNo: invoiceNumber,
+        date: formatDateForCSV(orderForInvoice.createdAt),
+        totalBillValue: totalBillValue,
+        gstValue: totalGSTValue,
+        gstNo: userInfo.gstin || '',
+      });
+      
+      processed++;
+      if (onProgress) {
+        onProgress(processed, eligibleOrders.length);
+      }
+    } catch (error) {
+      console.error(`Error processing POS order ${order._id}:`, error);
+    }
+  }
+
+  if (csvRows.length === 0) {
+    throw new Error('No POS invoice data to export');
+  }
+
+  const csvContent = generateBulkInvoiceCSV(csvRows);
+  return new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+}
+
+/**
+ * Generates bulk invoices for POS orders and returns them as a zip file or CSV blob
+ */
+export async function generatePosBulkInvoices(
+  filters: PosBulkInvoiceFilters,
+  options: BulkInvoiceOptions,
+  onProgress?: (current: number, total: number) => void
+): Promise<Blob> {
+  const orders = await fetchPosOrders(filters);
+  
+  if (orders.length === 0) {
+    throw new Error('No POS orders found for the selected filters');
+  }
+
+  // POS orders are always DELIVERED with COMPLETED payment, but filter just in case
+  const eligibleOrders = orders.filter((order) => {
+    const orderStatus = order.status?.toUpperCase();
+    const paymentStatus = order.payment?.status?.toUpperCase();
+    return orderStatus === 'DELIVERED' && paymentStatus === 'COMPLETED';
+  });
+
+  if (eligibleOrders.length === 0) {
+    throw new Error('No eligible POS orders found. Only delivered orders with completed payment can have invoices.');
+  }
+
+  const zip = new JSZip();
+  const csvRows: InvoiceCSVRow[] = [];
+  let processed = 0;
+
+  for (const order of eligibleOrders) {
+    try {
+      const { orderForInvoice, userInfo } = await prepareOrderForInvoice(order);
+      
+      const invoiceNumber = orderForInvoice.invoiceNumber 
+        ? `WB${orderForInvoice.invoiceNumber}` 
+        : orderForInvoice.refId;
+
+      if (options.includePDFs) {
+        const pdfBlob = await generateInvoicePDFBlob(orderForInvoice, userInfo);
+        const filename = `WishBee_Invoice_${invoiceNumber}.pdf`;
+        zip.file(filename, pdfBlob);
+      }
+
+      if (options.includeCSV) {
+        const totalBillValue = orderForInvoice.totalAmount;
+        const totalGSTValue = orderForInvoice.items.reduce((total: number, item: any) => {
+          const gstPercentage = item.product?.gst || 0;
+          const itemTotalPrice = item.priceAtPurchase * item.quantity;
+          const itemGST = (itemTotalPrice * gstPercentage) / 100;
+          return total + itemGST;
+        }, 0);
+
+        csvRows.push({
+          name: userInfo.name,
+          invoiceNo: invoiceNumber,
+          date: formatDateForCSV(orderForInvoice.createdAt),
+          totalBillValue: totalBillValue,
+          gstValue: totalGSTValue,
+          gstNo: userInfo.gstin || '',
+        });
+      }
+
+      processed++;
+      if (onProgress) {
+        onProgress(processed, eligibleOrders.length);
+      }
+    } catch (error) {
+      console.error(`Error processing POS order ${order._id}:`, error);
+    }
+  }
+
+  if (options.includePDFs && Object.keys(zip.files).length === 0) {
+    throw new Error('No PDF invoices generated');
+  }
+
+  if (options.includeCSV && csvRows.length === 0) {
+    throw new Error('No CSV data generated');
+  }
+
+  if (options.includePDFs && options.includeCSV) {
+    const csvContent = generateBulkInvoiceCSV(csvRows);
+    zip.file('WishBee_Invoices_Summary.csv', csvContent);
+    const zipBlob = await zip.generateAsync({ type: 'blob' });
+    return zipBlob;
+  } else if (options.includePDFs) {
+    const zipBlob = await zip.generateAsync({ type: 'blob' });
+    return zipBlob;
+  } else if (options.includeCSV) {
+    const csvContent = generateBulkInvoiceCSV(csvRows);
+    return new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
   }
 
   throw new Error('No export options selected');

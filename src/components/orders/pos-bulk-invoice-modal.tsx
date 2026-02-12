@@ -1,0 +1,338 @@
+"use client";
+
+import React, { useState, useEffect } from "react";
+import { X, Download, Calendar, FileText, FileSpreadsheet, User } from "lucide-react";
+import { DateRangePicker } from "@/components/ui/date-range-picker";
+import { Button } from "@/components/ui/button";
+import { generatePosBulkInvoices, generatePosBulkInvoiceCSVFile, downloadBlob } from "@/lib/utils/bulk-invoice";
+import { customerApi } from "@/lib/api/customers";
+import toast from "react-hot-toast";
+
+interface BulkInvoiceModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+}
+
+interface AdminOption {
+  _id: string;
+  firstName?: string;
+  lastName?: string;
+  email: string;
+}
+
+function getCashierLabel(c: AdminOption): string {
+  return [c.firstName, c.lastName].filter(Boolean).join(' ') || c.email || '—';
+}
+
+export function PosBulkInvoiceModal({ isOpen, onClose }: BulkInvoiceModalProps) {
+  const [startDate, setStartDate] = useState<string>("");
+  const [endDate, setEndDate] = useState<string>("");
+  const [cashierId, setCashierId] = useState<string>("");
+  const [cashiers, setCashiers] = useState<AdminOption[]>([]);
+  const [cashierLoading, setCashierLoading] = useState(true);
+  const [exportFormat, setExportFormat] = useState<"pdf" | "csv">("pdf");
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [progress, setProgress] = useState({ current: 0, total: 0 });
+
+  // Load cashiers on mount
+  useEffect(() => {
+    const loadCashiers = async () => {
+      try {
+        setCashierLoading(true);
+        const res = await customerApi.getAll({
+          page: 1,
+          limit: 100,
+          role: 'ADMIN',
+        });
+        const admins = (res.users || []).filter(
+          (u: { role?: string }) => u.role === 'ADMIN' || u.role === 'SUPER_ADMIN'
+        ) as AdminOption[];
+        setCashiers(admins);
+      } catch {
+        // Non-blocking
+      } finally {
+        setCashierLoading(false);
+      }
+    };
+    if (isOpen) {
+      loadCashiers();
+    }
+  }, [isOpen]);
+
+  // Set default date range (last 30 days) when modal opens
+  useEffect(() => {
+    if (isOpen && !startDate && !endDate) {
+      const today = new Date();
+      const thirtyDaysAgo = new Date(today);
+      thirtyDaysAgo.setDate(today.getDate() - 30);
+
+      setEndDate(today.toISOString().split("T")[0]);
+      setStartDate(thirtyDaysAgo.toISOString().split("T")[0]);
+    }
+  }, [isOpen, startDate, endDate]);
+
+  const isDateRangeValid = () => {
+    if (!startDate || !endDate) return false;
+    return new Date(startDate) <= new Date(endDate);
+  };
+
+  const handleDownload = async () => {
+    if (!isDateRangeValid()) {
+      toast.error("Please select a valid date range");
+      return;
+    }
+
+    setIsGenerating(true);
+    setProgress({ current: 0, total: 0 });
+
+    try {
+      const toastId = toast.loading("Generating POS invoices...", {
+        id: "pos-bulk-invoice",
+      });
+
+      const startDateStr = startDate.replace(/-/g, "");
+      const endDateStr = endDate.replace(/-/g, "");
+
+      let blob: Blob;
+      let filename: string;
+
+      if (exportFormat === "csv") {
+        blob = await generatePosBulkInvoiceCSVFile(
+          {
+            startDate,
+            endDate,
+            cashierId: cashierId || undefined,
+          },
+          (current, total) => {
+            setProgress({ current, total });
+            toast.loading(`Generating CSV... ${current}/${total}`, {
+              id: "pos-bulk-invoice",
+            });
+          }
+        );
+        filename = `WishBee_POS_Invoices_${startDateStr}_${endDateStr}.csv`;
+      } else {
+        blob = await generatePosBulkInvoices(
+          {
+            startDate,
+            endDate,
+            cashierId: cashierId || undefined,
+          },
+          {
+            includePDFs: true,
+            includeCSV: false,
+          },
+          (current, total) => {
+            setProgress({ current, total });
+            toast.loading(`Generating invoices... ${current}/${total}`, {
+              id: "pos-bulk-invoice",
+            });
+          }
+        );
+        filename = `WishBee_POS_Invoices_${startDateStr}_${endDateStr}.zip`;
+      }
+
+      downloadBlob(blob, filename);
+
+      toast.success("POS invoices downloaded successfully!", {
+        id: "pos-bulk-invoice",
+      });
+      setIsGenerating(false);
+      setProgress({ current: 0, total: 0 });
+    } catch (error) {
+      console.error("Error generating POS bulk invoices:", error);
+      toast.error(
+        error instanceof Error ? error.message : "Failed to generate POS invoices",
+        { id: "pos-bulk-invoice" }
+      );
+      setIsGenerating(false);
+      setProgress({ current: 0, total: 0 });
+    }
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+        {/* Header */}
+        <div className="flex items-center justify-between p-6 border-b border-gray-200">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-blue-100 rounded-lg">
+              <Download className="w-5 h-5 text-blue-600" />
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900">
+                POS Orders Bulk Invoice Download
+              </h3>
+              <p className="text-sm text-gray-500">
+                Download invoices for POS (Point-of-Sale) orders only
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            disabled={isGenerating}
+            className="p-2 hover:bg-gray-100 cursor-pointer rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <X className="w-5 h-5 text-gray-500" />
+          </button>
+        </div>
+
+        {/* Content */}
+        <div className="p-6 space-y-6">
+          {/* Date Range */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              <Calendar className="w-4 h-4 inline mr-2" />
+              Date Range
+            </label>
+            <DateRangePicker
+              startDate={startDate}
+              endDate={endDate}
+              onStartDateChange={setStartDate}
+              onEndDateChange={setEndDate}
+            />
+            {!isDateRangeValid() && startDate && endDate && (
+              <p className="text-red-500 text-xs mt-1">
+                End date must be after start date
+              </p>
+            )}
+          </div>
+
+          {/* Cashier Filter (Optional) */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              <User className="w-4 h-4 inline mr-2" />
+              Cashier (Optional)
+            </label>
+            <select
+              value={cashierId}
+              onChange={(e) => setCashierId(e.target.value)}
+              disabled={isGenerating || cashierLoading}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#13aaff] focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <option value="">All cashiers</option>
+              {cashiers.map((c) => (
+                <option key={c._id} value={c._id}>
+                  {getCashierLabel(c)}
+                </option>
+              ))}
+            </select>
+            {cashierLoading && (
+              <p className="text-xs text-gray-500 mt-1">Loading cashiers...</p>
+            )}
+          </div>
+
+          {/* Export Format Options */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-3">
+              Export Format
+            </label>
+            <div className="grid grid-cols-2 gap-3">
+              <label
+                className={`flex items-center p-3 border rounded-lg cursor-pointer hover:bg-gray-50 transition-colors ${
+                  exportFormat === "pdf"
+                    ? "border-blue-500 bg-blue-50"
+                    : "border-gray-200"
+                }`}
+              >
+                <input
+                  type="radio"
+                  name="exportFormat"
+                  value="pdf"
+                  checked={exportFormat === "pdf"}
+                  onChange={(e) => setExportFormat(e.target.value as "pdf" | "csv")}
+                  disabled={isGenerating}
+                  className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500"
+                />
+                <FileText className="w-4 h-4 ml-3 text-gray-600" />
+                <span className="ml-2 text-sm text-gray-700">PDF Invoices</span>
+              </label>
+              <label
+                className={`flex items-center p-3 border rounded-lg cursor-pointer hover:bg-gray-50 transition-colors ${
+                  exportFormat === "csv"
+                    ? "border-blue-500 bg-blue-50"
+                    : "border-gray-200"
+                }`}
+              >
+                <input
+                  type="radio"
+                  name="exportFormat"
+                  value="csv"
+                  checked={exportFormat === "csv"}
+                  onChange={(e) => setExportFormat(e.target.value as "pdf" | "csv")}
+                  disabled={isGenerating}
+                  className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500"
+                />
+                <FileSpreadsheet className="w-4 h-4 ml-3 text-gray-600" />
+                <span className="ml-2 text-sm text-gray-700">CSV File</span>
+              </label>
+            </div>
+          </div>
+
+          {/* Note */}
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <p className="text-sm text-blue-800">
+              <strong>Note:</strong> This will download invoices for{" "}
+              <strong>POS orders only</strong> (walk-in orders created at the
+              point of sale). POS orders are always delivered with completed
+              payment, so all matching orders will have invoices generated.
+              {cashierId && " Filtered by selected cashier."}
+            </p>
+          </div>
+
+          {/* Progress */}
+          {isGenerating && progress.total > 0 && (
+            <div className="bg-gray-50 rounded-lg p-4">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-medium text-gray-700">
+                  Generating invoices...
+                </span>
+                <span className="text-sm text-gray-500">
+                  {progress.current} / {progress.total}
+                </span>
+              </div>
+              <div className="w-full bg-gray-200 rounded-full h-2">
+                <div
+                  className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                  style={{
+                    width: `${(progress.current / progress.total) * 100}%`,
+                  }}
+                />
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="flex items-center justify-end gap-3 p-6 border-t border-gray-200">
+          <button
+            onClick={onClose}
+            disabled={isGenerating}
+            className="px-4 py-2 text-sm cursor-pointer font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleDownload}
+            disabled={!isDateRangeValid() || isGenerating}
+            className="px-4 py-2 text-sm cursor-pointer font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+          >
+            {isGenerating ? (
+              <>
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
+                Generating...
+              </>
+            ) : (
+              <>
+                <Download className="w-4 h-4" />
+                Download POS Invoices
+              </>
+            )}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}

@@ -10,6 +10,7 @@ import { Upload, Calendar, Download } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { DateRangePicker } from '@/components/ui/date-range-picker';
 import { BulkInvoiceModal } from './bulk-invoice-modal';
+import { PosBulkInvoiceModal } from './pos-bulk-invoice-modal';
 
 // Map UI period labels to API period values
 const periodMap: Record<string, OrderPeriod> = {
@@ -52,6 +53,7 @@ export function OrderPage() {
   const [error, setError] = useState<string | null>(null);
   const [totalPages, setTotalPages] = useState(1);
   const [isBulkInvoiceModalOpen, setIsBulkInvoiceModalOpen] = useState(false);
+  const [isPosBulkInvoiceModalOpen, setIsPosBulkInvoiceModalOpen] = useState(false);
   const itemsPerPage = 10;
 
   // Set default date range (last 30 days) when custom is first selected
@@ -458,6 +460,13 @@ export function OrderPage() {
                 variant: 'primary'
               },
               {
+                key: 'pos-bulk-invoice',
+                label: 'POS Orders Invoices',
+                icon: <Download className="w-4 h-4" />,
+                onClick: () => setIsPosBulkInvoiceModalOpen(true),
+                variant: 'primary'
+              },
+              {
                 key: 'export',
                 label: 'Export Page',
                 icon: <Upload className="w-4 h-4" />,
@@ -510,6 +519,12 @@ export function OrderPage() {
       <BulkInvoiceModal
         isOpen={isBulkInvoiceModalOpen}
         onClose={() => setIsBulkInvoiceModalOpen(false)}
+      />
+
+      {/* POS Bulk Invoice Modal */}
+      <PosBulkInvoiceModal
+        isOpen={isPosBulkInvoiceModalOpen}
+        onClose={() => setIsPosBulkInvoiceModalOpen(false)}
       />
     </div>
   );

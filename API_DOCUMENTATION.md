@@ -3922,11 +3922,35 @@ Session is one per cashier per day (date in UTC). No dedicated "start session" A
   - `page` (number, default: 1)
   - `limit` (number, default: 20, max: 100)
   - `showAll` (boolean, default: false) - If true, returns all items without search filtering
+  - `sku` (boolean, optional, default: false) - When `true`, treat the `search` term as **SKU/barcode** and search primarily in `sku` instead of name/description (useful for cashier/barcode scanners).
 
 **Usage Examples**:
 
 - Search for specific term: `GET /api/search/rice?page=1&limit=10`
 - Get all items: `GET /api/search/all?showAll=true&page=1&limit=20`
+- Cashier SKU/barcode search: `GET /api/search/359?page=1&limit=20&sku=true`
+
+### List all POS (walk-in) orders
+
+- **API**: `GET /api/orders/pos/orders`
+- **Access**: **SUPER_ADMIN** or Admin with **CASHIER** permission
+- **Query Parameters**:
+  - `cashierId` (string, optional) – If provided, filters to POS orders created by that cashier (`createdByCashier`). If omitted, returns POS orders for all cashiers.
+  - `fromDate` (string, optional) – Start date (inclusive) in `YYYY-MM-DD` format; filters by `createdAt >= fromDate 00:00:00`.
+  - `toDate` (string, optional) – End date (inclusive) in `YYYY-MM-DD` format; filters by `createdAt <= toDate 23:59:59`.
+  - `page` (number, optional, default: 1) – Page number (1-based). Used only when `limit` is provided.
+  - `limit` (number, optional) – Page size. When provided, results are paginated. When omitted, **all matching POS orders** are returned in a single page.
+- **Behavior**:
+  - Returns **only POS orders** (`walkin: true`) matching the optional filters.
+  - Uses the same population logic as other admin order APIs:
+    - `user` (when present) populated with `_id`, `firstName`, `lastName`, `phoneNumber`, `email`, `role`, `loyaltyTier`, `storeName`.
+    - `createdByCashier` populated with `_id`, `firstName`, `lastName`, `email`.
+  - Each order includes `originalAmount` (sum of items at original price) in addition to `itemsTotal`, `shippingCharges`, discounts, and `totalAmount`.
+- **Example**:
+  ```http
+  GET /api/orders/pos/orders?fromDate=2026-02-01&toDate=2026-02-11
+  GET /api/orders/pos/orders?cashierId=698c153eaec21c740cc33570&fromDate=2026-02-11&toDate=2026-02-11&page=1&limit=200
+  ```
 
 **Note**:
 
@@ -3936,6 +3960,10 @@ Session is one per cashier per day (date in UTC). No dedicated "start session" A
 - Both search results and `showAll=true` include OUT_OF_STOCK items
 - Results are automatically sorted by status: ACTIVE products appear first, followed by OUT_OF_STOCK products
 - Within the same status, results are sorted by relevance score (for search) or creation date (for showAll)
+- When `sku=true` is passed, the endpoint:
+  - Searches products by **SKU** (prefix match on `sku`, case-insensitive) and ignores fuzzy name/category logic.
+  - Returns only products (no combos) matching that SKU pattern.
+  - Still respects `status != "DISCONTINUED"` and supports pagination via `page`/`limit`.
 
 **Fuzzy Search Implementation**:
 
