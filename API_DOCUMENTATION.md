@@ -32,8 +32,8 @@ The frontend uses **Zustand** with persistence middleware for session management
 ### Overview
 
 The session management system implements a **dual-token authentication strategy**:
-- **Refresh Token**: Long-lived token (30 days / 1 month) stored in HTTP-only cookies (managed by backend)
-- **Access Token**: Short-lived token (15 minutes) stored in Zustand store
+- **Refresh Token**: Long-lived token (365 days / 1 year) stored in HTTP-only cookies (managed by backend)
+- **Access Token**: Short-lived token (24 hours) stored in Zustand store
 
 **Note**: Some authentication endpoints are implemented as **Next.js frontend API routes** (located in `frontend/src/app/api/auth/`) rather than backend routes. These frontend routes act as proxies that:
 - Handle cookie management
@@ -70,17 +70,17 @@ interface SessionState {
 
 When a user successfully verifies OTP:
 
-1. **Refresh Token**: Backend sets refresh token in HTTP-only cookie (30 days expiry)
-2. **Refresh Token Expiry**: Store tracks expiry time (`refreshTokenExpiresAt`) - set to 30 days from login
+1. **Refresh Token**: Backend sets refresh token in HTTP-only cookie (365 days expiry)
+2. **Refresh Token Expiry**: Store tracks expiry time (`refreshTokenExpiresAt`) - set to 365 days from login
 3. **Access Token Generation**: Automatically calls `generateAccessToken()` after login
-4. **Access Token Storage**: Access token stored in Zustand with 15-minute expiry
+4. **Access Token Storage**: Access token stored in Zustand with 24-hour expiry
 
 ```typescript
 // After OTP verification
 set({
   user: userData,
   status: "authenticated",
-  refreshTokenExpiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
+  refreshTokenExpiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000), // 365 days
 });
 await generateAccessToken(); // Generates and stores access token
 ```
@@ -129,13 +129,14 @@ The store provides helper methods to check token validity:
 - Calls `/api/auth/access` endpoint (Next.js frontend API route)
 - This frontend route proxies to backend `/auth/generate-access-token` endpoint
 - Uses refresh token from HTTP-only cookie
-- Stores new access token with 15-minute expiry
+- Stores new access token with 24-hour expiry
 - Called automatically after login and on 401 errors
+- If the access endpoint returns 401, the store clears the session (user, status, refreshTokenExpiresAt)
 
 #### `refreshRefreshToken()`
 - Calls `/api/auth/refresh-token` endpoint (Next.js frontend API route)
 - This frontend route proxies to backend `/auth/refresh-token` endpoint
-- Updates `refreshTokenExpiresAt` to 30 days from now
+- Updates `refreshTokenExpiresAt` to 365 days from now
 - Can be called proactively before refresh token expires
 
 #### `checkRefreshTokenExists()`
@@ -194,15 +195,17 @@ On app load:
 ### Security Features
 
 1. **HTTP-Only Cookies**: Refresh tokens stored in HTTP-only cookies (not accessible via JavaScript)
-2. **Short-Lived Access Tokens**: 15-minute expiry reduces exposure window
+2. **Access Token Lifetime**: 24-hour expiry (configurable via backend `JWT_ACCESS_EXPIRY`); access token is refreshed automatically every 23 hours when the tab is visible
 3. **Automatic Cleanup**: Expired tokens are automatically refreshed or user is logged out
 4. **Session Storage**: Access tokens stored in sessionStorage (cleared on tab close)
 5. **Token Validation**: Built-in checks prevent using expired tokens
+6. **Cookie cleared only on 401**: The frontend `/api/auth/access` route clears the refresh-token cookie only when the backend returns 401 (invalid/expired token), not on network errors or 5xx, so temporary failures do not log users out
+7. **Session cleared only on auth failure**: `getProfile()` and token refresh only set the user to unauthenticated when the backend returns 401; other errors (e.g. network) do not clear the session
 
 ### Token Expiry Times
 
 - **Access Token**: 15 minutes
-- **Refresh Token**: 30 days (1 month)
+- **Refresh Token**: 365 days (1 year)
 - **OTP**: 60 seconds
 
 ### Error Handling
@@ -291,6 +294,7 @@ On app load:
     "message": "Refresh token refreshed successfully"
   }
   ```
+- **Note**: Backend only accepts refresh tokens that are active and not expired (`expiresAt` > now). Token lifetime is configurable via `JWT_REFRESH_EXPIRY` (e.g. `365d`).
 
 ### Login Admin
 
@@ -332,8 +336,8 @@ On app load:
 ### Generate Access Token
 
 - **API**: `POST /api/auth/generate-access-token`
-- **Access**: User
-- **Request**: None (requires valid refresh token)
+- **Access**: User (valid refresh token in cookie required; `allowUser` middleware checks token and `expiresAt`)
+- **Request**: None (uses refresh token from cookies)
 - **Response**:
   ```json
   {
@@ -342,6 +346,7 @@ On app load:
     "message": "Access token generated successfully"
   }
   ```
+- **Note**: Access token lifetime is configurable via `JWT_ACCESS_EXPIRY` (e.g. `24h`). Default is 24 hours.
 
 ### Logout
 
@@ -4407,5 +4412,5 @@ All endpoints return consistent error responses:
 - All monetary values are in the base currency unit
 - Pagination is 1-indexed
 - Maximum file upload size: 50MB
-- Refresh tokens expire in 30 days (1 month)
-- Access tokens expire in 15 minutes
+- Refresh tokens expire in 365 days (1 year); backend enforces `expiresAt` on refresh token documents
+- Access tokens expire in 24 hours (configurable via backend env `JWT_ACCESS_EXPIRY`, default `24h`)

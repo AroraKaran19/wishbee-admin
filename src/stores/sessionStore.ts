@@ -15,7 +15,7 @@ interface SessionState {
 
   // Tokens
   accessToken: AccessToken | null;
-  refreshTokenExpiresAt: Date | null; // Track refresh token expiry (7 days from login/refresh)
+  refreshTokenExpiresAt: Date | null; // Track refresh token expiry (365 days from login/refresh)
 
   // Actions
   login: (email: string, password: string) => Promise<void>;
@@ -156,9 +156,9 @@ export const useSessionStore = create<SessionState>()(
       refreshRefreshToken: async () => {
         try {
           await authApi.refreshToken();
-          // Update refresh token expiry to 7 days from now
+          // Update refresh token expiry to 365 days from now
           set({
-            refreshTokenExpiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
+            refreshTokenExpiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000), // 365 days
           });
         } catch (error) {
           console.error("Error refreshing refresh token:", error);
@@ -174,7 +174,7 @@ export const useSessionStore = create<SessionState>()(
           set({
             admin: adminData,
             status: "authenticated",
-            refreshTokenExpiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days from login
+            refreshTokenExpiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000), // 365 days from login
           });
           // Generate access token immediately after login
           await get().generateAccessToken();
