@@ -132,7 +132,7 @@ export interface Customer {
   email: string;
   customerId: string;
   totalSpend: number;
-  loyaltyTier: "Bronze" | "Silver" | "Gold" | "Titanium" | "Platinum" | "Diamond" | "Kohinoor";
+  loyaltyTier: "None" | "Bronze" | "Silver" | "Gold" | "Titanium" | "Platinum" | "Diamond" | "Kohinoor";
   lastOrder: string;
   lastOrderId?: string | null;
   status: "Active" | "Inactive" | "Suspended";

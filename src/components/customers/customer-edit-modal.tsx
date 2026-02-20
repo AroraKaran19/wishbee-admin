@@ -14,6 +14,7 @@ interface CustomerEditModalProps {
 }
 
 const LOYALTY_TIERS = [
+  { value: '', label: 'None' },
   { value: 'BRONZE', label: 'Bronze' },
   { value: 'SILVER', label: 'Silver' },
   { value: 'GOLD', label: 'Gold' },
@@ -22,6 +23,8 @@ const LOYALTY_TIERS = [
   { value: 'DIAMOND', label: 'Diamond' },
   { value: 'KOHINOOR', label: 'Kohinoor' },
 ];
+
+type LoyaltyTierAPI = 'BRONZE' | 'SILVER' | 'GOLD' | 'TITANIUM' | 'PLATINUM' | 'DIAMOND' | 'KOHINOOR';
 
 const GENDER_OPTIONS = [
   { value: 'MALE', label: 'Male' },
@@ -52,7 +55,7 @@ export function CustomerEditModal({
     govtIdType: '' as '' | 'GST' | 'PAN' | 'UDYAM' | 'SHOP_LICENSE' | 'OTHER',
     govtIdNumber: '',
     storeName: '',
-    loyaltyTier: 'BRONZE' as 'BRONZE' | 'SILVER' | 'GOLD' | 'TITANIUM' | 'PLATINUM' | 'DIAMOND' | 'KOHINOOR',
+    loyaltyTier: '' as '' | LoyaltyTierAPI,
     loyaltyPoints: 0,
     password: '',
   });
@@ -82,7 +85,7 @@ export function CustomerEditModal({
             govtIdType: apiUser.govtId?.type || '',
             govtIdNumber: apiUser.govtId?.number || '',
             storeName: apiUser.storeName || '',
-            loyaltyTier: apiUser.loyaltyTier || 'BRONZE',
+            loyaltyTier: apiUser.loyaltyTier ?? '',
             loyaltyPoints: apiUser.loyaltyPoints || 0,
             password: '', // Password field is always empty (for security)
           });
@@ -94,8 +97,9 @@ export function CustomerEditModal({
           const firstName = nameParts[0] || '';
           const lastName = nameParts.slice(1).join(' ') || '';
 
-          const mapLoyaltyTierToAPI = (tier: string): 'BRONZE' | 'SILVER' | 'GOLD' | 'TITANIUM' | 'PLATINUM' | 'DIAMOND' | 'KOHINOOR' => {
-            const tierMap: Record<string, 'BRONZE' | 'SILVER' | 'GOLD' | 'TITANIUM' | 'PLATINUM' | 'DIAMOND' | 'KOHINOOR'> = {
+          const mapLoyaltyTierToAPI = (tier: string): '' | LoyaltyTierAPI => {
+            if (!tier || tier === 'None') return '';
+            const tierMap: Record<string, LoyaltyTierAPI> = {
               'Bronze': 'BRONZE',
               'Silver': 'SILVER',
               'Gold': 'GOLD',
@@ -104,7 +108,7 @@ export function CustomerEditModal({
               'Diamond': 'DIAMOND',
               'Kohinoor': 'KOHINOOR',
             };
-            return tierMap[tier] || 'BRONZE';
+            return tierMap[tier] ?? '';
           };
 
           setFormData({
@@ -154,7 +158,9 @@ export function CustomerEditModal({
         };
       }
       if (formData.storeName) updateData.storeName = formData.storeName;
-      if (formData.loyaltyTier) updateData.loyaltyTier = formData.loyaltyTier;
+      if (formData.loyaltyTier !== undefined) {
+        updateData.loyaltyTier = formData.loyaltyTier === '' ? null : (formData.loyaltyTier as LoyaltyTierAPI);
+      }
       if (formData.loyaltyPoints !== undefined && formData.loyaltyPoints !== null) {
         updateData.loyaltyPoints = formData.loyaltyPoints;
       }
@@ -351,7 +357,7 @@ export function CustomerEditModal({
             </label>
             <select
               value={formData.loyaltyTier}
-              onChange={(e) => setFormData({ ...formData, loyaltyTier: e.target.value as 'BRONZE' | 'SILVER' | 'GOLD' | 'TITANIUM' | 'PLATINUM' | 'DIAMOND' | 'KOHINOOR' })}
+              onChange={(e) => setFormData({ ...formData, loyaltyTier: e.target.value as '' | LoyaltyTierAPI })}
               disabled={isUpdating}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
             >

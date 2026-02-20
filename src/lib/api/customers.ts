@@ -172,7 +172,7 @@ export const customerApi = {
         number: string;
       };
       storeName?: string;
-      loyaltyTier?: "BRONZE" | "SILVER" | "GOLD" | "TITANIUM" | "PLATINUM" | "DIAMOND" | "KOHINOOR";
+      loyaltyTier?: "BRONZE" | "SILVER" | "GOLD" | "TITANIUM" | "PLATINUM" | "DIAMOND" | "KOHINOOR" | null;
       loyaltyPoints?: number;
       password?: string;
     }
@@ -309,20 +309,11 @@ export const convertApiCustomerToUICustomer = (apiUser: any): Customer => {
   // Calculate average order value
   const averageOrderValue = totalOrders > 0 ? totalSpend / totalOrders : 0;
 
-  // Map loyalty tier from API to UI format (per API: BRONZE, SILVER, GOLD, TITANIUM, PLATINUM, DIAMOND, KOHINOOR)
+  // Map loyalty tier from API to UI. Default is null (no tier) until user reaches first threshold; UI shows "None".
   const mapLoyaltyTier = (
-    tier?: string
-  ): "Bronze" | "Silver" | "Gold" | "Titanium" | "Platinum" | "Diamond" | "Kohinoor" => {
-    if (!tier) {
-      // Fallback: Determine loyalty tier based on total spend if not provided
-      if (totalSpend >= 600000) return "Kohinoor";
-      if (totalSpend >= 400000) return "Diamond";
-      if (totalSpend >= 200000) return "Platinum";
-      if (totalSpend >= 150000) return "Titanium";
-      if (totalSpend >= 100000) return "Gold";
-      if (totalSpend >= 50000) return "Silver";
-      return "Bronze";
-    }
+    tier?: string | null
+  ): "None" | "Bronze" | "Silver" | "Gold" | "Titanium" | "Platinum" | "Diamond" | "Kohinoor" => {
+    if (tier == null || tier === "") return "None";
     const tierMap: Record<string, "Bronze" | "Silver" | "Gold" | "Titanium" | "Platinum" | "Diamond" | "Kohinoor"> = {
       BRONZE: "Bronze",
       SILVER: "Silver",
@@ -332,7 +323,7 @@ export const convertApiCustomerToUICustomer = (apiUser: any): Customer => {
       DIAMOND: "Diamond",
       KOHINOOR: "Kohinoor",
     };
-    return tierMap[tier.toUpperCase()] || "Bronze";
+    return tierMap[tier.toUpperCase()] ?? "None";
   };
 
   // Format last order date
