@@ -205,7 +205,7 @@ On app load:
 ### Token Expiry Times
 
 - **Access Token**: 15 minutes
-- **Refresh Token**: 365 days (1 year)
+- **Refresh Token**: 30 days (1 month)
 - **OTP**: 60 seconds
 
 ### Error Handling
@@ -454,7 +454,7 @@ On app load:
 - **API**: `GET /api/user/loyalty-discount`
 - **Access**: User (authenticated)
 - **Request**: None (requires Bearer token in Authorization header)
-- **Description**: Returns the authenticated user's current loyalty tier and the discount percentage for that tier (from loyalty tier config). **Default tier is `null`** (no tier): new customers have `currentTier: null` and `discountPercent: 0` until their total spend reaches the first admin-configured threshold (e.g. BRONZE). Discount is always taken from the tier config for the user's current tier. For admins, returns `currentTier: null` and `discountPercent: 0`.
+- **Description**: Returns the authenticated user's current loyalty tier and the discount percentage for that tier (from loyalty tier config). **Default: no loyalty tier assigned** — new customers have `currentTier: null` and `discountPercent: 0` until their total spend reaches the first admin-configured threshold (e.g. BRONZE). Bronze is the first tier assigned; it has a threshold (e.g. ₹5,000)—only after that spend is the user assigned Bronze. When `currentTier` is `null`, the user has no loyalty tier assigned. Discount is always taken from the tier config for the user's current tier. For admins, returns `currentTier: null` and `discountPercent: 0`.
 - **Response** (Consumer with tier, e.g. SILVER):
   ```json
   {
@@ -466,7 +466,7 @@ On app load:
     "message": "Current tier and discount fetched"
   }
   ```
-- **Response** (Consumer with no tier yet / Admin):
+- **Response** (Consumer with no loyalty tier assigned yet / Admin):
   ```json
   {
     "success": true,
@@ -478,7 +478,7 @@ On app load:
   }
   ```
 - **Notes**:
-  - `currentTier` is `null` when the user has not yet reached the first spend threshold (e.g. BRONZE). After an order is delivered, the backend recalculates `totalSpend` and sets `loyaltyTier` to the appropriate tier (or keeps it `null` if below the first threshold).
+  - `currentTier` is `null` when the user has **no loyalty tier assigned** (has not yet reached the first spend threshold, e.g. Bronze). After an order is delivered, the backend recalculates `totalSpend` and sets `loyaltyTier` to the appropriate tier (or keeps it `null` if below the first threshold).
   - `discountPercent` is 0 when `currentTier` is `null`; otherwise it comes from the loyalty tier config for that tier.
 
 ### Update Profile
@@ -976,7 +976,7 @@ On app load:
   - All fields are optional, but at least one field must be provided
   - Only allowed fields can be updated (filters out unauthorized fields)
   - `gender` must be one of: "MALE", "FEMALE", "OTHER"
-- `loyaltyTier` can be `null` (no tier, default for new customers) or one of: "BRONZE", "SILVER", "GOLD", "TITANIUM", "PLATINUM", "DIAMOND", "KOHINOOR"
+- `loyaltyTier` can be `null` (no loyalty tier assigned; default for new customers until first spend threshold) or one of: "BRONZE", "SILVER", "GOLD", "TITANIUM", "PLATINUM", "DIAMOND", "KOHINOOR"
   - `isActive` is a boolean field
   - `govtId` is an optional object with `type` (enum: "GST", "PAN", "UDYAM", "SHOP_LICENSE", "OTHER") and `number` (string) fields
   - `password`: Only applicable for Admin users. Password is automatically hashed using bcrypt before storing. For Consumer users, password field is ignored (they use OTP authentication)
@@ -1168,8 +1168,8 @@ On app load:
 
 ## 2.1 Loyalty Tier Config (Spend-based tiers)
 
-- **Default tier is `null`**: New customers have no loyalty tier (`loyaltyTier: null`) and no loyalty discount until their total spend reaches the **first** admin-configured threshold.
-- **BRONZE is the first upgradeable tier**: Thresholds define only the upgradeable tiers (BRONZE, SILVER, GOLD, TITANIUM, PLATINUM, DIAMOND, KOHINOOR). The **first** threshold (e.g. BRONZE at ₹5,000) is the amount a customer must spend (sum of delivered order totals) to be assigned that tier; below that, `loyaltyTier` remains `null`.
+- **Default: no loyalty tier assigned (`null`)**: New customers have **no loyalty tier assigned** (`loyaltyTier: null`). There is no tier name before Bronze; the default state is explicitly "no loyalty tier assigned."
+- **Bronze is the first tier and has a threshold**: Bronze (and every other tier) is assigned only after the customer's total spend reaches that tier's threshold. The **first** threshold in the config (e.g. BRONZE at ₹5,000) is the amount a customer must spend (sum of delivered order totals) to be assigned Bronze; below that, `loyaltyTier` remains `null` (no loyalty tier assigned).
 - When an order status becomes **DELIVERED**, the backend recalculates the customer's `totalSpend` and sets `loyaltyTier` from these thresholds (or `null` if below the first threshold). Tier names are fixed: BRONZE, SILVER, GOLD, TITANIUM, PLATINUM, DIAMOND, KOHINOOR.
 
 ### Get loyalty tier thresholds
@@ -1193,7 +1193,7 @@ On app load:
     }
   }
   ```
-- **Note**: The first threshold (e.g. BRONZE at 5000) is the spend required to get that tier; there is no "zero" tier—customers below the first threshold have `loyaltyTier: null`.
+- **Note**: Default is no loyalty tier assigned (`loyaltyTier: null`). The first threshold (e.g. BRONZE at 5000) is the spend required to be assigned Bronze; customers below the first threshold have `loyaltyTier: null`.
 
 ### Update loyalty tier thresholds (Admin)
 
@@ -1214,8 +1214,8 @@ On app load:
   }
   ```
 - **Notes**:
-  - `amount` is in ₹. When a customer's `totalSpend` (updated on order DELIVERED) meets or exceeds a threshold, their `loyaltyTier` is set to that tier. If `totalSpend` is below the **first** threshold, `loyaltyTier` remains `null` (no tier). Tier names must be one of: BRONZE, SILVER, GOLD, TITANIUM, PLATINUM, DIAMOND, KOHINOOR.
-  - `discountPercentage` (optional) defines the **loyalty discount** for that tier. This percentage is applied on the order total **after coupons** and is reflected in both cart totals and invoices. When `loyaltyTier` is `null`, no loyalty discount is applied.
+  - `amount` is in ₹. When a customer's `totalSpend` (updated on order DELIVERED) meets or exceeds a threshold, their `loyaltyTier` is set to that tier. If `totalSpend` is below the **first** threshold (e.g. Bronze), `loyaltyTier` remains `null` (no loyalty tier assigned). Tier names must be one of: BRONZE, SILVER, GOLD, TITANIUM, PLATINUM, DIAMOND, KOHINOOR.
+  - `discountPercentage` (optional) defines the **loyalty discount** for that tier. This percentage is applied on the order total **after coupons** and is reflected in both cart totals and invoices. When `loyaltyTier` is `null` (no loyalty tier assigned), no loyalty discount is applied.
 
 ---
 
@@ -3438,9 +3438,9 @@ Session is one per cashier per day (date in UTC). No dedicated "start session" A
     }
   }
   ```
-  - `currentTier` can be `null` when the customer has not yet reached the first spend threshold (no tier); in that case `discountPercent` is 0.
+  - `currentTier` can be `null` when the customer has no loyalty tier assigned (has not yet reached the first spend threshold); in that case `discountPercent` is 0.
   - `discountAmount` is present only when `amount` query is provided; it is `amount * discountPercent / 100` (rounded to 2 decimals).
-- **Note**: Use when an existing customer is selected in POS to get their loyalty tier and discount % (and optionally the discount in ₹ for a given cart/order amount). **Tier** is read from the customer’s stored `loyaltyTier` on the user model; **discount percent** is looked up from the loyalty tier config for that tier (0 when tier is `null`). Default tier is `null` until the customer's total spend reaches the first threshold.
+- **Note**: Use when an existing customer is selected in POS to get their loyalty tier and discount % (and optionally the discount in ₹ for a given cart/order amount). **Tier** is read from the customer’s stored `loyaltyTier` on the user model; **discount percent** is looked up from the loyalty tier config for that tier (0 when tier is `null`). Default is no loyalty tier assigned (`null`) until the customer's total spend reaches the first threshold.
 
 ### Create POS (Point-of-Sale) Offline Order
 
@@ -3722,7 +3722,7 @@ Session is one per cashier per day (date in UTC). No dedicated "start session" A
 - These fields appear on Order Summary (track-order page) and invoices. Older orders may not have them; UI falls back to `originalAmount` for items total.
 - **User field**: For walk-in POS orders (no `customerId`), `user` is `null`. These orders **do not appear** in customer's "My Orders" (`GET /api/orders`) since they are not linked to any user account. They are only visible to admin via `GET /api/orders/all` or admin access to `GET /api/orders/:orderId`.
 - **Shipping**: `shippingCharges` comes from the order schema (set at order creation). Order Summary and invoices use this value.
-- **Loyalty discount**: When present, `loyaltyDiscountAmount` is shown as a separate line in Order Summary and on the invoice. Only applies to orders with a `user` (registered customers) who have a loyalty tier (i.e. `loyaltyTier` not null; default is null until first spend threshold is reached).
+  - **Loyalty discount**: When present, `loyaltyDiscountAmount` is shown as a separate line in Order Summary and on the invoice. Only applies to orders with a `user` (registered customers) who have a loyalty tier (i.e. `loyaltyTier` not null; default is no loyalty tier assigned until first spend threshold is reached).
 - **Customer name in invoices**: For orders with `user`, the invoice uses the customer's name from the populated `user` object (or `storeName` from order/user). For walk-in orders (`user: null`), the invoice uses `walkinCustomerName` (or `storeName` if set, or "Customer" as fallback).
 - `storeName` is captured from the user's profile when the order is created (for registered customers) or can be set in the order data (for walk-in). Used for invoice "Bill To" name (B2B).
 - **Order items** (when product is populated): Include `name`, `title2`, `title3`, `title4` (product titles), `description`, `images`, `category`, `subCategory`, `price`, `mrp`, `gst`, `hsn`, `slug`.
@@ -3753,7 +3753,7 @@ Session is one per cashier per day (date in UTC). No dedicated "start session" A
     - `transactionId`: string (optional, can be set to empty string to clear it)
   - All payment fields are optional - you can update just the status, just payment info, or both together
   - Payment changes are logged in the order's update history
-  - **Loyalty totals**: When status changes to `"DELIVERED"` (from any other status), the backend automatically recalculates the customer's `totalSpend` as the sum of all their DELIVERED orders and updates their `loyaltyTier` based on the configured spend thresholds (or sets it to `null` if below the first threshold; BRONZE is the first upgradeable tier).
+  - **Loyalty totals**: When status changes to `"DELIVERED"` (from any other status), the backend automatically recalculates the customer's `totalSpend` as the sum of all their DELIVERED orders and updates their `loyaltyTier` based on the configured spend thresholds (or keeps it `null` (no loyalty tier assigned) if below the first threshold; Bronze is the first tier and has a threshold—only after that spend is the user assigned Bronze).
 - **Response**: Updated order object
 
 ### Cancel Order

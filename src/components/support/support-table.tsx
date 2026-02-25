@@ -1,6 +1,8 @@
 'use client';
 
 import React, { useState } from 'react';
+import Zoom from 'react-medium-image-zoom';
+import 'react-medium-image-zoom/dist/styles.css';
 import { Enquiry } from '@/lib/api/enquiries';
 import { enquiryApi } from '@/lib/api/enquiries';
 import toast from 'react-hot-toast';
@@ -331,15 +333,16 @@ export function SupportTable({
                       {selectedEnquiry.images.map((imageUrl, index) => (
                         <div key={index} className="relative group">
                           <div className="relative overflow-hidden rounded-lg border-2 border-gray-200 hover:border-blue-400 transition-all shadow-sm hover:shadow-md">
-                            <img
-                              src={imageUrl}
-                              alt={`Enquiry attachment ${index + 1}`}
-                              className="w-full h-64 object-cover transition-transform group-hover:scale-105 cursor-pointer"
-                              onClick={() => window.open(imageUrl, '_blank')}
-                            />
-                            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center">
-                              <span className="text-white opacity-0 group-hover:opacity-100 text-sm font-medium">
-                                Click to view full size
+                            <Zoom>
+                              <img
+                                src={imageUrl}
+                                alt={`Enquiry attachment ${index + 1}`}
+                                className="w-full h-64 object-cover transition-transform group-hover:scale-105 cursor-zoom-in"
+                              />
+                            </Zoom>
+                            <div className="absolute bottom-2 left-0 right-0 flex justify-center">
+                              <span className="text-white opacity-0 group-hover:opacity-100 text-sm font-medium bg-black/50 px-2 py-1 rounded">
+                                Click to zoom
                               </span>
                             </div>
                           </div>

@@ -66,11 +66,12 @@ export default function LoyaltyTiersSettingsPage() {
 
         const complete: EditableThreshold[] = ALL_TIERS.map((tier) => {
           const existing = byTier.get(tier);
-          const defaultAmount = tier === 'BRONZE' ? 0 : 0;
+          // Bronze is the first tier; default threshold e.g. 5000 (customers below this have no tier assigned)
+          const defaultAmount = tier === 'BRONZE' ? 5000 : 0;
           return {
             id: tier,
             tier,
-            amount: existing ? Number(existing.amount) || 0 : defaultAmount,
+            amount: existing ? Number(existing.amount) ?? 0 : defaultAmount,
             discountPercentage:
               typeof existing?.discountPercentage === 'number'
                 ? existing.discountPercentage
@@ -121,33 +122,12 @@ export default function LoyaltyTiersSettingsPage() {
   };
 
   const normalizeForSave = (items: EditableThreshold[]): LoyaltyTierThreshold[] => {
-    const uniqueByTier = new Map<LoyaltyTierName, LoyaltyTierThreshold>();
-
-    items.forEach((t) => {
-      const amount = Number(t.amount) || 0;
-      const discount =
-        typeof t.discountPercentage === 'number' ? t.discountPercentage : 0;
-      const existing = uniqueByTier.get(t.tier);
-      if (!existing || amount < existing.amount) {
-        uniqueByTier.set(t.tier, {
-          tier: t.tier,
-          amount,
-          discountPercentage: discount,
-        });
-      }
-    });
-
-    // Ensure BRONZE exists and is 0 (or minimum)
-    const bronze = uniqueByTier.get('BRONZE') || {
-      tier: 'BRONZE',
-      amount: 0,
+    const arr = items.map((t) => ({
+      tier: t.tier,
+      amount: Number(t.amount) ?? 0,
       discountPercentage:
-        uniqueByTier.get('BRONZE')?.discountPercentage ?? 0,
-    };
-    bronze.amount = 0;
-    uniqueByTier.set('BRONZE', bronze);
-
-    const arr = Array.from(uniqueByTier.values());
+        typeof t.discountPercentage === 'number' ? t.discountPercentage : 0,
+    }));
     arr.sort((a, b) => a.amount - b.amount);
     return arr;
   };
@@ -201,10 +181,12 @@ export default function LoyaltyTiersSettingsPage() {
               Loyalty tiers (spend-based)
             </h1>
             <p className="text-gray-500 mt-1 text-sm">
-              Configure total-spend thresholds and default discount percentages for each
-              loyalty tier. When a customer&apos;s total spend meets or exceeds a
-              tier&apos;s amount, they are promoted to that tier and can receive the
-              configured discount.
+              New customers have <strong>no loyalty tier assigned</strong> until their
+              total spend reaches the first threshold (e.g. Bronze). Bronze is the
+              first tier—set its threshold to the spend required to earn it; you can
+              set a discount for Bronze too. When an order is marked DELIVERED, the
+              backend recalculates each customer&apos;s total spend and assigns the
+              highest tier whose threshold they meet (or no tier if below the first).
             </p>
           </div>
 
@@ -260,7 +242,7 @@ export default function LoyaltyTiersSettingsPage() {
                                   handleAmountChange(t.id, e.target.value)
                                 }
                                 className="max-w-xs"
-                                disabled={saving || t.tier === 'BRONZE'}
+                                disabled={saving}
                               />
                             </td>
                             <td className="py-3 pr-4">
@@ -283,8 +265,8 @@ export default function LoyaltyTiersSettingsPage() {
                             </td>
                             <td className="py-3 pr-4 text-xs text-gray-500">
                               {t.tier === 'BRONZE'
-                                ? 'Base tier for all customers (always 0). Discount is optional.'
-                                : 'Customer is upgraded when total spend ≥ this amount and can get this % discount.'}
+                                ? 'First tier. Customer is assigned Bronze when total spend ≥ this amount; below this, no tier is assigned. Discount optional.'
+                                : 'Customer is assigned this tier when total spend ≥ this amount and can get this % discount.'}
                             </td>
                           </tr>
                         ))}
@@ -294,9 +276,9 @@ export default function LoyaltyTiersSettingsPage() {
 
                   <div className="flex items-center justify-between text-xs text-gray-500">
                     <p>
-                      Changes affect future loyalty calculations when orders are marked
-                      as DELIVERED. Existing customers will be recalculated based on
-                      their total spend.
+                      Customers below the first threshold (e.g. Bronze) have no loyalty
+                      tier assigned. When orders are marked DELIVERED, total spend and
+                      tier are recalculated from thresholds.
                     </p>
                   </div>
 
