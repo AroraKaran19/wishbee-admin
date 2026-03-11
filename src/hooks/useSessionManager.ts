@@ -54,6 +54,7 @@ export function useSessionManager() {
 
         if (!isMounted) {
           initializingRef.current = false;
+          setLoading(false);
           return;
         }
 
@@ -95,6 +96,7 @@ export function useSessionManager() {
                     });
                   }
                   initializingRef.current = false;
+                  setLoading(false);
                   return;
                 }
                 
@@ -114,12 +116,14 @@ export function useSessionManager() {
                 setStatus("unauthenticated");
               }
               initializingRef.current = false;
+              setLoading(false);
               return;
             }
           }
 
           if (!isMounted) {
             initializingRef.current = false;
+            setLoading(false);
             return;
           }
 
@@ -199,10 +203,8 @@ export function useSessionManager() {
           }
         }
       } finally {
-        if (isMounted) {
-          setLoading(false);
-          initializingRef.current = false;
-        }
+        setLoading(false);
+        initializingRef.current = false;
       }
     };
 
