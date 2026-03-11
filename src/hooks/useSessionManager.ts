@@ -39,11 +39,9 @@ export function useSessionManager() {
       return;
     }
 
-    // If status is explicitly unauthenticated and we have no admin data, skip initialization
-    // This prevents loops after logout
-    if (currentState.status === "unauthenticated" && !currentState.admin && !currentState.accessToken) {
-      return;
-    }
+    // When unauthenticated with no session data, we still must check the refresh token
+    // cookie (e.g. new tab or sessionStorage cleared) — otherwise we'd show login despite
+    // a valid cookie. We only skip if we're already authenticated with a valid token.
 
     initializingRef.current = true;
     let isMounted = true;

@@ -5,10 +5,12 @@ import { useRouter } from "next/navigation";
 import { Loader2, Mail, Lock } from "lucide-react";
 import Image from "next/image";
 import { useSessionStore } from "@/stores/sessionStore";
+import { useSessionManager } from "@/hooks/useSessionManager";
 import toast from "react-hot-toast";
 
 export function LoginPage() {
   const router = useRouter();
+  useSessionManager(); // Restore session from refresh token when landing directly on /login
   const { login, status, isLoading: authLoading } = useSessionStore();
   const [formData, setFormData] = useState({
     email: "",
