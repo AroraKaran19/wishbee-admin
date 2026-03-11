@@ -75,15 +75,12 @@ export function useSessionManager() {
                 break;
               } catch (error: any) {
                 lastError = error;
-                // Check if it's a refresh token expiry error
-                const isRefreshTokenExpired = 
-                  error?.status === 401 || 
-                  error?.status === 403 ||
-                  error?.message?.includes("401") || 
-                  error?.message?.includes("403") ||
-                  error?.message?.toLowerCase().includes("unauthorized") ||
-                  error?.message?.toLowerCase().includes("forbidden") ||
-                  error?.message?.toLowerCase().includes("refresh token");
+                // Only clear session on 401 (token invalid/expired). Do NOT treat 403 as token expiry —
+                // 403 can mean "shift ended" or other business rules; refresh token may still be valid.
+                const isRefreshTokenExpired =
+                  error?.status === 401 ||
+                  error?.message?.toLowerCase().includes("refresh token expired") ||
+                  error?.message?.toLowerCase().includes("token expired");
                 
                 if (isRefreshTokenExpired) {
                   // Refresh token expired, clear everything and stop

@@ -100,16 +100,12 @@ export const useSessionStore = create<SessionState>()(
         } catch (error: any) {
           console.error("Error generating access token:", error);
           
-          // Check if error is due to refresh token expiry (401/403)
-          // Only clear session if refresh token is actually expired
-          const isRefreshTokenExpired = 
-            error?.status === 401 || 
-            error?.status === 403 ||
-            error?.message?.includes("401") || 
-            error?.message?.includes("403") ||
-            error?.message?.toLowerCase().includes("unauthorized") ||
-            error?.message?.toLowerCase().includes("forbidden") ||
-            error?.message?.toLowerCase().includes("refresh token expired");
+          // Only clear session on 401 (token invalid/expired). Do NOT treat 403 as token expiry —
+          // 403 can mean "shift ended" or other business rules; refresh token may still be valid.
+          const isRefreshTokenExpired =
+            error?.status === 401 ||
+            error?.message?.toLowerCase().includes("refresh token expired") ||
+            error?.message?.toLowerCase().includes("token expired");
           
           if (isRefreshTokenExpired) {
             // Refresh token expired - clear session
