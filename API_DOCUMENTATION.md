@@ -3801,8 +3801,12 @@ Session is one per cashier per day (date in UTC). No dedicated "start session" A
     - **Coupon**: A "Coupon (code): - Rs. X.XX" line appears **only when** `couponDiscount > 0`. If 0, the line is omitted.
     - **Loyalty discount**: A "Loyalty discount (X%): - Rs. X.XX" line appears **only when** `loyaltyDiscountAmount > 0`. If 0, the line is omitted.
   - So **no discount is mentioned** (either omitted or shown as "-") when its value is 0, for product discount, coupon, or loyalty.
+  - **Line-item description content**:
+    - For **products**, the Description column prints **four title lines** in order: `name` (Title1), `title2` (Title2), `title3` (Title3), `title4` (Title4). Missing titles are left **blank** (no "-" placeholder).
+    - For **combos**, only the combo `name` is shown (no `title2/title3/title4`).
   - **BILL TO / SHIP TO section**:
     - **Customer name**: For orders with a `user`, the invoice uses the customer's name from the populated `user` object (or `storeName` from order/user). For walk-in orders (`user: null`), the invoice uses `walkinCustomerName` (or `storeName` if set, or "Customer" as fallback).
+    - **Mobile number**: When the customer has a phone number (`userInfo.phone` / `customer.phoneNumber`), the invoice shows **"Mobile: &lt;number&gt;"** in the BILL TO block (after the name, before the address). Omitted when no phone is available (e.g. walk-in with no linked user).
     - **Address display**: For the default in-store (POS) address (e.g. when `shippingAddress.type === "STORE"` or city/state/postalCode are the placeholder "Store"/"Store"/"000000"), the invoice **does not show** the city/state line or the PIN line (so "Store, Store" and "PIN: 000000" are omitted). The customer name and address line (e.g. "In-Store Purchase") are still shown. For all other addresses, city, state, and PIN are shown as usual.
 
 ### Delete Order

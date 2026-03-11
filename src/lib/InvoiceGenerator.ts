@@ -533,7 +533,13 @@ export class InvoiceGenerator {
         this.currentY += rowHeight;
       }
 
-      const productName = item.product?.name || "Product";
+      const titleParts: string[] = [];
+      if (item.product?.name) titleParts.push(item.product.name);
+      if ((item.product as any)?.title2) titleParts.push((item.product as any).title2);
+      if ((item.product as any)?.title3) titleParts.push((item.product as any).title3);
+      if ((item.product as any)?.title4) titleParts.push((item.product as any).title4);
+      const productName =
+        titleParts.length > 0 ? titleParts.join(" | ") : "Product";
       const quantity = item.quantity;
 
       // Get MRP (original price) - use mrp if available, otherwise fallback to priceAtPurchase
