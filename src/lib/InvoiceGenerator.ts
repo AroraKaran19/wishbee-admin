@@ -408,6 +408,22 @@ export class InvoiceGenerator {
       this.doc.text(nameLines, billToX, billToY);
       billToY += nameLines.length * lineHeight;
 
+      // Phone
+      if (userInfo.phone) {
+        this.doc.text(userInfo.phone, billToX, billToY);
+        billToY += lineHeight;
+      }
+
+      // Email (optional)
+      if (userInfo.email) {
+        const emailLines = this.doc.splitTextToSize(
+          userInfo.email,
+          sectionMaxWidth
+        );
+        this.doc.text(emailLines, billToX, billToY);
+        billToY += emailLines.length * lineHeight;
+      }
+
       // Address line
       const addressLines = this.doc.splitTextToSize(
         order.shippingAddress.addressLine,
@@ -533,13 +549,16 @@ export class InvoiceGenerator {
         this.currentY += rowHeight;
       }
 
+      // Product name + title2, title3, title4 (4 title fields from product) — one line each
       const titleParts: string[] = [];
       if (item.product?.name) titleParts.push(item.product.name);
-      if ((item.product as any)?.title2) titleParts.push((item.product as any).title2);
-      if ((item.product as any)?.title3) titleParts.push((item.product as any).title3);
-      if ((item.product as any)?.title4) titleParts.push((item.product as any).title4);
-      const productName =
-        titleParts.length > 0 ? titleParts.join(" | ") : "Product";
+      if (item.product?.title2) titleParts.push(item.product.title2);
+      if (item.product?.title3) titleParts.push(item.product.title3);
+      if (item.product?.title4) titleParts.push(item.product.title4);
+      const productLines =
+        titleParts.length > 0
+          ? titleParts
+          : ["Product"];
       const quantity = item.quantity;
 
       // Get MRP (original price) - use mrp if available, otherwise fallback to priceAtPurchase
@@ -563,15 +582,14 @@ export class InvoiceGenerator {
 
       const total = priceBeforeGST; // Total = price at purchase (includes GST)
 
-      // Wrap product name/description to fit in Description column
-      const descriptionMaxWidth = colWidths[0] - 4; // Leave some padding
-      const descriptionLines = this.doc.splitTextToSize(
-        productName,
-        descriptionMaxWidth
-      );
-      // Only show first 3 lines to prevent overflow
-      const maxLines = Math.min(descriptionLines.length, 3);
-      const displayLines = descriptionLines.slice(0, maxLines);
+      // Show name, title2, title3, title4 as separate lines (wrap each if needed)
+      const descriptionMaxWidth = colWidths[0] - 4;
+      const displayLines: string[] = [];
+      for (const part of productLines) {
+        const wrapped = this.doc.splitTextToSize(part, descriptionMaxWidth);
+        displayLines.push(...wrapped); // Allow full wrapping for each title
+      }
+      const maxLines = displayLines.length;
 
       // Calculate extra height needed for multi-line description
       const extraHeight = maxLines > 1 ? (maxLines - 1) * 3.5 : 0;
