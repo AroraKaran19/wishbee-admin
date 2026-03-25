@@ -1,21 +1,14 @@
 'use client';
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Calculator, User, ChevronDown } from 'lucide-react';
+import { Calculator, User } from 'lucide-react';
 import { DateRangePicker } from '@/components/ui/date-range-picker';
 import { Button } from '@/components/ui/button';
 import { CashierSessionsTable } from './cashier-sessions-table';
 import { cashierSessionsApi, CashierSession } from '@/lib/api/cashier-sessions';
-import { customerApi } from '@/lib/api/customers';
+import { CashierSelectDropdown } from '@/components/cashier/cashier-select-dropdown';
 import { orderApi, CashierPosOrdersResponse } from '@/lib/api/orders';
 import toast from 'react-hot-toast';
-
-interface AdminOption {
-  _id: string;
-  firstName?: string;
-  lastName?: string;
-  email: string;
-}
 
 interface CashierSummaryByMethod {
   orders: number;
@@ -38,11 +31,6 @@ interface CashierSummary {
 }
 
 const ITEMS_PER_PAGE = 20;
-const CASHIERS_PAGE_SIZE = 20;
-
-function getCashierLabel(c: AdminOption): string {
-  return [c.firstName, c.lastName].filter(Boolean).join(' ') || c.email || '—';
-}
 
 export function CashierManagementPage() {
   const [fromDate, setFromDate] = useState('');
@@ -50,6 +38,7 @@ export function CashierManagementPage() {
   const [appliedFromDate, setAppliedFromDate] = useState('');
   const [appliedToDate, setAppliedToDate] = useState('');
   const [cashierId, setCashierId] = useState<string>('');
+  const [cashierSummaryLabel, setCashierSummaryLabel] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<'ACTIVE' | 'CLOSED' | ''>('');
   const [currentPage, setCurrentPage] = useState(1);
   const [sessions, setSessions] = useState<CashierSession[]>([]);
@@ -58,22 +47,11 @@ export function CashierManagementPage() {
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [cashiers, setCashiers] = useState<AdminOption[]>([]);
-  const [cashierPage, setCashierPage] = useState(1);
-  const [cashierTotalPages, setCashierTotalPages] = useState(1);
-  const [cashierLoading, setCashierLoading] = useState(true);
-  const [cashierLoadingMore, setCashierLoadingMore] = useState(false);
-  const [cashierDropdownOpen, setCashierDropdownOpen] = useState(false);
   const loadMoreRef = useRef<HTMLDivElement>(null);
-  const cashierLoadMoreRef = useRef<HTMLDivElement>(null);
-  const cashierListRef = useRef<HTMLDivElement>(null);
-  const cashierDropdownContainerRef = useRef<HTMLDivElement>(null);
 
   const hasMore = currentPage < totalPages && total > 0;
-  const cashierHasMore = cashierPage < cashierTotalPages;
-  const selectedCashierLabel = cashierId
-    ? (cashiers.find((c) => c._id === cashierId) ? getCashierLabel(cashiers.find((c) => c._id === cashierId)!) : null) || `ID: ${cashierId.slice(-6)}`
-    : null;
+  const selectedCashierLabel =
+    cashierSummaryLabel ?? (cashierId ? `ID: ${cashierId.slice(-6)}` : null);
 
   const todayStr = new Date().toISOString().split('T')[0];
   const [summaryStartDate, setSummaryStartDate] = useState(todayStr);
@@ -95,85 +73,6 @@ export function CashierManagementPage() {
       setAppliedFromDate(startStr);
     }
   }, []);
-
-  useEffect(() => {
-    const loadFirstPage = async () => {
-      try {
-        setCashierLoading(true);
-        const res = await customerApi.getAll({
-          page: 1,
-          limit: CASHIERS_PAGE_SIZE,
-          role: 'ADMIN',
-        });
-        const admins = (res.users || []).filter(
-          (u: { role?: string }) => u.role === 'ADMIN' || u.role === 'SUPER_ADMIN'
-        ) as AdminOption[];
-        setCashiers(admins);
-        setCashierPage(1);
-        setCashierTotalPages(res.pagination?.pages ?? 1);
-      } catch {
-        setCashierTotalPages(1);
-      } finally {
-        setCashierLoading(false);
-      }
-    };
-    loadFirstPage();
-  }, []);
-
-  useEffect(() => {
-    if (!cashierDropdownOpen || !cashierHasMore || cashierLoading || cashierLoadingMore) return;
-
-    const root = cashierListRef.current;
-    const el = cashierLoadMoreRef.current;
-    if (!el || !root) return;
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0]?.isIntersecting) {
-          setCashierPage((p) => p + 1);
-        }
-      },
-      { root, rootMargin: '80px', threshold: 0.1 }
-    );
-    observer.observe(el);
-    return () => observer.unobserve(el);
-  }, [cashierDropdownOpen, cashierHasMore, cashierLoading, cashierLoadingMore]);
-
-  useEffect(() => {
-    if (cashierPage <= 1) return;
-
-    const loadMoreCashiers = async () => {
-      try {
-        setCashierLoadingMore(true);
-        const res = await customerApi.getAll({
-          page: cashierPage,
-          limit: CASHIERS_PAGE_SIZE,
-          role: 'ADMIN',
-        });
-        const admins = (res.users || []).filter(
-          (u: { role?: string }) => u.role === 'ADMIN' || u.role === 'SUPER_ADMIN'
-        ) as AdminOption[];
-        setCashiers((prev) => [...prev, ...admins]);
-      } catch {
-        setCashierPage((p) => p - 1);
-      } finally {
-        setCashierLoadingMore(false);
-      }
-    };
-    loadMoreCashiers();
-  }, [cashierPage]);
-
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (cashierDropdownContainerRef.current && !cashierDropdownContainerRef.current.contains(e.target as Node)) {
-        setCashierDropdownOpen(false);
-      }
-    };
-    if (cashierDropdownOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-    }
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [cashierDropdownOpen]);
 
   useEffect(() => {
     if (!appliedFromDate || !appliedToDate) return;
@@ -381,71 +280,15 @@ export function CashierManagementPage() {
               onStartDateChange={setFromDate}
               onEndDateChange={setToDate}
             />
-            <div className="flex flex-col gap-1 relative" ref={cashierDropdownContainerRef}>
-              <label className="text-xs font-medium text-gray-500">Cashier</label>
-              <button
-                type="button"
-                onClick={() => setCashierDropdownOpen((o) => !o)}
-                className="min-w-[180px] px-3 py-2.5 border border-gray-300 rounded-lg text-sm bg-white text-left focus:outline-none focus:ring-2 focus:ring-[#13aaff] focus:border-transparent flex items-center justify-between gap-2"
-              >
-                <span className="truncate">
-                  {selectedCashierLabel ?? 'All cashiers'}
-                </span>
-                <ChevronDown
-                  className={`h-4 w-4 shrink-0 text-gray-500 transition-transform ${cashierDropdownOpen ? 'rotate-180' : ''}`}
-                />
-              </button>
-              {cashierDropdownOpen && (
-                <div className="absolute top-full left-0 mt-1 w-full min-w-[200px] max-h-[280px] flex flex-col bg-white border border-gray-200 rounded-lg shadow-lg z-20 overflow-hidden">
-                  <div
-                    ref={cashierListRef}
-                    className="overflow-y-auto overscroll-contain flex-1 py-1"
-                    style={{ maxHeight: 260 }}
-                  >
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setCashierId('');
-                        setCurrentPage(1);
-                        setCashierDropdownOpen(false);
-                      }}
-                      className={`w-full px-3 py-2 text-left text-sm hover:bg-gray-100 ${!cashierId ? 'bg-primary/10 text-primary font-medium' : 'text-gray-700'}`}
-                    >
-                      All cashiers
-                    </button>
-                    {cashierLoading ? (
-                      <div className="px-3 py-4 text-center text-sm text-gray-500">
-                        Loading cashiers...
-                      </div>
-                    ) : (
-                      <>
-                        {cashiers.map((c) => (
-                          <button
-                            key={c._id}
-                            type="button"
-                            onClick={() => {
-                              setCashierId(c._id);
-                              setCurrentPage(1);
-                              setCashierDropdownOpen(false);
-                            }}
-                            className={`w-full px-3 py-2 text-left text-sm hover:bg-gray-100 truncate ${cashierId === c._id ? 'bg-primary/10 text-primary font-medium' : 'text-gray-700'}`}
-                          >
-                            {getCashierLabel(c)}
-                          </button>
-                        ))}
-                        <div ref={cashierLoadMoreRef} className="h-2" />
-                        {cashierLoadingMore && (
-                          <div className="px-3 py-2 text-center text-xs text-gray-500 flex items-center justify-center gap-1">
-                            <span className="animate-spin rounded-full h-3 w-3 border-2 border-gray-200 border-t-[#13aaff]" />
-                            Loading more...
-                          </div>
-                        )}
-                      </>
-                    )}
-                  </div>
-                </div>
-              )}
-            </div>
+            <CashierSelectDropdown
+              value={cashierId}
+              onChange={setCashierId}
+              onPick={(_id, label) => {
+                setCashierSummaryLabel(label);
+                setCurrentPage(1);
+              }}
+              label="Cashier"
+            />
             <div className="flex flex-col gap-1">
               <label className="text-xs font-medium text-gray-500">Status</label>
               <select

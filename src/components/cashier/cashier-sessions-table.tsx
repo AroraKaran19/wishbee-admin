@@ -9,6 +9,7 @@ interface CashierSessionsTableProps {
 }
 
 function getCashierName(cashier: CashierSession['cashier']): string {
+  if (cashier == null) return '—';
   if (typeof cashier === 'string') return cashier;
   const parts = [cashier.firstName, cashier.lastName].filter(Boolean);
   return parts.length ? parts.join(' ') : cashier.email || '—';

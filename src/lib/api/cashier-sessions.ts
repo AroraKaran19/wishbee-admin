@@ -11,7 +11,7 @@ export interface CashierSessionCashier {
 
 export interface CashierSession {
   _id: string;
-  cashier: CashierSessionCashier | string;
+  cashier: CashierSessionCashier | string | null;
   date: string;
   openingBalance: number | null;
   closingBalance: number | null;

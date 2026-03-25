@@ -23,6 +23,14 @@ export interface CustomerResponse {
   };
 }
 
+/** Query for GET /users/admins/by-permission (SUPER_ADMIN only on backend) */
+export interface AdminsByPermissionFilters {
+  permission: string;
+  page?: number;
+  limit?: number;
+  search?: string;
+}
+
 export interface CustomerDetailsFilters {
   status?: string;
   search?: string;
@@ -85,6 +93,39 @@ export const customerApi = {
       const errorData = await response.json().catch(() => ({}));
       throw new Error(
         errorData.message || `Failed to fetch customers: ${response.statusText}`
+      );
+    }
+
+    const result = await response.json();
+    return result.data;
+  },
+
+  /**
+   * Admins whose permissions include the given constant (e.g. CASHIER).
+   * Backend: GET /users/admins/by-permission — typically SUPER_ADMIN only.
+   */
+  getAdminsByPermission: async (
+    filters: AdminsByPermissionFilters
+  ): Promise<CustomerResponse> => {
+    const params = new URLSearchParams();
+    params.append("permission", filters.permission);
+    if (filters.page) params.append("page", filters.page.toString());
+    if (filters.limit) params.append("limit", filters.limit.toString());
+    if (filters.search) params.append("search", filters.search);
+
+    const response = await fetch(
+      `${API_BASE_URL}/users/admins/by-permission?${params.toString()}`,
+      {
+        method: "GET",
+        headers: await getAuthHeaders(),
+      }
+    );
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(
+        errorData.message ||
+          `Failed to fetch admins by permission: ${response.statusText}`
       );
     }
 
@@ -296,6 +337,42 @@ export const customerApi = {
     return result.data;
   },
 };
+
+/**
+ * Admins with CASHIER permission for dropdowns (sessions filter, POS bulk invoice).
+ * Uses GET /users/admins/by-permission when allowed; on failure (e.g. 403 for non–SUPER_ADMIN)
+ * falls back to GET /users/all?role=ADMIN and client-side CASHIER filter.
+ */
+export async function getCashierAdminsForDropdown(
+  page: number,
+  limit: number
+): Promise<CustomerResponse> {
+  try {
+    return await customerApi.getAdminsByPermission({
+      permission: "CASHIER",
+      page,
+      limit,
+    });
+  } catch {
+    const res = await customerApi.getAll({ page, limit, role: "ADMIN" });
+    const users = (res.users || []).filter((u: any) => {
+      if (u.role !== "ADMIN" && u.role !== "SUPER_ADMIN") return false;
+      if (u.permissions === undefined || u.permissions === null) return true;
+      if (!Array.isArray(u.permissions)) return true;
+      return u.permissions.includes("CASHIER");
+    });
+    return {
+      users,
+      pagination:
+        res.pagination ?? {
+          page,
+          limit,
+          total: users.length,
+          pages: 1,
+        },
+    };
+  }
+}
 
 // Helper function to convert API customer to UI customer format
 export const convertApiCustomerToUICustomer = (apiUser: any): Customer => {

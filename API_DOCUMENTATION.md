@@ -1016,6 +1016,53 @@ On app load:
   }
   ```
 
+### List admins by permission (SUPER_ADMIN only)
+
+- **API**: `GET /api/users/admins/by-permission`
+- **Access**: Private (**SUPER_ADMIN** only)
+- **Query parameters**:
+  - `permission` (string, **required**) – One permission constant; returns all **`ADMIN`** users whose `permissions` array includes this value (e.g. `CASHIER`, `ORDERS`, `ADMINS`). Must be one of the same values used when creating/updating admins (`DASHBOARD`, `INVENTORY`, `ORDERS`, `CASHIER`, `CUSTOMERS`, `OFFERS_BANNERS`, `ANALYTICS`, `MOST_SELLING`, `SETTINGS`, `ADMINS`, `SUPPORT`).
+  - `search` (string, optional) – Case-insensitive match on **first name**, **last name**, or **email**.
+  - `page` (number, optional, default: `1`) – Page number (1-based).
+  - `limit` (number, optional, default: `20`, max: `100`) – Page size.
+- **Note**:
+  - Only users with **`role: ADMIN`** are returned. **`SUPER_ADMIN`** accounts are not listed here (they are not filtered by the stored `permissions` array in the same way).
+  - Example: `GET /api/users/admins/by-permission?permission=CASHIER` returns all active/inactive admins that have the cashier permission.
+- **Response**:
+  ```json
+  {
+    "success": true,
+    "data": {
+      "users": [
+        {
+          "_id": "string",
+          "email": "cashier@example.com",
+          "firstName": "Jane",
+          "lastName": "Doe",
+          "photo": "string",
+          "gender": "FEMALE",
+          "role": "ADMIN",
+          "permissions": ["CASHIER", "ORDERS"],
+          "isActive": true,
+          "createdAt": "2024-01-01T00:00:00.000Z",
+          "updatedAt": "2024-01-01T00:00:00.000Z"
+        }
+      ],
+      "pagination": {
+        "page": 1,
+        "limit": 20,
+        "total": 1,
+        "pages": 1
+      }
+    },
+    "message": "Admins with permission fetched successfully"
+  }
+  ```
+- **Error responses**:
+  - `400` – Missing or invalid `permission`
+  - `401` – Not authenticated
+  - `403` – Not a SUPER_ADMIN
+
 ### Create Admin (SUPER_ADMIN only)
 
 - **API**: `POST /api/users/admins`
@@ -3481,11 +3528,12 @@ Session is one per cashier per day (date in UTC). No dedicated "start session" A
   - **Coupon**: GENERAL coupons can be applied to walk-in orders (no customerId). LIMITED coupons require a registered customer (`customerId`).
   - **Loyalty discount**: Only applied when `customerId` is provided (requires a registered customer with loyalty tier).
   - **createdByCashier** is set automatically to the logged-in user's ID (the cashier creating the order). When the order is fetched via `GET /api/orders/:orderId` or `GET /api/orders/all`, the backend populates `createdByCashier` with `{ _id, firstName, lastName, email }` so the cashier name can be displayed without a separate lookup.
+  - **createdByCashierName** is set automatically at order creation (not sent in the request body): a snapshot of the cashier's display name (`firstName` + `lastName`, trimmed; if both are empty, **`email`** is used). It is stored on the order so the cashier who created the POS sale can still be identified **if the cashier user account is later deleted** (the `createdByCashier` reference would no longer populate).
   - If `shippingAddress` / `billingAddress` are omitted, a default in-store address is used.
   - `shippingCharges` defaults to 0. `payment.status` defaults to `"COMPLETED"` for offline POS.
   - POS orders are created with **order status `DELIVERED`** and **payment status `COMPLETED`** (in-store, paid at counter), so invoice number is available immediately via `GET /api/orders/:orderId/invoice-number`.
   - When `customerId` is provided, the order is linked to that customer (`user` is set), loyalty tier discount is applied (if applicable), and the order appears in that customer's "My Orders" and contributes to their `totalSpend` for loyalty tier calculation.
-- **Response**: Created order object (same structure as other order endpoints; includes `walkin: true`, `createdByCashier` (cashier user id), `walkinCustomerName` when provided, and `user: null` when no `customerId` was provided). When fetched via GET order APIs, `user` (when present) and `createdByCashier` are populated (see Get Order by ID / Get All Orders).
+- **Response**: Created order object (same structure as other order endpoints; includes `walkin: true`, `createdByCashier` (cashier user id), **`createdByCashierName`** (cashier name snapshot), `walkinCustomerName` when provided, and `user: null` when no `customerId` was provided). When fetched via GET order APIs, `user` (when present) and `createdByCashier` are populated when the cashier user still exists (see Get Order by ID / Get All Orders).
 
 ### List POS orders created by cashier
 
@@ -3502,7 +3550,8 @@ Session is one per cashier per day (date in UTC). No dedicated "start session" A
   - Applies date filters on `createdAt` when `fromDate` and/or `toDate` are provided.
   - Populates:
     - `user` (when present) with `_id`, `firstName`, `lastName`, `phoneNumber`, `email`, `role`, `loyaltyTier`, `storeName`.
-    - `createdByCashier` with `_id`, `firstName`, `lastName`, `email`.
+    - `createdByCashier` with `_id`, `firstName`, `lastName`, `email` when the cashier user still exists.
+  - Each order includes **`createdByCashierName`** (string snapshot at order time). If the cashier user was deleted, `createdByCashier` may not populate; the API still returns a usable cashier display name via **`createdByCashier`** shaped as `{ firstName: <createdByCashierName>, lastName: "", ... }` using the stored snapshot, or you can read **`createdByCashierName`** directly on the order document.
   - Each order also includes `originalAmount` (sum of items at original price) for reporting, as in other admin order APIs.
 - **Response**:
   ```json
@@ -3516,6 +3565,7 @@ Session is one per cashier per day (date in UTC). No dedicated "start session" A
           "user": null,
           "walkin": true,
           "walkinCustomerName": "Test Customer",
+          "createdByCashierName": "Cashier Name",
           "createdByCashier": {
             "_id": "adminUserId",
             "firstName": "Cashier",
@@ -3569,7 +3619,7 @@ Session is one per cashier per day (date in UTC). No dedicated "start session" A
   - `limit` (number, default: 10)
 - **Note**: 
   - Returns only orders where `user` matches the authenticated user's ID. **Walk-in POS orders** (with `user: null`) **do not appear** in this list since they are not linked to any user account.
-  - Each order's **user** (customer) is populated with: `_id`, `firstName`, `lastName`, `phoneNumber`, `email`, `role`, `loyaltyTier`, `storeName`. For POS orders the response may also include `walkin`, `walkinCustomerName`, and populated `createdByCashier` when applicable.
+  - Each order's **user** (customer) is populated with: `_id`, `firstName`, `lastName`, `phoneNumber`, `email`, `role`, `loyaltyTier`, `storeName`. For POS orders the response may also include `walkin`, `walkinCustomerName`, **`createdByCashierName`**, and populated `createdByCashier` when applicable (or snapshot-based cashier display when the user was deleted).
 - **Response**:
   ```json
   {
@@ -3656,7 +3706,7 @@ Session is one per cashier per day (date in UTC). No dedicated "start session" A
 - **Query Parameters**:
   - `status` (string) - Filter by order status
   - `userId` (string) - Filter by user ID
-  - `search` (string) - Search term to search across order ID, reference ID, customer name, customer phone number, **cashier name** (POS orders), and product/combo names
+  - `search` (string) - Search term to search across order ID, reference ID, customer name, customer phone number, **cashier name** (POS orders: populated cashier user **or** stored **`createdByCashierName`** snapshot), and product/combo names
   - `page` (number, default: 1)
   - `limit` (number, default: 10)
   - `sortBy` (string, default: "createdAt")
@@ -3670,7 +3720,7 @@ Session is one per cashier per day (date in UTC). No dedicated "start session" A
     - Order reference ID (`refId`)
     - Customer first name and last name
     - Customer phone number
-    - **Cashier first name, last name, and full name** (for POS orders; the admin user who created the order via `createdByCashier`)
+    - **Cashier first name, last name, and full name** (for POS orders; the admin user who created the order via `createdByCashier`), and **`createdByCashierName`** (stored snapshot when the cashier user no longer exists or for text match)
     - Product names in order items
     - Combo names in order items
   - **Period Filtering**:
@@ -3685,7 +3735,7 @@ Session is one per cashier per day (date in UTC). No dedicated "start session" A
       - `"6months"`: Last 6 months
       - `"12months"`: Last 12 months
       - `"all-time"`: All orders from the beginning
-- **Response**: Same as user orders response. Each order includes populated `user` (customer, when present) and, when present, populated `createdByCashier` (see below). **Walk-in POS orders** (with `user: null`) are included in admin order lists; their `user` field is `null` and customer name comes from `walkinCustomerName`.
+- **Response**: Same as user orders response. Each order includes populated `user` (customer, when present) and, when present, populated `createdByCashier` (see below), plus **`createdByCashierName`** on POS orders when stored. **Walk-in POS orders** (with `user: null`) are included in admin order lists; their `user` field is `null` and customer name comes from `walkinCustomerName`.
 
 ### Get Order by ID
 
@@ -3693,7 +3743,8 @@ Session is one per cashier per day (date in UTC). No dedicated "start session" A
 - **Access**: User/Admin
 - **Response**: Single order object (includes `itemsTotal`, `shippingCharges`, `couponDiscount`, `couponCode`, `loyaltyDiscountPercent`, `loyaltyDiscountAmount` when available). 
   - **Customer (`user`)**: When present, populated with: `_id`, `firstName`, `lastName`, `phoneNumber`, `email`, `role`, `loyaltyTier`, `storeName`. For **walk-in POS orders** (no `customerId`), `user` is `null` and customer name comes from `walkinCustomerName`.
-  - **createdByCashier**: For POS orders, when set, populated with: `_id`, `firstName`, `lastName`, `email` (the cashier who created the order).
+  - **createdByCashier**: For POS orders, when the cashier user exists, populated with: `_id`, `firstName`, `lastName`, `email`. If the cashier user was deleted, the backend uses the stored **`createdByCashierName`** so responses still expose a cashier display name (see **`createdByCashierName`** on the order object).
+  - **createdByCashierName**: Present on POS orders when the snapshot was saved at creation; retained even if the cashier account is removed.
   - **Access control**: Non-admin users can only access orders where `user` matches their user ID. Walk-in orders (`user: null`) are only accessible to admin.
 
 ### Get Order by Reference ID
@@ -3709,7 +3760,8 @@ Session is one per cashier per day (date in UTC). No dedicated "start session" A
 | `user` | string \| null | Consumer ID who placed the order; **`null` for walk-in POS orders** (when no `customerId` was provided). When populated in GET responses, includes `{ _id, firstName, lastName, phoneNumber, email, role, loyaltyTier, storeName }`. `loyaltyTier` may be `null` (no tier until first spend threshold is reached). |
 | `walkin` | boolean | True when order was created via POS (point-of-sale). |
 | `walkinCustomerName` | string | Customer name for walk-in / POS orders when customer is not registered (stored on order; used in invoices when `user` is null). |
-| `createdByCashier` | string \| object | User ID of the cashier (admin) who created this POS order. When populated in GET responses, includes `{ _id, firstName, lastName, email }`. |
+| `createdByCashier` | string \| object \| null | User ID of the cashier (admin) who created this POS order. When populated in GET responses, includes `{ _id, firstName, lastName, email }`. If the cashier user was deleted, the backend may synthesize a minimal object from **`createdByCashierName`** so UIs still show who created the sale. |
+| `createdByCashierName` | string | **POS only.** Snapshot of the cashier's display name at order time (`firstName` + `lastName`, or `email` if names empty). Not sent on `POST /api/orders/pos`; stored automatically. Use for audit/display if `createdByCashier` no longer resolves. |
 | `itemsTotal` | number | Sum of items at purchase price (optional; present on new orders) |
 | `shippingCharges` | number | Delivery/shipping fee from order schema; 0 when free (optional) |
 | `couponDiscount` | number | Discount from applied coupon (optional) |
@@ -3802,8 +3854,11 @@ Session is one per cashier per day (date in UTC). No dedicated "start session" A
     - **Loyalty discount**: A "Loyalty discount (X%): - Rs. X.XX" line appears **only when** `loyaltyDiscountAmount > 0`. If 0, the line is omitted.
   - So **no discount is mentioned** (either omitted or shown as "-") when its value is 0, for product discount, coupon, or loyalty.
   - **Line-item description content**:
-    - For **products**, the Description column prints **four title lines** in order: `name` (Title1), `title2` (Title2), `title3` (Title3), `title4` (Title4). Missing titles are left **blank** (no "-" placeholder).
-    - For **combos**, only the combo `name` is shown (no `title2/title3/title4`).
+    - For **products**, the Description column lists the product fields **`name`**, **`title2`**, **`title3`**, and **`title4`** in that order. Empty or whitespace-only values for `title2`–`title4` are **omitted** (only non-empty segments are printed).
+    - **Wrapping**: Each segment is wrapped to the Description column width. Long names or titles use **multiple lines** as needed (the PDF is not limited to a single line per field).
+    - **Order API data**: `GET /api/orders` and related order responses populate product line items with `name`, `title2`, `title3`, `title4` (and pricing fields) where applicable, so client-generated invoice PDFs (e.g. download from the orders or track-order page) receive these fields when present on the product.
+    - **Backend-generated PDF** (`invoice.service.ts` → `generateInvoiceBuffer` / upload to S3 / email attachments): If an order item’s `product` is already populated but is missing **`title2`**, **`title3`**, **`title4`**, **`mrp`**, or **`gst`**, the service loads the product from the database and **merges** `name`, `title2`, `title3`, `title4`, `mrp`, and `gst` onto the item so the invoice matches the catalog.
+    - For **combos**, only the combo **`name`** is shown in the Description column (combo documents do not define `title2`–`title4`).
   - **BILL TO / SHIP TO section**:
     - **Customer name**: For orders with a `user`, the invoice uses the customer's name from the populated `user` object (or `storeName` from order/user). For walk-in orders (`user: null`), the invoice uses `walkinCustomerName` (or `storeName` if set, or "Customer" as fallback).
     - **Mobile number**: When the customer has a phone number (`userInfo.phone` / `customer.phoneNumber`), the invoice shows **"Mobile: &lt;number&gt;"** in the BILL TO block (after the name, before the address). Omitted when no phone is available (e.g. walk-in with no linked user).
@@ -3966,8 +4021,8 @@ Session is one per cashier per day (date in UTC). No dedicated "start session" A
   - Returns **only POS orders** (`walkin: true`) matching the optional filters.
   - Uses the same population logic as other admin order APIs:
     - `user` (when present) populated with `_id`, `firstName`, `lastName`, `phoneNumber`, `email`, `role`, `loyaltyTier`, `storeName`.
-    - `createdByCashier` populated with `_id`, `firstName`, `lastName`, `email`.
-  - Each order includes `originalAmount` (sum of items at original price) in addition to `itemsTotal`, `shippingCharges`, discounts, and `totalAmount`.
+    - `createdByCashier` populated with `_id`, `firstName`, `lastName`, `email` when the cashier user exists; otherwise **`createdByCashierName`** is used to surface the cashier who created the order (see Create POS order notes).
+  - Each order includes **`createdByCashierName`** when it was stored at POS checkout. Each order includes `originalAmount` (sum of items at original price) in addition to `itemsTotal`, `shippingCharges`, discounts, and `totalAmount`.
 - **Example**:
   ```http
   GET /api/orders/pos/orders?fromDate=2026-02-01&toDate=2026-02-11

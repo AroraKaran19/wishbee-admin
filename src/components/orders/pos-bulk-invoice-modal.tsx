@@ -5,7 +5,7 @@ import { X, Download, Calendar, FileText, FileSpreadsheet, User } from "lucide-r
 import { DateRangePicker } from "@/components/ui/date-range-picker";
 import { Button } from "@/components/ui/button";
 import { generatePosBulkInvoices, generatePosBulkInvoiceCSVFile, downloadBlob } from "@/lib/utils/bulk-invoice";
-import { customerApi } from "@/lib/api/customers";
+import { CashierSelectDropdown } from "@/components/cashier/cashier-select-dropdown";
 import toast from "react-hot-toast";
 
 interface BulkInvoiceModalProps {
@@ -13,51 +13,13 @@ interface BulkInvoiceModalProps {
   onClose: () => void;
 }
 
-interface AdminOption {
-  _id: string;
-  firstName?: string;
-  lastName?: string;
-  email: string;
-}
-
-function getCashierLabel(c: AdminOption): string {
-  return [c.firstName, c.lastName].filter(Boolean).join(' ') || c.email || '—';
-}
-
 export function PosBulkInvoiceModal({ isOpen, onClose }: BulkInvoiceModalProps) {
   const [startDate, setStartDate] = useState<string>("");
   const [endDate, setEndDate] = useState<string>("");
   const [cashierId, setCashierId] = useState<string>("");
-  const [cashiers, setCashiers] = useState<AdminOption[]>([]);
-  const [cashierLoading, setCashierLoading] = useState(true);
   const [exportFormat, setExportFormat] = useState<"pdf" | "csv">("pdf");
   const [isGenerating, setIsGenerating] = useState(false);
   const [progress, setProgress] = useState({ current: 0, total: 0 });
-
-  // Load cashiers on mount
-  useEffect(() => {
-    const loadCashiers = async () => {
-      try {
-        setCashierLoading(true);
-        const res = await customerApi.getAll({
-          page: 1,
-          limit: 100,
-          role: 'ADMIN',
-        });
-        const admins = (res.users || []).filter(
-          (u: { role?: string }) => u.role === 'ADMIN' || u.role === 'SUPER_ADMIN'
-        ) as AdminOption[];
-        setCashiers(admins);
-      } catch {
-        // Non-blocking
-      } finally {
-        setCashierLoading(false);
-      }
-    };
-    if (isOpen) {
-      loadCashiers();
-    }
-  }, [isOpen]);
 
   // Set default date range (last 30 days) when modal opens
   useEffect(() => {
@@ -206,21 +168,16 @@ export function PosBulkInvoiceModal({ isOpen, onClose }: BulkInvoiceModalProps) 
               <User className="w-4 h-4 inline mr-2" />
               Cashier (Optional)
             </label>
-            <select
-              value={cashierId}
-              onChange={(e) => setCashierId(e.target.value)}
-              disabled={isGenerating || cashierLoading}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#13aaff] focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <option value="">All cashiers</option>
-              {cashiers.map((c) => (
-                <option key={c._id} value={c._id}>
-                  {getCashierLabel(c)}
-                </option>
-              ))}
-            </select>
-            {cashierLoading && (
-              <p className="text-xs text-gray-500 mt-1">Loading cashiers...</p>
+            {isOpen && (
+              <CashierSelectDropdown
+                value={cashierId}
+                onChange={setCashierId}
+                resetKey={isOpen}
+                disabled={isGenerating}
+                allOptionLabel="All cashiers"
+                label=""
+                className="w-full"
+              />
             )}
           </div>
 

@@ -230,7 +230,7 @@ export interface Order {
   walkin?: boolean;
   /** Customer name for walk-in / POS orders (when no registered customer) */
   walkinCustomerName?: string;
-  /** Cashier name for POS orders (when createdByCashier is populated) */
+  /** Cashier name for POS orders (from createdByCashier: string snapshot or populated user) */
   cashierName?: string;
   createdAt?: string;
   updatedAt?: string;

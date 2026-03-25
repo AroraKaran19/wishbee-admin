@@ -375,6 +375,29 @@ export const orderApi = {
 
 };
 
+/**
+ * POS orders: `createdByCashier` may be a string snapshot (survives deleted cashier)
+ * or a populated user object from the API.
+ */
+export function cashierNameFromCreatedBy(createdByCashier: unknown): string | undefined {
+  if (createdByCashier == null) return undefined;
+  if (typeof createdByCashier === "string") {
+    const t = createdByCashier.trim();
+    return t || undefined;
+  }
+  if (typeof createdByCashier === "object") {
+    const o = createdByCashier as {
+      firstName?: string;
+      lastName?: string;
+      email?: string;
+    };
+    const name = [o.firstName, o.lastName].filter(Boolean).join(" ").trim();
+    if (name) return name;
+    if (o.email?.trim()) return o.email.trim();
+  }
+  return undefined;
+}
+
 // Helper function to convert API order to UI order format
 export const convertApiOrderToUIOrder = (apiOrder: any): Order => {
   return {
@@ -481,12 +504,7 @@ export const convertApiOrderToUIOrder = (apiOrder: any): Order => {
     loyaltyDiscountPercent: apiOrder.loyaltyDiscountPercent,
     loyaltyDiscountAmount: apiOrder.loyaltyDiscountAmount,
     walkin: apiOrder.walkin === true,
-    cashierName:
-      apiOrder.createdByCashier && typeof apiOrder.createdByCashier === "object"
-        ? [apiOrder.createdByCashier.firstName, apiOrder.createdByCashier.lastName]
-            .filter(Boolean)
-            .join(" ") || apiOrder.createdByCashier.email
-        : undefined,
+    cashierName: cashierNameFromCreatedBy(apiOrder.createdByCashier),
     createdAt: apiOrder.createdAt,
     updatedAt: apiOrder.updatedAt,
   };
