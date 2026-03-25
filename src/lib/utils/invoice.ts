@@ -78,6 +78,9 @@ export async function downloadOrderInvoice(orderId: string): Promise<void> {
       items: apiOrder.items.map((item: any) => ({
         product: {
           name: item.product?.name || 'Product',
+          title2: item.product?.title2,
+          title3: item.product?.title3,
+          title4: item.product?.title4,
           mrp: item.product?.mrp || item.priceAtPurchase,
           gst: item.product?.gst || 0,
         },
