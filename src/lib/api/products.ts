@@ -1,10 +1,14 @@
-import { getAuthHeaders } from '@/lib/utils/auth';
+import { getAuthHeaders } from "@/lib/utils/auth";
 
 const API_BASE_URL =
-  process.env.NEXT_PUBLIC_BACKEND_URL || 'https://wishbee-web.vercel.app/api';
+  process.env.NEXT_PUBLIC_BACKEND_URL || "https://wishbee-web.vercel.app/api";
 
 // Get presigned URL for S3 upload
-export const getPresignedUrl = async (fileName: string, fileType: string, folder: string = "products") => {
+export const getPresignedUrl = async (
+  fileName: string,
+  fileType: string,
+  folder: string = "products",
+) => {
   const response = await fetch(`${API_BASE_URL}/upload/presigned-url`, {
     method: "POST",
     headers: await getAuthHeaders(),
@@ -18,36 +22,36 @@ export const getPresignedUrl = async (fileName: string, fileType: string, folder
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
     throw new Error(
-      errorData.message || `HTTP error! status: ${response.status}`
+      errorData.message || `HTTP error! status: ${response.status}`,
     );
   }
 
   const result = await response.json();
-  
+
   // Check if the response indicates success
   if (!result.success) {
-    throw new Error(result.message || 'Failed to get presigned URL');
+    throw new Error(result.message || "Failed to get presigned URL");
   }
-  
+
   // Use the response structure from your API
   const presignedUrl = result.data?.url;
   const s3Key = result.data?.key;
-  
+
   if (!presignedUrl) {
-    console.error('Missing url in response:', result);
-    throw new Error('Invalid response: url not found');
+    console.error("Missing url in response:", result);
+    throw new Error("Invalid response: url not found");
   }
-  
+
   if (!s3Key) {
-    console.error('Missing key in response:', result);
-    throw new Error('Invalid response: key not found');
+    console.error("Missing key in response:", result);
+    throw new Error("Invalid response: key not found");
   }
-  
-  const fullS3Key = presignedUrl.split('?')[0].split('/').slice(-3).join('/');
-  
+
+  const fullS3Key = presignedUrl.split("?")[0].split("/").slice(-3).join("/");
+
   // Extract bucket URL from presigned URL (everything before the first '?')
-  const bucketUrl = presignedUrl.split('?')[0].replace(`/${fullS3Key}`, '');
-  
+  const bucketUrl = presignedUrl.split("?")[0].replace(`/${fullS3Key}`, "");
+
   return {
     presignedUrl: presignedUrl,
     imageUrl: `${bucketUrl}/${fullS3Key}`,
@@ -56,16 +60,19 @@ export const getPresignedUrl = async (fileName: string, fileType: string, folder
 
 // Delete image from S3
 export const deleteImage = async (imageKey: string) => {
-  const response = await fetch(`${API_BASE_URL}/upload/delete?key=${encodeURIComponent(imageKey)}`, {
-    method: "DELETE",
-    headers: await getAuthHeaders(),
-  });
+  const response = await fetch(
+    `${API_BASE_URL}/upload/delete?key=${encodeURIComponent(imageKey)}`,
+    {
+      method: "DELETE",
+      headers: await getAuthHeaders(),
+    },
+  );
 
   const result = await response.json();
 
   // Check if the response indicates success
   if (!result.success) {
-    throw new Error(result.message || 'Failed to delete image');
+    throw new Error(result.message || "Failed to delete image");
   }
 
   return result;
@@ -135,7 +142,7 @@ export const productApi = {
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
       throw new Error(
-        errorData.message || `HTTP error! status: ${response.status}`
+        errorData.message || `HTTP error! status: ${response.status}`,
       );
     }
 
@@ -167,14 +174,13 @@ export const productApi = {
     if (params?.search) searchParams.append("search", params.search);
 
     const response = await fetch(`${API_BASE_URL}/products?${searchParams}`, {
-      headers: {
-      },
+      headers: {},
     });
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
       throw new Error(
-        errorData.message || `HTTP error! status: ${response.status}`
+        errorData.message || `HTTP error! status: ${response.status}`,
       );
     }
 
@@ -184,18 +190,36 @@ export const productApi = {
   // Get Single Product
   getById: async (productId: string) => {
     const response = await fetch(`${API_BASE_URL}/products/${productId}`, {
-      headers: {
-      },
+      headers: {},
     });
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
       throw new Error(
-        errorData.message || `HTTP error! status: ${response.status}`
+        errorData.message || `HTTP error! status: ${response.status}`,
       );
     }
 
     return response.json();
+  },
+
+  /** Resolve product by URL slug; returns `null` if no product uses this slug (404). */
+  getBySlug: async (slug: string): Promise<any | null> => {
+    const response = await fetch(
+      `${API_BASE_URL}/products/slug/${encodeURIComponent(slug)}`,
+      {
+        headers: await getAuthHeaders(),
+      },
+    );
+    if (response.status === 404) return null;
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(
+        errorData.message || `Failed to look up slug: ${response.statusText}`,
+      );
+    }
+    const result = await response.json();
+    return result.data ?? result;
   },
 
   // Update Product
@@ -253,7 +277,7 @@ export const productApi = {
       productDiscountPage: boolean;
       reviewsCount: number;
       totalRating: number;
-    }>
+    }>,
   ) => {
     const response = await fetch(`${API_BASE_URL}/products/${productId}`, {
       method: "PUT",
@@ -264,7 +288,7 @@ export const productApi = {
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
       throw new Error(
-        errorData.message || `HTTP error! status: ${response.status}`
+        errorData.message || `HTTP error! status: ${response.status}`,
       );
     }
 
@@ -281,7 +305,10 @@ export const productApi = {
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
       // Handle nested error structure: error.error.message or error.message
-      const errorMessage = errorData.error?.message || errorData.message || `HTTP error! status: ${response.status}`;
+      const errorMessage =
+        errorData.error?.message ||
+        errorData.message ||
+        `HTTP error! status: ${response.status}`;
       throw new Error(errorMessage);
     }
 
@@ -303,13 +330,13 @@ export const productApi = {
       `${API_BASE_URL}/products/inventory/out-of-stock?${searchParams}`,
       {
         headers: await getAuthHeaders(),
-      }
+      },
     );
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
       throw new Error(
-        errorData.message || `HTTP error! status: ${response.status}`
+        errorData.message || `HTTP error! status: ${response.status}`,
       );
     }
 
@@ -331,13 +358,13 @@ export const productApi = {
       `${API_BASE_URL}/products/inventory/expired?${searchParams}`,
       {
         headers: await getAuthHeaders(),
-      }
+      },
     );
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
       throw new Error(
-        errorData.message || `HTTP error! status: ${response.status}`
+        errorData.message || `HTTP error! status: ${response.status}`,
       );
     }
 
@@ -359,13 +386,13 @@ export const productApi = {
       `${API_BASE_URL}/products/inventory/close-to-expiry?${searchParams}`,
       {
         headers: await getAuthHeaders(),
-      }
+      },
     );
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
       throw new Error(
-        errorData.message || `HTTP error! status: ${response.status}`
+        errorData.message || `HTTP error! status: ${response.status}`,
       );
     }
 
@@ -382,23 +409,58 @@ export const productApi = {
     const searchParams = new URLSearchParams();
     if (params?.page) searchParams.append("page", params.page.toString());
     if (params?.limit) searchParams.append("limit", params.limit.toString());
-    if (params?.daysThreshold) searchParams.append("daysThreshold", params.daysThreshold.toString());
+    if (params?.daysThreshold)
+      searchParams.append("daysThreshold", params.daysThreshold.toString());
     if (params?.search) searchParams.append("search", params.search);
 
     const response = await fetch(
       `${API_BASE_URL}/products/inventory/long-unsold?${searchParams}`,
       {
         headers: await getAuthHeaders(),
-      }
+      },
     );
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
       throw new Error(
-        errorData.message || `HTTP error! status: ${response.status}`
+        errorData.message || `HTTP error! status: ${response.status}`,
       );
     }
 
     return response.json();
   },
 };
+
+/** Normalize text into a URL-safe product slug (same rules as admin SEO generator). */
+export function normalizeProductSlug(input: string): string {
+  return input
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)/g, "");
+}
+
+const UNIQUE_SLUG_MAX_ATTEMPTS = 50;
+
+export async function resolveUniqueProductSlug(
+  baseSlug: string,
+  options?: { excludeProductId?: string },
+): Promise<string> {
+  const normalized = normalizeProductSlug(baseSlug);
+  if (!normalized) {
+    return `product-${Date.now().toString(36)}`;
+  }
+
+  for (let i = 0; i < UNIQUE_SLUG_MAX_ATTEMPTS; i++) {
+    const candidate = i === 0 ? normalized : `${normalized}-${i}`;
+    const existing = await productApi.getBySlug(candidate);
+    if (!existing) return candidate;
+    if (
+      options?.excludeProductId &&
+      existing._id === options.excludeProductId
+    ) {
+      return candidate;
+    }
+  }
+
+  return `${normalized}-${Date.now().toString(36)}`;
+}

@@ -26,7 +26,12 @@ import {
   Edit,
 } from "lucide-react";
 import { Product, Category, Discount } from "@/lib/types";
-import { productApi, getPresignedUrl, deleteImage } from "@/lib/api/products";
+import {
+  productApi,
+  getPresignedUrl,
+  deleteImage,
+  resolveUniqueProductSlug,
+} from "@/lib/api/products";
 import { categoryApi, subcategoryApi } from "@/lib/api/categories";
 import {
   ActionDropdown,
@@ -617,77 +622,87 @@ export default function InventoryAddProductPage() {
     }
   };
 
-  // Auto generate SEO fields
-  const autoGenerateSEO = () => {
+  // Auto generate SEO fields (slug is checked against existing products via API)
+  const autoGenerateSEO = async () => {
     const productName = watch("name");
     if (!productName || productName.trim() === "") {
       toast.error("Please enter a product name first");
       return;
     }
 
-    // Generate meta title (max 60 characters for SEO best practices)
-    const metaTitle =
-      productName.length > 60
-        ? productName.substring(0, 57) + "..."
-        : productName;
+    const toastId = toast.loading("Finding an available slug…");
 
-    // Generate slug from product name
-    const slug = productName
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/(^-|-$)/g, "");
+    try {
+      // Generate meta title (max 60 characters for SEO best practices)
+      const metaTitle =
+        productName.length > 60
+          ? productName.substring(0, 57) + "..."
+          : productName;
 
-    // Generate meta description (max 160 characters for SEO best practices)
-    const description = watch("description");
-    const metaDescription =
-      description && description.length > 0
-        ? description.length > 160
-          ? description.substring(0, 157) + "..."
-          : description
-        : `Buy ${productName} online. High quality products with fast delivery.`;
-
-    // Generate meta keywords from product name and description
-    const generateKeywords = (name: string, desc?: string) => {
-      const keywords = new Set<string>();
-
-      // Add words from product name
-      const nameWords = name
+      const baseSlug = productName
         .toLowerCase()
-        .replace(/[^a-z0-9\s]/g, "")
-        .split(/\s+/)
-        .filter((word) => word.length > 2);
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/(^-|-$)/g, "");
 
-      nameWords.forEach((word) => keywords.add(word));
+      const slug = await resolveUniqueProductSlug(baseSlug);
 
-      // Add words from description if available
-      if (desc && desc.trim()) {
-        const descWords = desc
+      // Generate meta description (max 160 characters for SEO best practices)
+      const description = watch("description");
+      const metaDescription =
+        description && description.length > 0
+          ? description.length > 160
+            ? description.substring(0, 157) + "..."
+            : description
+          : `Buy ${productName} online. High quality products with fast delivery.`;
+
+      // Generate meta keywords from product name and description
+      const generateKeywords = (name: string, desc?: string) => {
+        const keywords = new Set<string>();
+
+        // Add words from product name
+        const nameWords = name
           .toLowerCase()
           .replace(/[^a-z0-9\s]/g, "")
           .split(/\s+/)
-          .filter((word) => word.length > 3)
-          .slice(0, 10); // Limit to first 10 words from description
+          .filter((word) => word.length > 2);
 
-        descWords.forEach((word) => keywords.add(word));
-      }
+        nameWords.forEach((word) => keywords.add(word));
 
-      // Add some common product-related keywords
-      const commonKeywords = ["product", "buy", "online", "quality", "premium"];
-      commonKeywords.forEach((keyword) => keywords.add(keyword));
+        // Add words from description if available
+        if (desc && desc.trim()) {
+          const descWords = desc
+            .toLowerCase()
+            .replace(/[^a-z0-9\s]/g, "")
+            .split(/\s+/)
+            .filter((word) => word.length > 3)
+            .slice(0, 10); // Limit to first 10 words from description
 
-      // Convert to array and limit to 15 keywords max
-      return Array.from(keywords).slice(0, 15);
-    };
+          descWords.forEach((word) => keywords.add(word));
+        }
 
-    const metaKeywords = generateKeywords(productName, description);
+        // Add some common product-related keywords
+        const commonKeywords = ["product", "buy", "online", "quality", "premium"];
+        commonKeywords.forEach((keyword) => keywords.add(keyword));
 
-    // Update form values
-    setValue("metaTitle", metaTitle);
-    setValue("slug", slug);
-    setValue("metaDescription", metaDescription);
-    setValue("metaKeywords", metaKeywords);
+        // Convert to array and limit to 15 keywords max
+        return Array.from(keywords).slice(0, 15);
+      };
 
-    toast.success("SEO fields generated successfully!");
+      const metaKeywords = generateKeywords(productName, description);
+
+      // Update form values
+      setValue("metaTitle", metaTitle);
+      setValue("slug", slug);
+      setValue("metaDescription", metaDescription);
+      setValue("metaKeywords", metaKeywords);
+
+      toast.success("SEO fields generated successfully!", { id: toastId });
+    } catch (e) {
+      toast.error(
+        e instanceof Error ? e.message : "Could not resolve a unique slug",
+        { id: toastId }
+      );
+    }
   };
 
   // Image upload handler for categories/subcategories
