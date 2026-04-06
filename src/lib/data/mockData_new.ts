@@ -129,6 +129,11 @@ export const navigationItems: NavItem[] = [
         id: 'loyalty-tiers',
         label: 'Loyalty tiers',
         href: '/settings/loyalty-tiers'
+      },
+      {
+        id: 'offline-store',
+        label: 'Online store status',
+        href: '/settings/offline-store'
       }
     ]
   },

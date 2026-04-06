@@ -1266,6 +1266,71 @@ On app load:
 
 ---
 
+## 2.2 Offline configurations (store status)
+
+A **singleton** document (`OfflineConfigurations`) controls whether the storefront is marked as temporarily **closed** for **online** (consumer) orders. Super admins update `status`; the public endpoint drives website UI (e.g. a banner); when `CLOSED`, new web checkout orders are rejected.
+
+**`status` values**
+
+| Value | Meaning |
+|--------|--------|
+| `ACTIVE` | Normal: online orders are allowed (subject to stock, cart, etc.). |
+| `CLOSED` | **Online** consumer orders are **blocked** (see below). **POS** (`POST /api/orders/pos`) is **not** blocked. |
+
+### Get offline configuration (public)
+
+- **API**: `GET /api/offline-configurations/public`
+- **Access**: **Public** (no authentication)
+- **Response** (example):
+  ```json
+  {
+    "success": true,
+    "message": "Offline configuration retrieved successfully",
+    "data": {
+      "status": "ACTIVE"
+    },
+    "timestamp": "2026-04-03T12:00:00.000Z"
+  }
+  ```
+- **Note**: Intended for the storefront (e.g. show a banner when `status` is `CLOSED`).
+
+### Get offline configuration (SUPER_ADMIN)
+
+- **API**: `GET /api/offline-configurations`
+- **Access**: Authenticated user with role **SUPER_ADMIN** only (`Authorization: Bearer <access_token>`)
+- **Response**: Same `data` shape as the public endpoint (`{ "status": "ACTIVE" | "CLOSED" }`).
+
+### Update offline configuration (SUPER_ADMIN)
+
+- **API**: `PATCH /api/offline-configurations`
+- **Access**: **SUPER_ADMIN** only
+- **Request body**:
+  ```json
+  {
+    "status": "CLOSED"
+  }
+  ```
+- **Validation**: `status` must be exactly one of: `ACTIVE`, `CLOSED`
+- **Response**: Updated document (includes `_id`, `status`, `createdAt`, `updatedAt`, etc.)
+- **Note**: Uses upsert; if no row exists, one is created with the given `status`.
+
+### Store closed vs online orders
+
+When `status` is **`CLOSED`**, consumer **online** order creation is rejected with **`403 Forbidden`** and this message (same string clients should show in toasts/UI):
+
+`We are not accepting new orders right now due to heavy demand. Please try again later.`
+
+This check runs on:
+
+- **`POST /api/orders`** — COD orders and **Razorpay order initialization** (non-COD flow)
+- **`POST /api/orders/verify`** — Final order creation after Razorpay payment
+
+**Not** enforced on **`POST /api/orders/pos`** (in-store POS).
+
+**Why 403**: The API returns **4xx** so the real message is included in production error responses. **5xx** errors may be replaced with a generic `"Internal Server Error"` body in production.
+
+---
+
 ## 3. Enquiry Endpoints
 
 ### Create Enquiry
@@ -2039,7 +2104,8 @@ On app load:
 - **Note**:
   - `productType` must be either "product" or "combo"
   - `quantity` must be greater than 0
-- **Response**: Updated cart object
+  - **Reconciliation**: Before adding, the server **reconciles** the existing cart: lines whose product is missing, not **`ACTIVE`**, has **zero stock**, or has **quantity above current stock** are **removed** or **clamped** to available stock. Then the new item is validated; if the product still cannot be added, the request fails with an error (cart may already have been cleaned).
+- **Response**: Updated cart object. The `data` payload may include **`cartReconcileNotices`**: an array describing lines removed or quantities adjusted during reconciliation. Each notice includes `productId`, `productType`, `name`, `kind` (`"removed"` | `"quantity_adjusted"`), `reason` (`"not_found"` | `"inactive"` | `"out_of_stock"` | `"stock_limited"`), and optional `previousQuantity` / `newQuantity` when quantity was clamped. Clients may show a toast per notice.
 
 ### Update Cart Item
 
@@ -2056,7 +2122,11 @@ On app load:
 - **Note**:
   - `productType` must be either "product" or "combo"
   - `quantity` must be greater than or equal to 0 (0 removes the item)
-- **Response**: Updated cart object
+  - **Reconciliation**: On each update, the cart is **reconciled** first (same rules as add: drop unavailable lines, clamp quantity to stock when stock is lower but still positive).
+  - If the line item is **no longer available** (inactive, out of stock, deleted), it is **removed** from the cart and the response is the **updated cart** (HTTP 200) — no error for “product not active” / “insufficient stock” on that line.
+  - If the requested quantity exceeds **available stock** but stock is still positive, quantity is **set to available stock** (capped).
+  - If the line was already removed by reconciliation, the response returns the **current cart** (may omit that product).
+- **Response**: Updated cart object, optionally with **`cartReconcileNotices`** (same shape as **Add to Cart**) when reconciliation or the update removed/adjusted lines.
 
 ### Remove from Cart
 
@@ -3290,6 +3360,7 @@ Coupons can be restricted by products and/or categories:
   - Product stock is automatically decremented based on order items
   - User's cart is automatically cleared after successful order creation
   - Coupon usage count is incremented when `couponCode` is applied and order is created successfully
+  - **Store closed (`OfflineConfigurations.status` = `CLOSED`)**: Returns **`403`** with message `We are not accepting new orders right now due to heavy demand. Please try again later.` Applies to COD and to the Razorpay order-creation branch. Does **not** apply to POS. See **§2.2 Offline configurations**.
 - **Response**:
   ```json
   {
@@ -3384,6 +3455,7 @@ Coupons can be restricted by products and/or categories:
 - **Optional**: `couponCode` - Same coupon used when creating Razorpay order; validated before order creation
 - **Response**: Created order object
 - **Note**: Call after user completes Razorpay payment. Payment amount must match order total (items + shipping - coupon discount - loyalty discount)
+- **Store closed**: If **`OfflineConfigurations.status`** is **`CLOSED`**, returns **`403`** with the same message as **`POST /api/orders`** (order is not created). See **§2.2 Offline configurations**. *Rare edge case:* if the store is set to `CLOSED` after payment succeeds but before verify, verification fails and the client should surface the API error message (refunds may require manual handling).
 
 ### Cashier session (POS)
 
@@ -4451,7 +4523,7 @@ All endpoints return consistent error responses:
 - `201` - Created
 - `400` - Bad Request
 - `401` - Unauthorized
-- `403` - Forbidden
+- `403` - Forbidden (includes **store closed** for consumer order APIs when `OfflineConfigurations.status` is `CLOSED`; see **§2.2**)
 - `404` - Not Found
 - `500` - Internal Server Error
 
