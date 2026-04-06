@@ -1281,24 +1281,20 @@ A **singleton** document (`OfflineConfigurations`) controls whether the storefro
 
 - **API**: `GET /api/offline-configurations/public`
 - **Access**: **Public** (no authentication)
-- **Response** (example):
+- **Response**: Minimal JSON only (no `success` / `message` / `timestamp` envelope):
   ```json
   {
-    "success": true,
-    "message": "Offline configuration retrieved successfully",
-    "data": {
-      "status": "ACTIVE"
-    },
-    "timestamp": "2026-04-03T12:00:00.000Z"
+    "status": "ACTIVE"
   }
   ```
+  `status` is `"ACTIVE"` or `"CLOSED"`.
 - **Note**: Intended for the storefront (e.g. show a banner when `status` is `CLOSED`).
 
 ### Get offline configuration (SUPER_ADMIN)
 
 - **API**: `GET /api/offline-configurations`
 - **Access**: Authenticated user with role **SUPER_ADMIN** only (`Authorization: Bearer <access_token>`)
-- **Response**: Same `data` shape as the public endpoint (`{ "status": "ACTIVE" | "CLOSED" }`).
+- **Response**: Standard success envelope; `data` contains `{ "status": "ACTIVE" | "CLOSED" }`.
 
 ### Update offline configuration (SUPER_ADMIN)
 
@@ -1313,6 +1309,7 @@ A **singleton** document (`OfflineConfigurations`) controls whether the storefro
 - **Validation**: `status` must be exactly one of: `ACTIVE`, `CLOSED`
 - **Response**: Updated document (includes `_id`, `status`, `createdAt`, `updatedAt`, etc.)
 - **Note**: Uses upsert; if no row exists, one is created with the given `status`.
+- **Wishbee Admin**: **Settings → Online store status** uses this endpoint (toggle = `ACTIVE` vs `CLOSED`; same permission rules).
 
 ### Store closed vs online orders
 
