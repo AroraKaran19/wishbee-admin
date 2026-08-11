@@ -54,6 +54,8 @@ export interface StatusActivityRow {
 export interface StatusActivityResponse {
   rows: StatusActivityRow[];
   totals: Record<string, number>;
+  /** Order value moved into each status, keyed by status name. */
+  amounts: Record<string, number>;
   period: string;
 }
 

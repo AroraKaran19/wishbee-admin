@@ -5,6 +5,7 @@ import { SearchBar } from '@/components/ui/search-bar';
 import { OrderTable } from './order-table';
 import { PeriodFilter, usePeriodFilter } from './period-filter';
 import { StaffActivityCard } from './staff-activity-card';
+import { OrderStatusFilter, getOrderStatusLabel } from './order-status-filter';
 import { orderApi, convertApiOrderToUIOrder } from '@/lib/api/orders';
 import { Order } from '@/lib/types';
 import { Upload, Download } from 'lucide-react';
@@ -17,6 +18,7 @@ export function OrderPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -48,9 +50,15 @@ export function OrderPage() {
       page: currentPage,
       limit: itemsPerPage,
       search: debouncedSearchQuery || undefined,
+      status: statusFilter || undefined,
       ...buildPeriodFilters(period, appliedStartDate, appliedEndDate),
     };
-  }, [currentPage, debouncedSearchQuery, period, appliedStartDate, appliedEndDate]);
+  }, [currentPage, debouncedSearchQuery, statusFilter, period, appliedStartDate, appliedEndDate]);
+
+  const handleStatusChange = (status: string) => {
+    setStatusFilter(status);
+    setCurrentPage(1);
+  };
 
   const loadOrders = useCallback(async () => {
     const orderResponse = await orderApi.getAll(buildOrderFilters());
@@ -178,8 +186,12 @@ export function OrderPage() {
         </div>
 
         <div className="flex-shrink-0 mb-4">
+          <OrderStatusFilter value={statusFilter} onChange={handleStatusChange} />
+        </div>
+
+        <div className="flex-shrink-0 mb-4">
           <SearchBar
-            placeholder="Search by: Order ID, Customer Name, Product"
+            placeholder="Search by: Order ID, Customer, Store, Mobile, Amount, Product"
             onSearch={handleSearch}
             onSearchChange={setSearchQuery}
             searchValue={searchQuery}
@@ -230,6 +242,8 @@ export function OrderPage() {
                 <p className="text-gray-400 text-sm">
                   {debouncedSearchQuery
                     ? 'Try adjusting your search terms'
+                    : statusFilter
+                    ? `No ${getOrderStatusLabel(statusFilter).toLowerCase()} orders in this period`
                     : 'No orders available'}
                 </p>
               </div>

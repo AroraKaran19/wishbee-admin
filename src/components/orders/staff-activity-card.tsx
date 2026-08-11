@@ -39,6 +39,12 @@ const STATUS_STYLES: Record<
   RETURNED: { label: "Returned", dot: "#7c3aed", value: "text-[#7c3aed]" },
 };
 
+const rupees = new Intl.NumberFormat("en-IN", {
+  style: "currency",
+  currency: "INR",
+  maximumFractionDigits: 0,
+});
+
 /**
  * How many orders were moved into each status during the selected period, and
  * who did it. Counts changes by when they were made, so it reflects activity in
@@ -51,6 +57,7 @@ export function StaffActivityCard({
 }: StaffActivityCardProps) {
   const [rows, setRows] = useState<StatusActivityRow[] | null>(null);
   const [totals, setTotals] = useState<Record<string, number>>({});
+  const [amounts, setAmounts] = useState<Record<string, number>>({});
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -70,6 +77,7 @@ export function StaffActivityCard({
         });
         setRows(activity.rows);
         setTotals(activity.totals || {});
+        setAmounts(activity.amounts || {});
       } catch (err) {
         console.error("Error fetching status activity:", err);
         setError(
@@ -118,6 +126,7 @@ export function StaffActivityCard({
               {visibleStatuses.map((status) => {
                 const style = STATUS_STYLES[status];
                 const count = totals[status] || 0;
+                const amount = amounts[status] || 0;
                 return (
                   <div
                     key={status}
@@ -138,6 +147,13 @@ export function StaffActivityCard({
                       }`}
                     >
                       {count}
+                    </div>
+                    <div
+                      className={`mt-1.5 text-xs font-medium tabular-nums ${
+                        amount === 0 ? "text-gray-300" : "text-gray-500"
+                      }`}
+                    >
+                      {rupees.format(amount)}
                     </div>
                   </div>
                 );
