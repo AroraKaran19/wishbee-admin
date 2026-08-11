@@ -394,7 +394,18 @@ export function OrderDetailsModal({ orderId, isOpen, onClose }: OrderDetailsModa
                           <p className="text-sm text-gray-500">{formatDate(history.updatedAt)}</p>
                         </div>
                         <p className="text-sm text-gray-600 mb-1">
-                          <span className="font-medium">Updated by:</span> {history.updatedBy}
+                          <span className="font-medium">Updated by:</span>{' '}
+                          {history.updatedByName ? (
+                            <>
+                              {history.updatedByName}
+                              <span className="text-gray-400"> ({history.updatedBy})</span>
+                            </>
+                          ) : (
+                            <>
+                              {history.updatedBy}
+                              <span className="text-gray-400 italic"> — name not recorded</span>
+                            </>
+                          )}
                         </p>
                         {history.reason && (
                           <p className="text-sm text-gray-700 mb-1">

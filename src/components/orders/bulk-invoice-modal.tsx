@@ -11,19 +11,9 @@ interface BulkInvoiceModalProps {
   onClose: () => void;
 }
 
-const ORDER_STATUSES = [
-  { value: "DELIVERED", label: "Delivered" },
-  { value: "SHIPPED", label: "Shipped" },
-  { value: "REFUNDED", label: "Refunded" },
-  { value: "CANCELLED", label: "Cancelled" },
-];
-
 export function BulkInvoiceModal({ isOpen, onClose }: BulkInvoiceModalProps) {
   const [startDate, setStartDate] = useState<string>("");
   const [endDate, setEndDate] = useState<string>("");
-  const [selectedStatuses, setSelectedStatuses] = useState<string[]>([
-    "DELIVERED",
-  ]);
   const [exportFormat, setExportFormat] = useState<"pdf" | "csv">("pdf");
   const [isGenerating, setIsGenerating] = useState(false);
   const [progress, setProgress] = useState({ current: 0, total: 0 });
@@ -40,24 +30,6 @@ export function BulkInvoiceModal({ isOpen, onClose }: BulkInvoiceModalProps) {
     }
   }, [isOpen, startDate, endDate]);
 
-  const handleStatusToggle = (status: string) => {
-    setSelectedStatuses((prev) => {
-      if (prev.includes(status)) {
-        return prev.filter((s) => s !== status);
-      } else {
-        return [...prev, status];
-      }
-    });
-  };
-
-  const handleSelectAll = () => {
-    if (selectedStatuses.length === ORDER_STATUSES.length) {
-      setSelectedStatuses([]);
-    } else {
-      setSelectedStatuses(ORDER_STATUSES.map((s) => s.value));
-    }
-  };
-
   const isDateRangeValid = () => {
     if (!startDate || !endDate) return false;
     return new Date(startDate) <= new Date(endDate);
@@ -66,11 +38,6 @@ export function BulkInvoiceModal({ isOpen, onClose }: BulkInvoiceModalProps) {
   const handleDownload = async () => {
     if (!isDateRangeValid()) {
       toast.error("Please select a valid date range");
-      return;
-    }
-
-    if (selectedStatuses.length === 0) {
-      toast.error("Please select at least one order status");
       return;
     }
 
@@ -94,7 +61,6 @@ export function BulkInvoiceModal({ isOpen, onClose }: BulkInvoiceModalProps) {
           {
             startDate,
             endDate,
-            statuses: selectedStatuses,
           },
           (current, total) => {
             setProgress({ current, total });
@@ -110,7 +76,6 @@ export function BulkInvoiceModal({ isOpen, onClose }: BulkInvoiceModalProps) {
           {
             startDate,
             endDate,
-            statuses: selectedStatuses,
           },
           {
             includePDFs: true,
@@ -242,55 +207,13 @@ export function BulkInvoiceModal({ isOpen, onClose }: BulkInvoiceModalProps) {
             </div>
           </div>
 
-          {/* Order Statuses */}
-          <div>
-            <div className="flex items-center justify-between mb-3">
-              <label className="block text-sm font-medium text-gray-700">
-                Order Status
-              </label>
-              <button
-                type="button"
-                onClick={handleSelectAll}
-                className="text-sm cursor-pointer text-blue-600 hover:text-blue-700 font-medium"
-              >
-                {selectedStatuses.length === ORDER_STATUSES.length
-                  ? "Deselect All"
-                  : "Select All"}
-              </button>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              {ORDER_STATUSES.map((status) => (
-                <label
-                  key={status.value}
-                  className="flex items-center p-3 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors"
-                >
-                  <input
-                    type="checkbox"
-                    checked={selectedStatuses.includes(status.value)}
-                    onChange={() => handleStatusToggle(status.value)}
-                    disabled={isGenerating}
-                    className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                  />
-                  <span className="ml-3 text-sm text-gray-700">
-                    {status.label}
-                  </span>
-                </label>
-              ))}
-            </div>
-            {selectedStatuses.length === 0 && (
-              <p className="text-red-500 text-xs mt-2">
-                Please select at least one order status
-              </p>
-            )}
-          </div>
-
           {/* Note */}
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
             <p className="text-sm text-blue-800">
               <strong>Note:</strong> Only orders with status{" "}
               <strong>DELIVERED</strong> and payment status{" "}
-              <strong>COMPLETED</strong> will have invoices generated. Other
-              orders will be filtered out automatically.
+              <strong>COMPLETED</strong> have invoices, so only those are
+              included in the download.
             </p>
           </div>
 
@@ -328,11 +251,7 @@ export function BulkInvoiceModal({ isOpen, onClose }: BulkInvoiceModalProps) {
           </button>
           <button
             onClick={handleDownload}
-            disabled={
-              !isDateRangeValid() ||
-              selectedStatuses.length === 0 ||
-              isGenerating
-            }
+            disabled={!isDateRangeValid() || isGenerating}
             className="px-4 py-2 text-sm cursor-pointer font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
           >
             {isGenerating ? (

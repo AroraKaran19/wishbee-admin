@@ -234,22 +234,6 @@ export const comboApi = {
     return response.json();
   },
 
-  // Update combo stock
-  updateStock: async (id: string, quantity: number): Promise<ComboResponse> => {
-    const response = await fetch(`${API_BASE_URL}/combos/${id}/stock`, {
-      method: "PATCH",
-      headers: await getAuthHeaders(),
-      body: JSON.stringify({ quantity }),
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.message || `Failed to update combo stock: ${response.statusText}`);
-    }
-
-    return response.json();
-  },
-
   // Delete combo
   delete: async (id: string): Promise<{
     success: boolean;

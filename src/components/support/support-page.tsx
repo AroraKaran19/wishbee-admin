@@ -76,9 +76,11 @@ export function SupportPage() {
   const filteredEnquiries = debouncedSearchQuery
     ? enquiries.filter((enquiry) => {
         const searchLower = debouncedSearchQuery.toLowerCase();
-        const userName = `${enquiry.user.firstName} ${enquiry.user.lastName}`.toLowerCase();
-        const userEmail = enquiry.user.email?.toLowerCase() || '';
-        const userPhone = enquiry.user.phoneNumber?.toLowerCase() || '';
+        const userName = enquiry.user
+          ? `${enquiry.user.firstName} ${enquiry.user.lastName}`.toLowerCase()
+          : '';
+        const userEmail = enquiry.user?.email?.toLowerCase() || '';
+        const userPhone = enquiry.user?.phoneNumber?.toLowerCase() || '';
         const message = enquiry.message?.toLowerCase() || '';
         const type = enquiry.type?.toLowerCase() || '';
 

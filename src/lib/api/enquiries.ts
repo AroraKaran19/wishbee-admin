@@ -14,7 +14,8 @@ export interface EnquiryUser {
 
 export interface Enquiry {
   _id: string;
-  user: EnquiryUser;
+  /** Null when the referenced user has been deleted, leaving the enquiry orphaned. */
+  user: EnquiryUser | null;
   type: string;
   message: string;
   images?: string[];

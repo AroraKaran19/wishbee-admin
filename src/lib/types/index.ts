@@ -151,7 +151,11 @@ export interface Customer {
 export interface OrderUpdateHistory {
   status: string;
   updatedAt: string;
+  /** Role that made the change: USER, ADMIN or SYSTEM. */
   updatedBy: string;
+  /** Who made the change. Absent on entries recorded before actor tracking. */
+  updatedByName?: string;
+  updatedByUser?: string;
   reason?: string;
   notes?: string;
 }
@@ -251,6 +255,18 @@ export interface OrderSummary {
   totalCODOrders?: number;
   totalCardOrders?: number;
   period?: string;
+  /** Time series backing the trend charts; absent on older API responses. */
+  trend?: {
+    granularity: 'hour' | 'day' | 'month';
+    points: Array<{ date: string; orders: number; revenue: number }>;
+  };
+  /** Previous equal-length window, backing the "vs previous" deltas. */
+  comparison?: {
+    totalOrders: number;
+    revenue: number;
+    ordersGrowth: number | null;
+    revenueGrowth: number | null;
+  };
   trends: {
     totalOrders: { value: number; percentage: number };
     totalReceived: { value: number; percentage: number };

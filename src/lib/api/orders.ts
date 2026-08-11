@@ -27,6 +27,44 @@ export interface OrderAnalytics {
 
 export type OrderPeriod = 'today' | 'currentDate' | '7days' | '30days' | 'lastMonth' | '6months' | '12months' | 'all-time';
 
+export type TrendGranularity = 'hour' | 'day' | 'month';
+
+export interface OrderTrendPoint {
+  /** ISO hour (YYYY-MM-DDTHH), day (YYYY-MM-DD), or month (YYYY-MM). */
+  date: string;
+  orders: number;
+  revenue: number;
+}
+
+export interface OrderTrend {
+  granularity: TrendGranularity;
+  points: OrderTrendPoint[];
+}
+
+export interface StatusActivityRow {
+  /** Null for changes recorded before actor tracking shipped. */
+  userId: string | null;
+  name: string;
+  role: 'USER' | 'ADMIN' | 'SYSTEM';
+  /** Number of changes into each status, keyed by status name. */
+  counts: Record<string, number>;
+  total: number;
+}
+
+export interface StatusActivityResponse {
+  rows: StatusActivityRow[];
+  totals: Record<string, number>;
+  period: string;
+}
+
+export interface OrderComparison {
+  totalOrders: number;
+  revenue: number;
+  /** Null when the previous window had nothing to compare against. */
+  ordersGrowth: number | null;
+  revenueGrowth: number | null;
+}
+
 export interface OrderFilters {
   status?: string;
   userId?: string;
@@ -156,6 +194,41 @@ export const orderApi = {
     return result.data;
   },
 
+  // Who changed order statuses, and to what, within a period
+  getStatusActivity: async (filters?: {
+    period?: OrderPeriod;
+    startDate?: string;
+    endDate?: string;
+  }): Promise<StatusActivityResponse> => {
+    const params = new URLSearchParams();
+
+    if (filters?.startDate && filters?.endDate) {
+      params.append("startDate", filters.startDate);
+      params.append("endDate", filters.endDate);
+    } else if (filters?.period) {
+      params.append("period", filters.period);
+    }
+
+    const url = `${API_BASE_URL}/orders/status-activity${
+      params.toString() ? `?${params.toString()}` : ""
+    }`;
+    const response = await fetch(url, {
+      method: "GET",
+      headers: await getAuthHeaders(),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(
+        errorData.message ||
+          `Failed to fetch status activity: ${response.statusText}`
+      );
+    }
+
+    const result = await response.json();
+    return result.data;
+  },
+
   // Get order statistics (Dashboard)
   getStats: async (filters?: {
     period?: "today" | "currentDate" | "7days" | "30days" | "lastMonth" | "6months" | "12months" | "all-time";
@@ -173,6 +246,8 @@ export const orderApi = {
     totalCODOrders: number;
     totalCardOrders: number;
     period: string;
+    trend?: OrderTrend;
+    comparison?: OrderComparison;
   }> => {
     const params = new URLSearchParams();
 
@@ -476,6 +551,8 @@ export const convertApiOrderToUIOrder = (apiOrder: any): Order => {
       status: history.status,
       updatedAt: history.updatedAt,
       updatedBy: history.updatedBy,
+      updatedByName: history.updatedByName,
+      updatedByUser: history.updatedByUser,
       reason: history.reason,
       notes: history.notes,
     })),
@@ -567,6 +644,8 @@ export const convertStatsToOrderSummary = (stats: {
   totalCODOrders?: number;
   totalCardOrders?: number;
   period: string;
+  trend?: OrderTrend;
+  comparison?: OrderComparison;
 }): OrderSummary => {
   return {
     totalOrders: stats.totalOrders,
@@ -583,6 +662,8 @@ export const convertStatsToOrderSummary = (stats: {
     totalCODOrders: stats.totalCODOrders,
     totalCardOrders: stats.totalCardOrders,
     period: stats.period,
+    trend: stats.trend,
+    comparison: stats.comparison,
     trends: {
       totalOrders: { value: stats.totalOrders, percentage: 0 },
       totalReceived: {

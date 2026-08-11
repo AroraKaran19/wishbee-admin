@@ -5,16 +5,19 @@ import { DataTable } from "@/components/ui/data-table";
 import { Product, TableConfig } from "@/lib/types";
 import { formatCurrency } from "@/lib/utils";
 import Link from "next/link";
-import { Trash2 } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Pencil, RotateCcw, Trash2 } from "lucide-react";
 import { productApi } from "@/lib/api/products";
 import toast from "react-hot-toast";
 import { Button } from "@/components/ui/button";
+import { RestockModal, RestockTarget } from "@/components/inventory/restock-modal";
 
 interface InventoryTableProps {
   products: Product[];
   currentPage: number;
   totalPages: number;
   onPageChange: (page: number) => void;
+  onRefresh: () => void;
 }
 
 export function InventoryTable({
@@ -22,7 +25,10 @@ export function InventoryTable({
   currentPage,
   totalPages,
   onPageChange,
+  onRefresh,
 }: InventoryTableProps) {
+  const router = useRouter();
+  const [restockTarget, setRestockTarget] = useState<RestockTarget | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [productToDelete, setProductToDelete] = useState<Product | null>(null);
@@ -245,13 +251,38 @@ export function InventoryTable({
     ],
     actions: [
       {
+        key: "edit",
+        label: "Edit",
+        icon: <Pencil className="h-4 w-4" />,
+        onClick: (record) =>
+          router.push(`/inventory/product/${record._id}/edit`),
+        variant: "primary",
+        size: "sm",
+        className: "text-white flex items-center gap-2",
+      },
+      {
+        key: "restock",
+        label: "Restock",
+        icon: <RotateCcw className="h-4 w-4" />,
+        onClick: (record) =>
+          setRestockTarget({
+            id: record._id ?? "",
+            name: record.name,
+            sku: record.sku,
+            currentStock: record.stock,
+          }),
+        variant: "success",
+        size: "sm",
+        className: "text-white flex items-center gap-2",
+      },
+      {
         key: "delete",
         label: "Delete",
         icon: <Trash2 className="h-4 w-4" />,
         onClick: (record) => handleDeleteClick(record),
         variant: "danger",
         size: "sm",
-        className: "text-white",
+        className: "text-white flex items-center gap-2",
         disabled: (record) => deletingId === record._id,
       },
     ],
@@ -269,7 +300,13 @@ export function InventoryTable({
   return (
     <>
       <DataTable data={products} config={tableConfig} />
-      
+
+      <RestockModal
+        target={restockTarget}
+        onClose={() => setRestockTarget(null)}
+        onSuccess={onRefresh}
+      />
+
       {/* Delete Confirmation Modal */}
       {showDeleteConfirm && productToDelete && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">

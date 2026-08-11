@@ -35,17 +35,8 @@ interface DashboardStatistics {
     totalOrders: number;
     totalCustomers: number;
   };
-  orderStatistics: {
-    totalReceivedOrders: number;
-    totalReceivedRevenue: number;
-    totalReturnedOrders: number;
-    totalReturnedRevenue: number;
-    ordersOnTheWay: number;
-    ordersOnTheWayCost: number;
-  };
   salesReport: {
     salesTrend: Array<{ date: string; sales: number }>;
-    ordersTrend: Array<{ date: string; orders: number }>;
   };
   inventorySummary: {
     totalProducts: number;
@@ -66,15 +57,6 @@ interface DashboardStatistics {
       threshold: number;
     }>;
   };
-  customerAnalytics: {
-    newCustomers: number;
-    newCustomersGrowth: number;
-  };
-  categoryAnalytics: Array<{
-    categoryName: string;
-    totalSales: number;
-    percentage: number;
-  }>;
   growthMetrics: {
     todaySalesGrowth: number;
     totalSalesGrowth: number;

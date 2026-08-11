@@ -66,7 +66,8 @@ export function ShortExpiryTable({
         )
       },
       {
-        key: 'expiry',
+        key: 'remainingDays',
+        dataIndex: 'expiry',
         title: 'Remaining Days',
         align: 'center',
         render: (value) => {
@@ -98,7 +99,7 @@ export function ShortExpiryTable({
         onClick: (record) => handleAddToFlashSale(record),
         variant: 'danger',
         size: 'sm',
-        className: 'text-white'
+        className: 'text-white flex items-center gap-2'
       }
     ],
     pagination: {

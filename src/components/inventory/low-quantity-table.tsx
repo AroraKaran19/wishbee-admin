@@ -1,10 +1,11 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { DataTable } from '@/components/ui/data-table';
 import { LowStockItem, TableConfig } from '@/lib/types';
 import { RotateCcw } from 'lucide-react';
 import Link from 'next/link';
+import { RestockModal, RestockTarget } from '@/components/inventory/restock-modal';
 
 interface LowQuantityTableProps {
   items: LowStockItem[];
@@ -12,23 +13,31 @@ interface LowQuantityTableProps {
   totalPages: number;
   onPageChange: (page: number) => void;
   threshold: number;
+  onRefresh: () => void;
 }
 
-export function LowQuantityTable({ 
-  items, 
-  currentPage, 
-  totalPages, 
+export function LowQuantityTable({
+  items,
+  currentPage,
+  totalPages,
   onPageChange,
-  threshold
+  threshold,
+  onRefresh
 }: LowQuantityTableProps) {
+  const [restockTarget, setRestockTarget] = useState<RestockTarget | null>(null);
 
   const handleRestock = (item: LowStockItem) => {
-    // Navigate to product/combo edit page based on type
-    if (item.type === 'product') {
-      window.location.href = `/inventory/product/${item.productId}/edit`;
-    } else {
+    // Combos have no restock endpoint, so they keep the edit-page route.
+    if (item.type !== 'product') {
       window.location.href = `/inventory/combo/${item.productId}/edit`;
+      return;
     }
+
+    setRestockTarget({
+      id: item.productId,
+      name: item.name,
+      currentStock: item.currentStock,
+    });
   };
 
   const getQuantityColor = (quantity: number, threshold: number) => {
@@ -117,7 +126,7 @@ export function LowQuantityTable({
         onClick: (record) => handleRestock(record),
         variant: 'primary',
         size: 'sm',
-        className: 'text-white'
+        className: 'text-white flex items-center gap-2'
       }
     ],
     pagination: {
@@ -134,6 +143,11 @@ export function LowQuantityTable({
   return (
     <div>
       <DataTable data={items} config={tableConfig} />
+      <RestockModal
+        target={restockTarget}
+        onClose={() => setRestockTarget(null)}
+        onSuccess={onRefresh}
+      />
       <div className="h-4"></div>
     </div>
   );

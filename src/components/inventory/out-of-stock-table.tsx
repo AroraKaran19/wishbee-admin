@@ -1,28 +1,36 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { DataTable } from '@/components/ui/data-table';
 import { Product, TableConfig } from '@/lib/types';
 import { RotateCcw } from 'lucide-react';
 import Link from 'next/link';
+import { RestockModal, RestockTarget } from '@/components/inventory/restock-modal';
 
 interface OutOfStockTableProps {
   items: Product[];
   currentPage: number;
   totalPages: number;
   onPageChange: (page: number) => void;
+  onRefresh: () => void;
 }
 
-export function OutOfStockTable({ 
-  items, 
-  currentPage, 
-  totalPages, 
-  onPageChange 
+export function OutOfStockTable({
+  items,
+  currentPage,
+  totalPages,
+  onPageChange,
+  onRefresh
 }: OutOfStockTableProps) {
+  const [restockTarget, setRestockTarget] = useState<RestockTarget | null>(null);
 
   const handleRestock = (item: Product) => {
-    // Navigate to product edit page
-    window.location.href = `/inventory/product/${item._id}/edit`;
+    setRestockTarget({
+      id: item._id ?? '',
+      name: item.name,
+      sku: item.sku,
+      currentStock: item.stock,
+    });
   };
 
   const tableConfig: TableConfig<Product> = {
@@ -79,7 +87,7 @@ export function OutOfStockTable({
         onClick: (record) => handleRestock(record),
         variant: 'primary',
         size: 'sm',
-        className: 'text-white'
+        className: 'text-white flex items-center gap-2'
       }
     ],
     pagination: {
@@ -97,6 +105,11 @@ export function OutOfStockTable({
 
     <div>
       <DataTable data={items} config={tableConfig} />
+      <RestockModal
+        target={restockTarget}
+        onClose={() => setRestockTarget(null)}
+        onSuccess={onRefresh}
+      />
       <div className="h-4"></div>
     </div>
   )

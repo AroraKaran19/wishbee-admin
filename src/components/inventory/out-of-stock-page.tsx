@@ -21,6 +21,7 @@ export function OutOfStockPage() {
     totalPages: 1,
     totalItems: 0,
   });
+  const [refreshKey, setRefreshKey] = useState(0);
   const itemsPerPage = 10;
 
   useEffect(() => {
@@ -58,7 +59,7 @@ export function OutOfStockPage() {
     };
 
     loadOutOfStock();
-  }, [currentPage, searchQuery]);
+  }, [currentPage, searchQuery, refreshKey]);
 
   const handlePageChange = (page: number) => {
     if (page >= 1 && page <= pagination.totalPages) {
@@ -132,6 +133,7 @@ export function OutOfStockPage() {
               currentPage={pagination.currentPage}
               totalPages={pagination.totalPages}
               onPageChange={handlePageChange}
+              onRefresh={() => setRefreshKey((prev) => prev + 1)}
             />
           )}
         </div>

@@ -109,7 +109,7 @@ export function LongUnsoldTable({
         onClick: (record) => handleEditProduct(record),
         variant: 'primary',
         size: 'sm',
-        className: 'text-white'
+        className: 'text-white flex items-center gap-2'
       }
     ],
     pagination: {

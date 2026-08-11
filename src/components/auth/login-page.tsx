@@ -22,7 +22,7 @@ export function LoginPage() {
   // Redirect if already authenticated
   useEffect(() => {
     if (!authLoading && status === "authenticated") {
-      router.push("/dashboard");
+      router.push("/");
     }
   }, [status, authLoading, router]);
 
@@ -38,7 +38,7 @@ export function LoginPage() {
       setIsLoading(true);
       await login(formData.email, formData.password);
       toast.success("Login successful!");
-      router.push("/dashboard");
+      router.push("/");
     } catch (error) {
       console.error("Login error:", error);
       toast.error(

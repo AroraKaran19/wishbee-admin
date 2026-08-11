@@ -136,12 +136,18 @@ export function SupportTable({
                 <tr key={enquiry._id} className="hover:bg-gray-50">
                   <td className="px-6 py-4">
                     <div>
-                      <div className="font-medium text-gray-900">
-                        {enquiry.user.firstName} {enquiry.user.lastName}
-                      </div>
-                      <div className="text-sm text-gray-500">{enquiry.user.phoneNumber}</div>
-                      {enquiry.user.email && (
-                        <div className="text-xs text-gray-400">{enquiry.user.email}</div>
+                      {enquiry.user ? (
+                        <>
+                          <div className="font-medium text-gray-900">
+                            {enquiry.user.firstName} {enquiry.user.lastName}
+                          </div>
+                          <div className="text-sm text-gray-500">{enquiry.user.phoneNumber}</div>
+                          {enquiry.user.email && (
+                            <div className="text-xs text-gray-400">{enquiry.user.email}</div>
+                          )}
+                        </>
+                      ) : (
+                        <div className="font-medium text-gray-400 italic">Deleted user</div>
                       )}
                     </div>
                   </td>
@@ -190,18 +196,16 @@ export function SupportTable({
             </tbody>
           </table>
         </div>
-      </div>
 
-      {/* Pagination */}
-      {totalPages > 1 && (
-        <div className="flex justify-center">
+        {/* Pagination */}
+        {totalPages > 1 && (
           <Pagination
             currentPage={currentPage}
             totalPages={totalPages}
             onPageChange={onPageChange}
           />
-        </div>
-      )}
+        )}
+      </div>
 
       {/* Details Modal */}
       {isDetailsModalOpen && selectedEnquiry && (
@@ -268,39 +272,45 @@ export function SupportTable({
                     <User className="h-5 w-5 text-blue-600" />
                     Customer Information
                   </h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="flex items-start gap-3">
-                      <div className="p-2 bg-white rounded-lg shadow-sm">
-                        <User className="h-5 w-5 text-gray-600" />
-                      </div>
-                      <div>
-                        <p className="text-xs text-gray-500 mb-1">Name</p>
-                        <p className="text-sm font-semibold text-gray-900">
-                          {selectedEnquiry.user.firstName} {selectedEnquiry.user.lastName}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex items-start gap-3">
-                      <div className="p-2 bg-white rounded-lg shadow-sm">
-                        <Phone className="h-5 w-5 text-gray-600" />
-                      </div>
-                      <div>
-                        <p className="text-xs text-gray-500 mb-1">Phone</p>
-                        <p className="text-sm font-semibold text-gray-900">{selectedEnquiry.user.phoneNumber}</p>
-                      </div>
-                    </div>
-                    {selectedEnquiry.user.email && (
-                      <div className="flex items-start gap-3 md:col-span-2">
+                  {selectedEnquiry.user ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="flex items-start gap-3">
                         <div className="p-2 bg-white rounded-lg shadow-sm">
-                          <Mail className="h-5 w-5 text-gray-600" />
+                          <User className="h-5 w-5 text-gray-600" />
                         </div>
-                        <div className="flex-1">
-                          <p className="text-xs text-gray-500 mb-1">Email</p>
-                          <p className="text-sm font-semibold text-gray-900 break-all">{selectedEnquiry.user.email}</p>
+                        <div>
+                          <p className="text-xs text-gray-500 mb-1">Name</p>
+                          <p className="text-sm font-semibold text-gray-900">
+                            {selectedEnquiry.user.firstName} {selectedEnquiry.user.lastName}
+                          </p>
                         </div>
                       </div>
-                    )}
-                  </div>
+                      <div className="flex items-start gap-3">
+                        <div className="p-2 bg-white rounded-lg shadow-sm">
+                          <Phone className="h-5 w-5 text-gray-600" />
+                        </div>
+                        <div>
+                          <p className="text-xs text-gray-500 mb-1">Phone</p>
+                          <p className="text-sm font-semibold text-gray-900">{selectedEnquiry.user.phoneNumber}</p>
+                        </div>
+                      </div>
+                      {selectedEnquiry.user.email && (
+                        <div className="flex items-start gap-3 md:col-span-2">
+                          <div className="p-2 bg-white rounded-lg shadow-sm">
+                            <Mail className="h-5 w-5 text-gray-600" />
+                          </div>
+                          <div className="flex-1">
+                            <p className="text-xs text-gray-500 mb-1">Email</p>
+                            <p className="text-sm font-semibold text-gray-900 break-all">{selectedEnquiry.user.email}</p>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-gray-500 italic">
+                      This customer&apos;s account has been deleted.
+                    </p>
+                  )}
                 </div>
 
                 {/* Message */}

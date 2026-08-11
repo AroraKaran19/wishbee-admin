@@ -113,7 +113,7 @@ export function ExpiredTable({
         onClick: (record) => handleEdit(record),
         variant: 'primary',
         size: 'sm',
-        className: 'text-white',
+        className: 'text-white flex items-center gap-2',
         disabled: (record) => deletingId === record._id
       },
       {
@@ -123,7 +123,7 @@ export function ExpiredTable({
         onClick: (record) => handleDelete(record),
         variant: 'danger',
         size: 'sm',
-        className: 'text-white',
+        className: 'text-white flex items-center gap-2',
         disabled: (record) => deletingId === record._id
       }
     ],

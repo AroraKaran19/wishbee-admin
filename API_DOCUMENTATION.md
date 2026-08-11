@@ -2311,18 +2311,6 @@ This check runs on:
 - **Request**: Any combo fields to update
 - **Response**: Updated combo object
 
-### Update Combo Stock
-
-- **API**: `PATCH /api/combos/:id/stock`
-- **Access**: Admin
-- **Request**:
-  ```json
-  {
-    "quantity": 20
-  }
-  ```
-- **Response**: Updated combo object
-
 ### Delete Combo
 
 - **API**: `DELETE /api/combos/:id`

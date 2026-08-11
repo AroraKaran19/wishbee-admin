@@ -22,11 +22,16 @@ export const navigationItems: NavItem[] = [
   },
   {
     id: 'inventory',
-    label: 'Inventory',
+    label: 'Products',
     icon: 'ShoppingCart',
     href: '/inventory',
     hasDropdown: true,
     subItems: [
+      {
+        id: 'inventory-list',
+        label: 'Inventory',
+        href: '/inventory'
+      },
       {
         id: 'out-of-stock',
         label: 'Out of stock',
@@ -63,7 +68,20 @@ export const navigationItems: NavItem[] = [
     id: 'orders',
     label: 'Orders',
     icon: 'List',
-    href: '/orders'
+    href: '/orders',
+    hasDropdown: true,
+    subItems: [
+      {
+        id: 'orders-list',
+        label: 'Orders',
+        href: '/orders'
+      },
+      {
+        id: 'orders-analytics',
+        label: 'Analytics',
+        href: '/orders/analytics'
+      }
+    ]
   },
   {
     id: 'customers',

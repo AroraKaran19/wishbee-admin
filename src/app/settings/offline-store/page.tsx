@@ -64,8 +64,8 @@ export default function OfflineStoreSettingsPage() {
       setStatus(s);
       toast.success(
         nextOpen
-          ? "Online store is open — consumer orders are allowed."
-          : "Store set to closed — new online orders will be blocked."
+          ? "Online store is open consumer orders are allowed."
+          : "Store set to closed new online orders will be blocked."
       );
     } catch (e) {
       toast.error(

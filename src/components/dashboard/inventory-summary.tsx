@@ -213,6 +213,7 @@ export function InventorySummary() {
             currentPage={pagination.currentPage}
             totalPages={pagination.totalPages}
             onPageChange={handlePageChange}
+            onRefresh={() => setRefreshKey((prev) => prev + 1)}
           />
         )}
         <div className="h-4"></div>

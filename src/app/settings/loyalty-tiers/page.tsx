@@ -183,7 +183,7 @@ export default function LoyaltyTiersSettingsPage() {
             <p className="text-gray-500 mt-1 text-sm">
               New customers have <strong>no loyalty tier assigned</strong> until their
               total spend reaches the first threshold (e.g. Bronze). Bronze is the
-              first tier—set its threshold to the spend required to earn it; you can
+              first tier set its threshold to the spend required to earn it; you can
               set a discount for Bronze too. When an order is marked DELIVERED, the
               backend recalculates each customer&apos;s total spend and assigns the
               highest tier whose threshold they meet (or no tier if below the first).

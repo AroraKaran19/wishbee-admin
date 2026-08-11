@@ -17,6 +17,7 @@ export function LowQuantityPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [threshold, setThreshold] = useState(10);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
     const loadLowStock = async () => {
@@ -43,7 +44,7 @@ export function LowQuantityPage() {
     };
 
     loadLowStock();
-  }, [threshold]);
+  }, [threshold, refreshKey]);
 
   const handleSearch = (query: string) => {
     setSearchQuery(query);
@@ -141,6 +142,7 @@ export function LowQuantityPage() {
               totalPages={totalPages}
               onPageChange={handlePageChange}
               threshold={threshold}
+              onRefresh={() => setRefreshKey((prev) => prev + 1)}
             />
           )}
         </div>

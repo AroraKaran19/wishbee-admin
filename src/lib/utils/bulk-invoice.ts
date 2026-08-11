@@ -16,7 +16,6 @@ interface InvoiceCSVRow {
 interface BulkInvoiceFilters {
   startDate: string;
   endDate: string;
-  statuses: string[];
 }
 
 interface PosBulkInvoiceFilters {
@@ -56,34 +55,21 @@ interface OrderForInvoice {
  * Fetches orders based on filters
  */
 async function fetchOrders(filters: BulkInvoiceFilters): Promise<OrderForInvoice[]> {
-  const params: any = {
-    startDate: filters.startDate,
-    endDate: filters.endDate,
-    limit: 1000, // Maximum limit to get all orders
-    page: 1,
-  };
+  const response = await apiClient.get('/orders/all', {
+    params: {
+      startDate: filters.startDate,
+      endDate: filters.endDate,
+      limit: 1000, // Maximum limit to get all orders
+      page: 1,
+      status: 'DELIVERED',
+    },
+  });
 
-  // Fetch orders for each status
-  const allOrders: OrderForInvoice[] = [];
-  
-  for (const status of filters.statuses) {
-    try {
-      const response = await apiClient.get('/orders/all', {
-        params: {
-          ...params,
-          status: status,
-        },
-      });
-      
-      if (response.data.success && response.data.data?.orders) {
-        allOrders.push(...response.data.data.orders);
-      }
-    } catch (error) {
-      console.error(`Error fetching orders for status ${status}:`, error);
-    }
+  if (response.data.success && response.data.data?.orders) {
+    return response.data.data.orders;
   }
 
-  return allOrders;
+  return [];
 }
 
 /**

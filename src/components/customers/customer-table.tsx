@@ -167,7 +167,7 @@ export function CustomerTable({
         onClick: (record) => handleEdit(record),
         variant: 'secondary',
         size: 'sm',
-        className: 'text-green-600 hover:text-green-700 bg-transparent hover:bg-green-50 border-0 shadow-none rounded-full pr-1.5 flex items-center justify-center'
+        className: 'text-green-600 hover:text-green-700 bg-transparent hover:bg-green-50 border-0 shadow-none rounded-full pr-1.5 flex items-center justify-center gap-2'
       },
       {
         key: 'delete',
@@ -176,7 +176,7 @@ export function CustomerTable({
         onClick: (record) => handleDelete(record),
         variant: 'secondary',
         size: 'sm',
-        className: 'text-red-600 hover:text-red-700 bg-transparent hover:bg-red-50 border-0 shadow-none rounded-full pr-1.5 flex items-center justify-center',
+        className: 'text-red-600 hover:text-red-700 bg-transparent hover:bg-red-50 border-0 shadow-none rounded-full pr-1.5 flex items-center justify-center gap-2',
         disabled: (record) => deletingId === record.id
       }
     ],
