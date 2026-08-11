@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from "react";
 import { orderApi, StatusActivityRow } from "@/lib/api/orders";
 import { PeriodFilters } from "@/lib/utils/order-period";
+import { StatusActivityModal } from "./status-activity-modal";
 
 interface StaffActivityCardProps {
   filters: PeriodFilters;
@@ -60,6 +61,7 @@ export function StaffActivityCard({
   const [amounts, setAmounts] = useState<Record<string, number>>({});
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [openStatus, setOpenStatus] = useState<string | null>(null);
 
   const { period, startDate, endDate } = filters;
 
@@ -127,11 +129,10 @@ export function StaffActivityCard({
                 const style = STATUS_STYLES[status];
                 const count = totals[status] || 0;
                 const amount = amounts[status] || 0;
-                return (
-                  <div
-                    key={status}
-                    className="rounded-xl border border-gray-200 px-4 py-3"
-                  >
+                // An empty status has nothing to list, so it stays inert.
+                const interactive = count > 0;
+                const body = (
+                  <>
                     <div className="flex items-center gap-1.5">
                       <span
                         className="w-2 h-2 rounded-full flex-shrink-0"
@@ -155,6 +156,22 @@ export function StaffActivityCard({
                     >
                       {rupees.format(amount)}
                     </div>
+                  </>
+                );
+
+                const tileClass = "rounded-xl border px-4 py-3 text-left";
+
+                return interactive ? (
+                  <button
+                    key={status}
+                    onClick={() => setOpenStatus(status)}
+                    className={`${tileClass} border-gray-200 cursor-pointer transition-colors hover:border-[#13aaff] hover:bg-gray-50`}
+                  >
+                    {body}
+                  </button>
+                ) : (
+                  <div key={status} className={`${tileClass} border-gray-200`}>
+                    {body}
                   </div>
                 );
               })}
@@ -203,6 +220,17 @@ export function StaffActivityCard({
           </>
         )}
       </div>
+
+      <StatusActivityModal
+        // Remounting per status resets pagination without an extra fetch.
+        key={openStatus ?? "closed"}
+        isOpen={openStatus !== null}
+        onClose={() => setOpenStatus(null)}
+        status={openStatus}
+        statusLabel={openStatus ? STATUS_STYLES[openStatus].label : ""}
+        amount={openStatus ? amounts[openStatus] || 0 : 0}
+        filters={filters}
+      />
     </div>
   );
 }

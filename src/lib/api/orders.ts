@@ -59,6 +59,28 @@ export interface StatusActivityResponse {
   period: string;
 }
 
+export interface StatusActivityOrder {
+  orderId: string;
+  refId: string;
+  customerName: string;
+  /** Empty when neither the order nor the customer carries one. */
+  storeName: string;
+  amount: number;
+  changedAt: string;
+  changedByName: string;
+}
+
+export interface StatusActivityOrdersResponse {
+  orders: StatusActivityOrder[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    pages: number;
+  };
+  period: string;
+}
+
 export interface OrderComparison {
   totalOrders: number;
   revenue: number;
@@ -224,6 +246,48 @@ export const orderApi = {
       throw new Error(
         errorData.message ||
           `Failed to fetch status activity: ${response.statusText}`
+      );
+    }
+
+    const result = await response.json();
+    return result.data;
+  },
+
+  // The individual orders behind one status tile
+  getStatusActivityOrders: async (filters: {
+    status: string;
+    period?: OrderPeriod;
+    startDate?: string;
+    endDate?: string;
+    page?: number;
+    limit?: number;
+  }): Promise<StatusActivityOrdersResponse> => {
+    const params = new URLSearchParams();
+    params.append("status", filters.status);
+
+    if (filters.startDate && filters.endDate) {
+      params.append("startDate", filters.startDate);
+      params.append("endDate", filters.endDate);
+    } else if (filters.period) {
+      params.append("period", filters.period);
+    }
+
+    if (filters.page) params.append("page", filters.page.toString());
+    if (filters.limit) params.append("limit", filters.limit.toString());
+
+    const response = await fetch(
+      `${API_BASE_URL}/orders/status-activity/orders?${params.toString()}`,
+      {
+        method: "GET",
+        headers: await getAuthHeaders(),
+      }
+    );
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(
+        errorData.message ||
+          `Failed to fetch status activity orders: ${response.statusText}`
       );
     }
 
