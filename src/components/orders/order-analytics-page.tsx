@@ -6,7 +6,11 @@ import { KpiCard } from "./kpi-card";
 import { SummaryCard, SummaryMetric } from "./summary-card";
 import { MixBar, MixSlice } from "./mix-bar";
 import { PeriodFilter, usePeriodFilter } from "./period-filter";
-import { orderApi, convertStatsToOrderSummary } from "@/lib/api/orders";
+import {
+  orderApi,
+  convertStatsToOrderSummary,
+  OrderStatus,
+} from "@/lib/api/orders";
 import { OrderSummary } from "@/lib/types";
 import { formatCurrency } from "@/lib/utils";
 import {
@@ -22,6 +26,24 @@ const STATUS_COLORS = {
   cancelled: "#dc2626",
   refunded: "#7c3aed",
 };
+
+/**
+ * Every order status, in lifecycle order, with the label and colour used
+ * wherever statuses are listed. Kept in step with `staff-activity-card`.
+ */
+const STATUS_SLICE_META: Array<{
+  status: OrderStatus;
+  label: string;
+  color: string;
+}> = [
+  { status: "PENDING", label: "Pending", color: "#2196f3" },
+  { status: "PROCESSING", label: "Processing", color: "#00bcd4" },
+  { status: "SHIPPED", label: "Shipped", color: "#ff9800" },
+  { status: "DELIVERED", label: "Delivered", color: "#0b8f00" },
+  { status: "CANCELLED", label: "Cancelled", color: "#dc2626" },
+  { status: "REFUNDED", label: "Refunded", color: "#7c3aed" },
+  { status: "RETURNED", label: "Returned", color: "#db2777" },
+];
 
 const PAYMENT_COLORS = {
   upi: "#4caf50",
@@ -71,34 +93,60 @@ export function OrderAnalyticsPage() {
 
   const statusSlices = useMemo<MixSlice[]>(() => {
     if (!orderSummary) return [];
-    return [
-      {
-        name: "Delivered",
-        value: orderSummary.totalDelivered ?? 0,
-        color: STATUS_COLORS.delivered,
-      },
-      {
-        name: "Pending",
-        value: orderSummary.totalPending ?? 0,
-        color: STATUS_COLORS.pending,
-      },
-      {
-        name: "On the way",
-        value: orderSummary.onTheWay,
-        color: STATUS_COLORS.onTheWay,
-      },
-      {
-        name: "Cancelled",
-        value: orderSummary.totalCancelled ?? 0,
-        color: STATUS_COLORS.cancelled,
-      },
-      {
-        name: "Refunded",
-        value: orderSummary.totalReturned,
-        color: STATUS_COLORS.refunded,
-      },
-    ];
+    const breakdown = orderSummary.statusBreakdown;
+
+    // Older API responses have no per-status breakdown; fall back to the merged
+    // buckets so the card still renders rather than showing an empty bar.
+    if (!breakdown) {
+      return [
+        {
+          name: "Delivered",
+          value: orderSummary.totalDelivered ?? 0,
+          color: STATUS_COLORS.delivered,
+        },
+        {
+          name: "Pending",
+          value: orderSummary.totalPending ?? 0,
+          color: STATUS_COLORS.pending,
+        },
+        {
+          name: "Processing / Shipped",
+          value: orderSummary.onTheWay,
+          color: STATUS_COLORS.onTheWay,
+        },
+        {
+          name: "Cancelled",
+          value: orderSummary.totalCancelled ?? 0,
+          color: STATUS_COLORS.cancelled,
+        },
+        {
+          name: "Refunded / Returned",
+          value: orderSummary.totalReturned,
+          color: STATUS_COLORS.refunded,
+        },
+      ];
+    }
+
+    return STATUS_SLICE_META.map(({ status, label, color }) => ({
+      name: label,
+      value: breakdown[status]?.count ?? 0,
+      color,
+    }));
   }, [orderSummary]);
+
+  const pendingValue =
+    orderSummary?.statusBreakdown?.PENDING?.amount ?? 0;
+
+  // Deliveries made in the window. Not the same as `totalDelivered`, which
+  // counts orders *placed* in the window that have since been delivered.
+  const deliveredInPeriod = useMemo(
+    () =>
+      (orderSummary?.deliveredTrend?.points ?? []).reduce(
+        (sum, point) => sum + point.delivered,
+        0
+      ),
+    [orderSummary]
+  );
 
   const paymentSlices = useMemo<MixSlice[]>(() => {
     if (!orderSummary) return [];
@@ -225,6 +273,18 @@ export function OrderAnalyticsPage() {
           growth={orderSummary?.comparison?.revenueGrowth}
           formatValue={formatCompactCurrency}
         />
+        {/* Full width: the only series keyed on delivery date, so it reads as
+            its own thing rather than a third of a row of placement-dated charts. */}
+        <div className="lg:col-span-2">
+          <KpiCard
+            label="Delivered over time"
+            value={String(deliveredInPeriod)}
+            caption="by date marked delivered"
+            trend={orderSummary?.deliveredTrend}
+            dataKey="delivered"
+            color="#0b8f00"
+          />
+        </div>
       </div>
 
       {/* Composition */}
@@ -234,12 +294,12 @@ export function OrderAnalyticsPage() {
           slices={statusSlices}
           footer={[
             {
-              label: "Pending",
+              label: "Pending to process",
               value: String(orderSummary?.totalPending ?? 0),
-              secondary: "to process",
+              secondary: formatCurrency(pendingValue),
             },
             {
-              label: "On the way",
+              label: "In transit",
               value: String(orderSummary?.onTheWay ?? 0),
               secondary: formatCurrency(orderSummary?.onTheWayCost ?? 0),
             },

@@ -156,7 +156,7 @@ export function CashierManagementPage() {
     }
 
     if (summaryStartDate > summaryEndDate) {
-      toast.error('Start date must be before end date');
+      toast.error('Start date must be on or before end date');
       return;
     }
 

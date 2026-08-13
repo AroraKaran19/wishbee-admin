@@ -1,18 +1,39 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, Download } from "lucide-react";
 import { Modal } from "@/components/ui/modal";
 import { orderApi, StatusActivityOrder } from "@/lib/api/orders";
 import { PeriodFilters } from "@/lib/utils/order-period";
+import { exportStatusActivityOrdersToCSV } from "@/lib/utils/csv-export";
 
 const PAGE_SIZE = 50;
+
+/** The endpoint's ceiling, so an export makes as few round trips as possible. */
+const EXPORT_PAGE_SIZE = 200;
+
+/** Backstop so a runaway total can't spin forever. 200k rows is far past use. */
+const MAX_EXPORT_PAGES = 1000;
 
 const rupees = new Intl.NumberFormat("en-IN", {
   style: "currency",
   currency: "INR",
   maximumFractionDigits: 0,
 });
+
+/** e.g. "pending-orders-2026-08-01_2026-08-14", or "...-30days" for a preset. */
+function buildExportFilename(
+  statusLabel: string,
+  filters: PeriodFilters
+): string {
+  const scope =
+    filters.startDate && filters.endDate
+      ? `${filters.startDate}_${filters.endDate}`
+      : filters.period ?? "period";
+  return `${statusLabel}-orders-${scope}`
+    .toLowerCase()
+    .replace(/[^a-z0-9_-]+/g, "-");
+}
 
 function formatChangedAt(value: string): string {
   const date = new Date(value);
@@ -33,6 +54,8 @@ interface StatusActivityModalProps {
   statusLabel: string;
   /** The tile's ₹ figure, shown in the header so both agree. */
   amount: number;
+  /** Shown under the header when this listing is not plain period activity. */
+  note?: string;
   filters: PeriodFilters;
 }
 
@@ -42,6 +65,7 @@ export function StatusActivityModal({
   status,
   statusLabel,
   amount,
+  note,
   filters,
 }: StatusActivityModalProps) {
   const [orders, setOrders] = useState<StatusActivityOrder[]>([]);
@@ -49,6 +73,7 @@ export function StatusActivityModal({
   const [totalPages, setTotalPages] = useState(1);
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(false);
+  const [exporting, setExporting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const { period, startDate, endDate } = filters;
@@ -82,6 +107,57 @@ export function StatusActivityModal({
     fetchOrders();
   }, [isOpen, status, page, period, startDate, endDate]);
 
+  /**
+   * Export every row for this status, not just the page on screen - so it walks
+   * the endpoint to the end rather than reusing what the table already holds.
+   */
+  const handleExport = async () => {
+    if (!status || exporting) return;
+
+    try {
+      setExporting(true);
+      setError(null);
+
+      const all: StatusActivityOrder[] = [];
+      let current = 1;
+      let pages = 1;
+
+      do {
+        const result = await orderApi.getStatusActivityOrders({
+          status,
+          period,
+          startDate,
+          endDate,
+          page: current,
+          limit: EXPORT_PAGE_SIZE,
+        });
+        all.push(...result.orders);
+        pages = result.pagination.pages;
+        current += 1;
+      } while (current <= pages && current <= MAX_EXPORT_PAGES);
+
+      if (!all.length) {
+        setError("Nothing to export for this status");
+        return;
+      }
+
+      // The pending backlog lists placement, not a staff action - see the note
+      // the card passes in.
+      const isBacklog = status === "PENDING";
+      exportStatusActivityOrdersToCSV(
+        all,
+        buildExportFilename(statusLabel, filters),
+        isBacklog ? "Placed At" : "Marked At",
+        isBacklog ? "Placed By" : "Changed By"
+      );
+    } catch (err) {
+      console.error("Error exporting status activity orders:", err);
+      setError(err instanceof Error ? err.message : "Failed to export orders");
+    } finally {
+      setExporting(false);
+    }
+  };
+
   return (
     <Modal
       isOpen={isOpen}
@@ -89,14 +165,30 @@ export function StatusActivityModal({
       title={`${statusLabel} orders`}
       size="2xl"
     >
-      <div className="flex items-baseline justify-between mb-4">
+      <div
+        className={`flex items-center justify-between gap-3 ${
+          note ? "mb-1" : "mb-4"
+        }`}
+      >
         <span className="text-sm text-gray-600">
           {total} {total === 1 ? "order" : "orders"}
         </span>
-        <span className="text-sm font-medium text-gray-900 tabular-nums">
-          {rupees.format(amount)}
-        </span>
+        <div className="flex items-center gap-3">
+          <span className="text-sm font-medium text-gray-900 tabular-nums">
+            {rupees.format(amount)}
+          </span>
+          <button
+            onClick={handleExport}
+            disabled={exporting || loading || total === 0}
+            className="flex items-center gap-1.5 text-sm text-gray-600 border border-gray-200 rounded-lg px-2.5 py-1 transition-colors hover:border-[#13aaff] hover:text-gray-900 disabled:text-gray-300 disabled:border-gray-100 disabled:cursor-not-allowed cursor-pointer"
+            title="Download every order in this status as a spreadsheet"
+          >
+            <Download className="w-3.5 h-3.5" />
+            {exporting ? "Preparing..." : "Export"}
+          </button>
+        </div>
       </div>
+      {note ? <p className="text-xs text-gray-400 mb-4">{note}</p> : null}
 
       {loading ? (
         <div className="py-10 text-center text-sm text-gray-500">

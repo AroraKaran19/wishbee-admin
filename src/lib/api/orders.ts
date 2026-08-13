@@ -25,20 +25,56 @@ export interface OrderAnalytics {
   }>;
 }
 
+/** Every status an order can hold, in lifecycle order. Mirrors the schema enum. */
+export const ORDER_STATUSES = [
+  "PENDING",
+  "PROCESSING",
+  "SHIPPED",
+  "DELIVERED",
+  "CANCELLED",
+  "REFUNDED",
+  "RETURNED",
+] as const;
+
+export type OrderStatus = (typeof ORDER_STATUSES)[number];
+
 export type OrderPeriod = 'today' | 'currentDate' | '7days' | '30days' | 'lastMonth' | '6months' | '12months' | 'all-time';
 
 export type TrendGranularity = 'hour' | 'day' | 'month';
 
-export interface OrderTrendPoint {
+// Type aliases rather than interfaces: these get an implicit index signature,
+// which is what lets a series be handed to the generic chart below.
+export type OrderTrendPoint = {
   /** ISO hour (YYYY-MM-DDTHH), day (YYYY-MM-DD), or month (YYYY-MM). */
   date: string;
   orders: number;
   revenue: number;
-}
+};
+
+export type DeliveredTrendPoint = {
+  date: string;
+  delivered: number;
+  revenue: number;
+};
 
 export interface OrderTrend {
   granularity: TrendGranularity;
   points: OrderTrendPoint[];
+}
+
+/**
+ * Deliveries keyed on when they were marked delivered, not when the order was
+ * placed - so an order taken in March and delivered in April lands in April.
+ */
+export interface DeliveredTrend {
+  granularity: TrendGranularity;
+  points: DeliveredTrendPoint[];
+}
+
+/** Any series the chart can plot: dated buckets carrying numeric measures. */
+export interface TrendSeries {
+  granularity: TrendGranularity;
+  points: Array<Record<string, string | number>>;
 }
 
 export interface StatusActivityRow {
@@ -305,6 +341,7 @@ export const orderApi = {
     totalReceived: { count: number; revenue: number };
     totalReturned: { count: number; revenue: number };
     onTheWay: { count: number; cost: number };
+    statusBreakdown?: Record<OrderStatus, { count: number; amount: number }>;
     totalCancelled: number;
     totalDelivered: number;
     totalPending: number;
@@ -313,6 +350,7 @@ export const orderApi = {
     totalCardOrders: number;
     period: string;
     trend?: OrderTrend;
+    deliveredTrend?: DeliveredTrend;
     comparison?: OrderComparison;
   }> => {
     const params = new URLSearchParams();
@@ -703,6 +741,7 @@ export const convertStatsToOrderSummary = (stats: {
   totalReceived: { count: number; revenue: number };
   totalReturned: { count: number; revenue: number };
   onTheWay: { count: number; cost: number };
+  statusBreakdown?: Record<OrderStatus, { count: number; amount: number }>;
   totalCancelled?: number;
   totalDelivered?: number;
   totalPending?: number;
@@ -711,6 +750,7 @@ export const convertStatsToOrderSummary = (stats: {
   totalCardOrders?: number;
   period: string;
   trend?: OrderTrend;
+  deliveredTrend?: DeliveredTrend;
   comparison?: OrderComparison;
 }): OrderSummary => {
   return {
@@ -721,6 +761,7 @@ export const convertStatsToOrderSummary = (stats: {
     revenue: stats.totalReceived.revenue,
     returnAmount: stats.totalReturned.revenue,
     onTheWayCost: stats.onTheWay.cost,
+    statusBreakdown: stats.statusBreakdown,
     totalCancelled: stats.totalCancelled,
     totalDelivered: stats.totalDelivered,
     totalPending: stats.totalPending,
@@ -729,6 +770,7 @@ export const convertStatsToOrderSummary = (stats: {
     totalCardOrders: stats.totalCardOrders,
     period: stats.period,
     trend: stats.trend,
+    deliveredTrend: stats.deliveredTrend,
     comparison: stats.comparison,
     trends: {
       totalOrders: { value: stats.totalOrders, percentage: 0 },

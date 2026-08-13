@@ -57,6 +57,57 @@ export function exportToCSV<T extends Record<string, any>>(
   }
 }
 
+/**
+ * The orders behind one status tile. `dateLabel` varies by status because the
+ * timestamp means different things: when staff moved the order into that
+ * status, or - for the pending backlog - when the customer placed it.
+ */
+export function exportStatusActivityOrdersToCSV(
+  orders: Array<{
+    refId: string;
+    customerName: string;
+    storeName: string;
+    amount: number;
+    changedAt: string;
+    changedByName: string;
+  }>,
+  filename: string,
+  dateLabel = "Changed At",
+  actorLabel = "Changed By"
+) {
+  const rows = orders.map((order) => ({
+    orderId: order.refId || "",
+    customer: order.customerName,
+    store: order.storeName,
+    amount: order.amount,
+    changedAt: formatTimestampForCSV(order.changedAt),
+    changedBy: order.changedByName,
+  }));
+
+  exportToCSV(rows, filename, [
+    { key: "orderId", label: "Order ID" },
+    { key: "customer", label: "Customer" },
+    { key: "store", label: "Store" },
+    { key: "amount", label: "Amount" },
+    { key: "changedAt", label: dateLabel },
+    { key: "changedBy", label: actorLabel },
+  ]);
+}
+
+/**
+ * Timestamps for spreadsheets: full year, 24-hour clock, no comma. The comma
+ * matters - `exportToCSV` only quotes when it has to, and a locale string like
+ * "13 Aug 2026, 07:00 pm" would otherwise split across two columns.
+ */
+function formatTimestampForCSV(value: string): string {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${pad(date.getDate())}/${pad(
+    date.getMonth() + 1
+  )}/${date.getFullYear()} ${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
+
 // Specific export functions for different data types
 export function exportProductsToCSV(products: any[], filename = "products") {
   const columns = [

@@ -13,31 +13,38 @@ interface StaffActivityCardProps {
   refreshKey?: number;
 }
 
-/**
- * Every status an admin can set except PENDING, which is the creation default
- * rather than something staff choose. RETURNED exists in the data model but is
- * not offered in the status dropdown, so it only appears when it has activity.
- */
+/** Every status an order can hold, in lifecycle order. */
 const CORE_STATUSES = [
+  "PENDING",
   "PROCESSING",
   "SHIPPED",
   "DELIVERED",
   "CANCELLED",
   "REFUNDED",
+  "RETURNED",
 ] as const;
 
-const EXTRA_STATUSES = ["RETURNED"] as const;
-
+/**
+ * `hint` marks a tile whose number is not period activity. Only PENDING has
+ * one: orders enter PENDING at creation, which is a SYSTEM write and so never
+ * counts as staff activity, so that tile reports the live backlog instead.
+ */
 const STATUS_STYLES: Record<
   string,
-  { label: string; dot: string; value: string }
+  { label: string; dot: string; value: string; hint?: string }
 > = {
-  PROCESSING: { label: "Processing", dot: "#2196f3", value: "text-gray-900" },
+  PENDING: {
+    label: "Pending",
+    dot: "#2196f3",
+    value: "text-gray-900",
+    hint: "now",
+  },
+  PROCESSING: { label: "Processing", dot: "#00bcd4", value: "text-gray-900" },
   SHIPPED: { label: "Shipped", dot: "#ff9800", value: "text-gray-900" },
   DELIVERED: { label: "Delivered", dot: "#0b8f00", value: "text-[#0b8f00]" },
   CANCELLED: { label: "Cancelled", dot: "#dc2626", value: "text-[#dc2626]" },
   REFUNDED: { label: "Refunded", dot: "#7c3aed", value: "text-[#7c3aed]" },
-  RETURNED: { label: "Returned", dot: "#7c3aed", value: "text-[#7c3aed]" },
+  RETURNED: { label: "Returned", dot: "#db2777", value: "text-[#db2777]" },
 };
 
 const rupees = new Intl.NumberFormat("en-IN", {
@@ -49,7 +56,8 @@ const rupees = new Intl.NumberFormat("en-IN", {
 /**
  * How many orders were moved into each status during the selected period, and
  * who did it. Counts changes by when they were made, so it reflects activity in
- * the window rather than when the underlying orders were placed.
+ * the window rather than when the underlying orders were placed. PENDING is the
+ * one exception - see `STATUS_STYLES`.
  */
 export function StaffActivityCard({
   filters,
@@ -93,10 +101,7 @@ export function StaffActivityCard({
     fetchActivity();
   }, [ready, period, startDate, endDate, refreshKey]);
 
-  const visibleStatuses = [
-    ...CORE_STATUSES,
-    ...EXTRA_STATUSES.filter((status) => (totals[status] || 0) > 0),
-  ];
+  const visibleStatuses = CORE_STATUSES;
 
   const hasAnyChange = Object.values(totals).some((count) => count > 0);
   const actorRows = rows || [];
@@ -106,6 +111,10 @@ export function StaffActivityCard({
       <div className="px-4 py-3 border-b border-gray-200 min-w-0">
         <span className="text-sm text-gray-600">
           Orders marked into each status in this period
+          <span className="text-gray-400">
+            {" "}
+            &middot; Pending shows the current backlog
+          </span>
         </span>
       </div>
 
@@ -124,7 +133,7 @@ export function StaffActivityCard({
           </div>
         ) : (
           <>
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+            <div className="grid grid-cols-2 sm:grid-cols-4 xl:grid-cols-7 gap-3">
               {visibleStatuses.map((status) => {
                 const style = STATUS_STYLES[status];
                 const count = totals[status] || 0;
@@ -141,6 +150,14 @@ export function StaffActivityCard({
                       <span className="text-[11px] font-medium text-gray-500 truncate">
                         {style.label}
                       </span>
+                      {style.hint ? (
+                        <span
+                          className="text-[9px] font-semibold uppercase tracking-wide text-gray-400 bg-gray-100 rounded px-1 py-px flex-shrink-0"
+                          title="Current backlog, not activity in this period"
+                        >
+                          {style.hint}
+                        </span>
+                      ) : null}
                     </div>
                     <div
                       className={`mt-1.5 text-2xl font-semibold tabular-nums leading-none ${
@@ -229,6 +246,11 @@ export function StaffActivityCard({
         status={openStatus}
         statusLabel={openStatus ? STATUS_STYLES[openStatus].label : ""}
         amount={openStatus ? amounts[openStatus] || 0 : 0}
+        note={
+          openStatus === "PENDING"
+            ? "Every order still awaiting processing, regardless of when it was placed."
+            : undefined
+        }
         filters={filters}
       />
     </div>

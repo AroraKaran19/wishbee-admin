@@ -12,14 +12,15 @@ import {
   YAxis,
 } from "recharts";
 import { GrowthBadge } from "./growth-badge";
-import { OrderTrend, TrendGranularity } from "@/lib/api/orders";
+import { TrendGranularity, TrendSeries } from "@/lib/api/orders";
 
 interface KpiCardProps {
   label: string;
   value: string;
   caption: string;
-  trend?: OrderTrend;
-  dataKey: "orders" | "revenue";
+  trend?: TrendSeries;
+  /** Which measure on each bucket to plot, e.g. "orders" or "delivered". */
+  dataKey: string;
   color: string;
   /** Percent change vs the previous window; null hides the badge. */
   growth?: number | null;
@@ -76,6 +77,12 @@ const formatBucketLong = (
   });
 };
 
+/** A series bucket with its axis and tooltip labels resolved. */
+type ChartPoint = Record<string, string | number> & {
+  label: string;
+  fullLabel: string;
+};
+
 /**
  * Headline metric over its distribution. Bars suit the discrete buckets the API
  * returns better than a continuous area, and the busiest bucket is picked out in
@@ -91,12 +98,12 @@ export function KpiCard({
   growth,
   formatValue = (v) => String(v),
 }: KpiCardProps) {
-  const data = useMemo(() => {
+  const data = useMemo<ChartPoint[]>(() => {
     if (!trend?.points?.length) return [];
     return trend.points.map((point) => ({
       ...point,
-      label: formatBucket(point.date, trend.granularity),
-      fullLabel: formatBucketLong(point.date, trend.granularity),
+      label: formatBucket(String(point.date), trend.granularity),
+      fullLabel: formatBucketLong(String(point.date), trend.granularity),
     }));
   }, [trend]);
 
@@ -178,7 +185,7 @@ export function KpiCard({
               <Bar dataKey={dataKey} radius={[6, 6, 0, 0]} maxBarSize={34}>
                 {data.map((point, index) => (
                   <Cell
-                    key={point.date}
+                    key={String(point.date)}
                     // Peak in full colour, the rest tinted back so it reads as context.
                     fill={index === peakIndex ? color : `${color}33`}
                   />

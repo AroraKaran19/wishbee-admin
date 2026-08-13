@@ -162,8 +162,8 @@ export function MostSellingPage() {
     const start = new Date(startDate + "T00:00:00.000Z");
     const end = new Date(endDate + "T00:00:00.000Z");
 
-    // Start date must be before end date (not equal, not after)
-    return start < end;
+    // Equal dates are a valid single-day range; only start-after-end is wrong.
+    return start <= end;
   };
 
   // Fetch Sale Performance data
@@ -309,7 +309,7 @@ export function MostSellingPage() {
     }
 
     if (!isDateRangeValid(salePerformanceStartDate, salePerformanceEndDate)) {
-      toast.error("Start date must be before end date");
+      toast.error("Start date must be on or before end date");
       return;
     }
 
@@ -358,7 +358,7 @@ export function MostSellingPage() {
     }
 
     if (!isDateRangeValid(topProductsStartDate, topProductsEndDate)) {
-      toast.error("Start date must be before end date");
+      toast.error("Start date must be on or before end date");
       return;
     }
 
@@ -398,7 +398,7 @@ export function MostSellingPage() {
     }
 
     if (!isDateRangeValid(leastProductsStartDate, leastProductsEndDate)) {
-      toast.error("Start date must be before end date");
+      toast.error("Start date must be on or before end date");
       return;
     }
 
@@ -674,7 +674,7 @@ export function MostSellingPage() {
             </p>
             {startDate && endDate && !isDateRangeValid(startDate, endDate) && (
               <p className="text-sm text-red-600 mt-1">
-                Start date must be before end date
+                Start date must be on or before end date
               </p>
             )}
           </div>

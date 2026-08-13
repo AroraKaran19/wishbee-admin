@@ -108,7 +108,7 @@ export function usePeriodFilter(onChange?: () => void): UsePeriodFilterResult {
       return;
     }
     if (!isDateRangeValid(startDate, endDate)) {
-      toast.error("Start date must be before end date");
+      toast.error("Start date must be on or before end date");
       return;
     }
 
@@ -222,7 +222,7 @@ export function PeriodFilter({ filter }: PeriodFilterProps) {
             </p>
             {startDate && endDate && !rangeValid && (
               <p className="text-sm text-red-600 mt-1">
-                Start date must be before end date
+                Start date must be on or before end date
               </p>
             )}
           </div>

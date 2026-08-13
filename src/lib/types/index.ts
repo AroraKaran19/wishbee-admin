@@ -248,6 +248,8 @@ export interface OrderSummary {
   revenue: number;
   returnAmount: number;
   onTheWayCost: number;
+  /** Count and value per order status; absent on older API responses. */
+  statusBreakdown?: Record<string, { count: number; amount: number }>;
   totalCancelled?: number;
   totalDelivered?: number;
   totalPending?: number;
@@ -259,6 +261,11 @@ export interface OrderSummary {
   trend?: {
     granularity: 'hour' | 'day' | 'month';
     points: Array<{ date: string; orders: number; revenue: number }>;
+  };
+  /** Deliveries keyed on when they were marked delivered, not when placed. */
+  deliveredTrend?: {
+    granularity: 'hour' | 'day' | 'month';
+    points: Array<{ date: string; delivered: number; revenue: number }>;
   };
   /** Previous equal-length window, backing the "vs previous" deltas. */
   comparison?: {

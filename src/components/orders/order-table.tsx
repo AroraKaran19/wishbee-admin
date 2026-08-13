@@ -113,6 +113,21 @@ export function OrderTable({
     }).format(amount);
   };
 
+  /**
+   * When the order was marked delivered, or undefined if it never was. Takes
+   * the latest DELIVERED entry, so an order re-marked after a correction shows
+   * the timestamp that currently stands.
+   */
+  const getDeliveredAt = (record: Order): string | undefined => {
+    const delivered = (record.updateHistory ?? []).filter(
+      (entry) => entry.status === 'DELIVERED' && entry.updatedAt
+    );
+    if (!delivered.length) return undefined;
+    return delivered.reduce((latest, entry) =>
+      new Date(entry.updatedAt) > new Date(latest.updatedAt) ? entry : latest
+    ).updatedAt;
+  };
+
   const formatDate = (dateString: string | undefined) => {
     if (!dateString) return 'N/A';
     try {
@@ -230,20 +245,33 @@ export function OrderTable({
         key: 'status',
         title: 'Status',
         align: 'center',
-        render: (value) => (
-          <div className={`text-sm ${
-            value === 'Delivered' ? 'text-green-600' : 
-            value === 'Pending' ? 'text-blue-600' : 
-            value === 'Processing' ? 'text-yellow-600' :
-            value === 'Shipped' ? 'text-purple-600' :
-            value === 'Cancelled' ? 'text-red-600' :
-            value === 'Refunded' ? 'text-red-600' :
-            value === 'Returned' ? 'text-orange-600' :
-            'text-gray-600'
-          }`}>
-            {value}
-          </div>
-        )
+        render: (value, record) => {
+          // Only delivered orders carry a timestamp here: it answers "when did
+          // this actually land", which has no equivalent for the other statuses.
+          const deliveredAt =
+            value === 'Delivered' ? getDeliveredAt(record) : undefined;
+          return (
+            <div>
+              <div className={`text-sm ${
+                value === 'Delivered' ? 'text-green-600' :
+                value === 'Pending' ? 'text-blue-600' :
+                value === 'Processing' ? 'text-yellow-600' :
+                value === 'Shipped' ? 'text-purple-600' :
+                value === 'Cancelled' ? 'text-red-600' :
+                value === 'Refunded' ? 'text-red-600' :
+                value === 'Returned' ? 'text-orange-600' :
+                'text-gray-600'
+              }`}>
+                {value}
+              </div>
+              {deliveredAt && (
+                <div className="text-xs text-gray-500 mt-0.5">
+                  {formatDate(deliveredAt)}
+                </div>
+              )}
+            </div>
+          );
+        }
       },
       {
         key: 'payment',

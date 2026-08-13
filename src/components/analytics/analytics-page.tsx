@@ -111,8 +111,8 @@ export function AnalyticsPage() {
     const start = new Date(startDate + "T00:00:00.000Z");
     const end = new Date(endDate + "T00:00:00.000Z");
     
-    // Start date must be before end date (not equal, not after)
-    return start < end;
+    // Equal dates are a valid single-day range; only start-after-end is wrong.
+    return start <= end;
   };
 
   // Handle custom date range submit
@@ -124,7 +124,7 @@ export function AnalyticsPage() {
 
     // Validate date range
     if (!isDateRangeValid()) {
-      toast.error("Start date must be before end date");
+      toast.error("Start date must be on or before end date");
       return;
     }
 
@@ -410,7 +410,7 @@ export function AnalyticsPage() {
               </p>
               {startDate && endDate && !isDateRangeValid() && (
                 <p className="text-sm text-red-600 mt-1">
-                  ⚠️ Start date must be before end date
+                  ⚠️ Start date must be on or before end date
                 </p>
               )}
             </div>

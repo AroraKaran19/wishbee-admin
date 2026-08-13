@@ -57,7 +57,11 @@ export const buildPeriodFilters = (
   return { period };
 };
 
-/** A custom range is only valid when both dates exist and start comes before end. */
+/**
+ * A custom range is valid when both dates exist and start is not after end.
+ * The two may be the same day: that reads as a single-day range, which the
+ * server widens to that day's full 00:00:00-23:59:59 window.
+ */
 export const isDateRangeValid = (
   startDate: string,
   endDate: string
@@ -66,7 +70,7 @@ export const isDateRangeValid = (
   // Parse at midnight UTC so local timezone can't shift the comparison.
   const start = new Date(startDate + "T00:00:00.000Z");
   const end = new Date(endDate + "T00:00:00.000Z");
-  return start < end;
+  return start <= end;
 };
 
 /**
