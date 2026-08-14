@@ -21,15 +21,17 @@ const rupees = new Intl.NumberFormat("en-IN", {
   maximumFractionDigits: 0,
 });
 
-/** e.g. "pending-orders-2026-08-01_2026-08-14", or "...-30days" for a preset. */
+/** e.g. "delivered-orders-2026-08-14", or a "from_to" pair across a range. */
 function buildExportFilename(
   statusLabel: string,
   filters: PeriodFilters
 ): string {
-  const scope =
-    filters.startDate && filters.endDate
-      ? `${filters.startDate}_${filters.endDate}`
-      : filters.period ?? "period";
+  const { startDate, endDate } = filters;
+  const scope = !startDate || !endDate
+    ? filters.period ?? "period"
+    : startDate === endDate
+    ? startDate
+    : `${startDate}_${endDate}`;
   return `${statusLabel}-orders-${scope}`
     .toLowerCase()
     .replace(/[^a-z0-9_-]+/g, "-");
@@ -54,8 +56,6 @@ interface StatusActivityModalProps {
   statusLabel: string;
   /** The tile's ₹ figure, shown in the header so both agree. */
   amount: number;
-  /** Shown under the header when this listing is not plain period activity. */
-  note?: string;
   filters: PeriodFilters;
 }
 
@@ -65,7 +65,6 @@ export function StatusActivityModal({
   status,
   statusLabel,
   amount,
-  note,
   filters,
 }: StatusActivityModalProps) {
   const [orders, setOrders] = useState<StatusActivityOrder[]>([]);
@@ -141,14 +140,13 @@ export function StatusActivityModal({
         return;
       }
 
-      // The pending backlog lists placement, not a staff action - see the note
-      // the card passes in.
-      const isBacklog = status === "PENDING";
+      // Orders reach PENDING by being placed, not by a staff action.
+      const isPlacement = status === "PENDING";
       exportStatusActivityOrdersToCSV(
         all,
         buildExportFilename(statusLabel, filters),
-        isBacklog ? "Placed At" : "Marked At",
-        isBacklog ? "Placed By" : "Changed By"
+        isPlacement ? "Placed At" : "Marked At",
+        isPlacement ? "Placed By" : "Changed By"
       );
     } catch (err) {
       console.error("Error exporting status activity orders:", err);
@@ -165,11 +163,7 @@ export function StatusActivityModal({
       title={`${statusLabel} orders`}
       size="2xl"
     >
-      <div
-        className={`flex items-center justify-between gap-3 ${
-          note ? "mb-1" : "mb-4"
-        }`}
-      >
+      <div className="flex items-center justify-between gap-3 mb-4">
         <span className="text-sm text-gray-600">
           {total} {total === 1 ? "order" : "orders"}
         </span>
@@ -188,7 +182,6 @@ export function StatusActivityModal({
           </button>
         </div>
       </div>
-      {note ? <p className="text-xs text-gray-400 mb-4">{note}</p> : null}
 
       {loading ? (
         <div className="py-10 text-center text-sm text-gray-500">

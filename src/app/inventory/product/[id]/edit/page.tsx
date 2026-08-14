@@ -1443,8 +1443,10 @@ export default function InventoryEditProductPage() {
       if (data.discount.startDate && data.discount.endDate) {
         const startDate = new Date(data.discount.startDate);
         const endDate = new Date(data.discount.endDate);
-        if (startDate >= endDate) {
-          errors.push("Discount start date must be before end date");
+        // Both inputs are date-only, so equal dates mean a single-day discount
+        // - a legitimate window, not an error.
+        if (startDate > endDate) {
+          errors.push("Discount start date must be on or before end date");
         }
       }
     }

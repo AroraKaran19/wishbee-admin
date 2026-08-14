@@ -178,11 +178,10 @@ export function OrderPage() {
         </div>
 
         <div className="flex-shrink-0 mb-4">
-          <StaffActivityCard
-            filters={buildPeriodFilters(period, appliedStartDate, appliedEndDate)}
-            ready={ready}
-            refreshKey={activityRefreshKey}
-          />
+          {/* Carries its own date picker: the period filter above drives the
+              table, which filters on when orders were placed, not on when their
+              status changed. */}
+          <StaffActivityCard refreshKey={activityRefreshKey} />
         </div>
 
         <div className="flex-shrink-0 mb-4">
