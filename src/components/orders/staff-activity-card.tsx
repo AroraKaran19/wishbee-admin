@@ -2,30 +2,16 @@
 
 import React, { useEffect, useState } from "react";
 import { orderApi, StatusActivityRow } from "@/lib/api/orders";
+import { PeriodFilters } from "@/lib/utils/order-period";
 import { StatusActivityModal } from "./status-activity-modal";
 
 interface StaffActivityCardProps {
+  filters: PeriodFilters;
+  /** False until the period has been resolved; gates the fetch. */
+  ready: boolean;
   /** Bumped by the parent after an order changes, to re-read the counts. */
   refreshKey?: number;
 }
-
-/** Today in local time. `toISOString` would roll over early in UTC+ zones. */
-const todayISO = (): string => {
-  const now = new Date();
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(
-    now.getDate()
-  )}`;
-};
-
-const formatDayLabel = (iso: string): string => {
-  const [year, month, day] = iso.split("-").map(Number);
-  return new Date(year, month - 1, day).toLocaleDateString("en-IN", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  });
-};
 
 /** Every status an order can hold, in lifecycle order. */
 const CORE_STATUSES = [
@@ -40,9 +26,15 @@ const CORE_STATUSES = [
 
 const STATUS_STYLES: Record<
   string,
-  { label: string; dot: string; value: string }
+  { label: string; dot: string; value: string; badge?: string; note?: string }
 > = {
-  PENDING: { label: "Pending", dot: "#2196f3", value: "text-gray-900" },
+  PENDING: {
+    label: "Pending",
+    dot: "#2196f3",
+    value: "text-gray-900",
+    badge: "LIVE",
+    note: "Live count of orders awaiting processing. Not affected by the period filter.",
+  },
   PROCESSING: { label: "Processing", dot: "#00bcd4", value: "text-gray-900" },
   SHIPPED: { label: "Shipped", dot: "#ff9800", value: "text-gray-900" },
   DELIVERED: { label: "Delivered", dot: "#0b8f00", value: "text-[#0b8f00]" },
@@ -58,34 +50,37 @@ const rupees = new Intl.NumberFormat("en-IN", {
 });
 
 /**
- * What was moved into each status on the selected day, and who did it. Keyed on
- * when the change was made, not when the order was placed - so it is scoped by
- * its own date picker rather than the page filter, which drives the table below
- * on placement date. PENDING counts placements: that is the only way in.
+ * What was moved into each status during the selected period, and who did it.
+ * Keyed on when the change was made, not when the order was placed, so it
+ * covers the activity that happened in the window regardless of when the
+ * underlying orders came in. PENDING is the exception: orders only enter it at
+ * creation, so that tile reports the live backlog and ignores the period.
  */
-export function StaffActivityCard({ refreshKey = 0 }: StaffActivityCardProps) {
+export function StaffActivityCard({
+  filters,
+  ready,
+  refreshKey = 0,
+}: StaffActivityCardProps) {
   const [rows, setRows] = useState<StatusActivityRow[] | null>(null);
   const [totals, setTotals] = useState<Record<string, number>>({});
   const [amounts, setAmounts] = useState<Record<string, number>>({});
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [openStatus, setOpenStatus] = useState<string | null>(null);
-  const [selectedDate, setSelectedDate] = useState(todayISO);
 
-  const isToday = selectedDate === todayISO();
-
-  // A single day, expressed as a one-day range - the API takes a window and the
-  // server widens it to that day's full 00:00-23:59.
-  const filters = { startDate: selectedDate, endDate: selectedDate };
+  const { period, startDate, endDate } = filters;
 
   useEffect(() => {
+    if (!ready) return;
+
     const fetchActivity = async () => {
       try {
         setLoading(true);
         setError(null);
         const activity = await orderApi.getStatusActivity({
-          startDate: selectedDate,
-          endDate: selectedDate,
+          period,
+          startDate,
+          endDate,
         });
         setRows(activity.rows);
         setTotals(activity.totals || {});
@@ -101,7 +96,7 @@ export function StaffActivityCard({ refreshKey = 0 }: StaffActivityCardProps) {
     };
 
     fetchActivity();
-  }, [selectedDate, refreshKey]);
+  }, [ready, period, startDate, endDate, refreshKey]);
 
   const visibleStatuses = CORE_STATUSES;
 
@@ -110,37 +105,10 @@ export function StaffActivityCard({ refreshKey = 0 }: StaffActivityCardProps) {
 
   return (
     <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-      <div className="px-4 py-3 border-b border-gray-200 min-w-0 flex items-center justify-between gap-3 flex-wrap">
+      <div className="px-4 py-3 border-b border-gray-200 min-w-0">
         <span className="text-sm text-gray-600">
-          Orders marked into each status{" "}
-          {isToday ? "today" : `on ${formatDayLabel(selectedDate)}`}
+          Orders marked into each status in this period
         </span>
-
-        {/* This card has its own date, separate from the page filter above:
-            it reports when a status was changed, while the table below filters
-            on when the order was placed. */}
-        <div className="flex items-center gap-2 flex-shrink-0">
-          <button
-            onClick={() => setSelectedDate(todayISO())}
-            disabled={isToday}
-            className={`text-xs rounded-full px-3 py-1 border transition-colors ${
-              isToday
-                ? "bg-[#13aaff] border-[#13aaff] text-white cursor-default"
-                : "border-gray-200 text-gray-600 hover:border-[#13aaff] cursor-pointer"
-            }`}
-          >
-            Today
-          </button>
-          <input
-            type="date"
-            value={selectedDate}
-            max={todayISO()}
-            onChange={(event) =>
-              event.target.value && setSelectedDate(event.target.value)
-            }
-            className="text-xs border border-gray-200 rounded-lg px-2 py-1 text-gray-700 focus:outline-none focus:border-[#13aaff] cursor-pointer"
-          />
-        </div>
       </div>
 
       <div className="p-4">
@@ -153,7 +121,7 @@ export function StaffActivityCard({ refreshKey = 0 }: StaffActivityCardProps) {
         ) : !hasAnyChange ? (
           <div className="py-6 text-center">
             <p className="text-sm text-gray-500">
-              No status changes {isToday ? "today" : "on this date"}
+              No status changes in this period
             </p>
           </div>
         ) : (
@@ -175,6 +143,14 @@ export function StaffActivityCard({ refreshKey = 0 }: StaffActivityCardProps) {
                       <span className="text-[11px] font-medium text-gray-500 truncate">
                         {style.label}
                       </span>
+                      {style.badge && (
+                        <span
+                          title={style.note}
+                          className="text-[9px] font-semibold uppercase tracking-wide text-[#0b8f00] bg-[#0b8f00]/10 rounded px-1 py-px flex-shrink-0 cursor-help"
+                        >
+                          {style.badge}
+                        </span>
+                      )}
                     </div>
                     <div
                       className={`mt-1.5 text-2xl font-semibold tabular-nums leading-none ${
