@@ -37,7 +37,7 @@ export async function downloadOrderInvoice(orderId: string): Promise<void> {
     let fullUser = user;
     
     // Fetch full user details if storeName is not available (to get storeName and govtId)
-    if (user?._id && !user?.storeName) {
+    if (user?._id && (!user?.storeName || !user?.govtId)) {
       try {
         fullUser = await customerApi.getById(user._id);
       } catch (error) {
