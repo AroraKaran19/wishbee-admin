@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from "react";
 import { ChevronLeft, ChevronRight, Download } from "lucide-react";
 import { Modal } from "@/components/ui/modal";
+import { OrderDetailsModal } from "./order-details-modal";
 import { orderApi, StatusActivityOrder } from "@/lib/api/orders";
 import { PeriodFilters } from "@/lib/utils/order-period";
 import { exportStatusActivityOrdersToCSV } from "@/lib/utils/csv-export";
@@ -74,6 +75,7 @@ export function StatusActivityModal({
   const [loading, setLoading] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
 
   const { period, startDate, endDate } = filters;
 
@@ -215,9 +217,18 @@ export function StatusActivityModal({
               </div>
 
               <div className="text-right flex-shrink-0">
-                <div className="text-xs font-medium text-blue-600">
-                  {order.refId || "—"}
-                </div>
+                {order.refId ? (
+                  <button
+                    type="button"
+                    onClick={() => setSelectedOrderId(order.orderId)}
+                    title="View order details"
+                    className="text-xs font-medium text-blue-600 rounded cursor-pointer transition-colors hover:text-blue-700 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-[#13aaff]"
+                  >
+                    {order.refId}
+                  </button>
+                ) : (
+                  <div className="text-xs font-medium text-gray-400">—</div>
+                )}
                 <div className="text-sm text-gray-900 tabular-nums">
                   {rupees.format(order.amount)}
                 </div>
@@ -255,6 +266,12 @@ export function StatusActivityModal({
           </button>
         </div>
       )}
+
+      <OrderDetailsModal
+        orderId={selectedOrderId}
+        isOpen={selectedOrderId !== null}
+        onClose={() => setSelectedOrderId(null)}
+      />
     </Modal>
   );
 }
