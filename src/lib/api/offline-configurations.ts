@@ -9,13 +9,16 @@ export type OfflineStoreStatus = "ACTIVE" | "CLOSED";
 export interface OfflineConfiguration {
   _id?: string;
   status: OfflineStoreStatus;
+  message: string;
   createdAt?: string;
   updatedAt?: string;
 }
 
+export const CLOSURE_MESSAGE_MAX_LENGTH = 300;
+
 export const offlineConfigurationsApi = {
   /**
-   * SUPER_ADMIN only. Returns singleton `{ status }`.
+   * SUPER_ADMIN only. Returns singleton `{ status, message }`.
    */
   get: async (): Promise<{ success: boolean; data: OfflineConfiguration }> => {
     const response = await fetch(`${API_BASE_URL}/offline-configurations`, {
@@ -36,9 +39,11 @@ export const offlineConfigurationsApi = {
 
   /**
    * SUPER_ADMIN only. Upserts singleton config.
+   * A non-empty message is required whenever status is CLOSED.
    */
   update: async (
-    status: OfflineStoreStatus
+    status: OfflineStoreStatus,
+    message = ""
   ): Promise<{ success: boolean; data: OfflineConfiguration }> => {
     const response = await fetch(`${API_BASE_URL}/offline-configurations`, {
       method: "PATCH",
@@ -46,7 +51,7 @@ export const offlineConfigurationsApi = {
         ...(await getAuthHeaders()),
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ status }),
+      body: JSON.stringify({ status, message }),
     });
 
     if (!response.ok) {

@@ -5,10 +5,13 @@ import { PermissionGuard } from "@/components/layout/permission-guard";
 import { ADMIN_PERMISSIONS } from "@/lib/constants/permissions";
 import {
   offlineConfigurationsApi,
+  CLOSURE_MESSAGE_MAX_LENGTH,
   OfflineStoreStatus,
 } from "@/lib/api/offline-configurations";
 import { useSessionStore } from "@/stores/sessionStore";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Modal } from "@/components/ui/modal";
+import { Button } from "@/components/ui/button";
 import { Loader2, Store, AlertCircle } from "lucide-react";
 import { useState, useEffect, useCallback } from "react";
 import toast from "react-hot-toast";
@@ -25,7 +28,12 @@ export default function OfflineStoreSettingsPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [status, setStatus] = useState<OfflineStoreStatus>("ACTIVE");
+  const [message, setMessage] = useState("");
   const [error, setError] = useState<string | null>(null);
+
+  const [modalOpen, setModalOpen] = useState(false);
+  const [draft, setDraft] = useState("");
+  const [modalError, setModalError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     if (!isSuperAdmin) {
@@ -36,8 +44,8 @@ export default function OfflineStoreSettingsPage() {
       setLoading(true);
       setError(null);
       const res = await offlineConfigurationsApi.get();
-      const s = res.data?.status ?? "ACTIVE";
-      setStatus(s);
+      setStatus(res.data?.status ?? "ACTIVE");
+      setMessage(res.data?.message ?? "");
     } catch (e) {
       const msg =
         e instanceof Error ? e.message : "Failed to load offline configuration";
@@ -54,25 +62,77 @@ export default function OfflineStoreSettingsPage() {
 
   const accepting = isStoreAcceptingOnlineOrders(status);
 
+  const applyUpdate = async (
+    nextStatus: OfflineStoreStatus,
+    nextMessage: string
+  ) => {
+    setSaving(true);
+    try {
+      const res = await offlineConfigurationsApi.update(nextStatus, nextMessage);
+      setStatus(res.data?.status ?? nextStatus);
+      setMessage(res.data?.message ?? nextMessage);
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const handleToggle = async (nextOpen: boolean) => {
     if (!isSuperAdmin || saving) return;
-    const nextStatus: OfflineStoreStatus = nextOpen ? "ACTIVE" : "CLOSED";
+
+    if (!nextOpen) {
+      setDraft("");
+      setModalError(null);
+      setModalOpen(true);
+      return;
+    }
+
     try {
-      setSaving(true);
-      const res = await offlineConfigurationsApi.update(nextStatus);
-      const s = res.data?.status ?? nextStatus;
-      setStatus(s);
-      toast.success(
-        nextOpen
-          ? "Online store is open consumer orders are allowed."
-          : "Store set to closed new online orders will be blocked."
-      );
+      await applyUpdate("ACTIVE", "");
+      toast.success("Online store is open, consumer orders are allowed.");
     } catch (e) {
       toast.error(
         e instanceof Error ? e.message : "Failed to update configuration"
       );
-    } finally {
-      setSaving(false);
+    }
+  };
+
+  const openEditMessage = () => {
+    if (!isSuperAdmin || saving) return;
+    setDraft(message);
+    setModalError(null);
+    setModalOpen(true);
+  };
+
+  const handleMessageSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (saving) return;
+
+    const trimmed = draft.trim();
+    if (!trimmed) {
+      setModalError("A closure message is required.");
+      return;
+    }
+    if (trimmed.length > CLOSURE_MESSAGE_MAX_LENGTH) {
+      setModalError(
+        `Keep the message to ${CLOSURE_MESSAGE_MAX_LENGTH} characters or fewer.`
+      );
+      return;
+    }
+
+    const wasClosed = !accepting;
+    setModalError(null);
+    try {
+      await applyUpdate("CLOSED", trimmed);
+      setModalOpen(false);
+      toast.success(
+        wasClosed
+          ? "Closure message updated."
+          : "Store set to closed, new online orders will be blocked."
+      );
+    } catch (err) {
+      setModalError(
+        err instanceof Error ? err.message : "Failed to update configuration"
+      );
     }
   };
 
@@ -126,8 +186,8 @@ export default function OfflineStoreSettingsPage() {
                         Accept online orders
                       </p>
                       <p className="text-xs text-gray-500 mt-1 max-w-xl">
-                        When off, the storefront should show that ordering is
-                        paused and checkout returns a 403 for new consumer orders.
+                        When off, the storefront shows the closure message you
+                        write and checkout returns a 403 for new consumer orders.
                         In-store POS is unchanged.
                       </p>
                     </div>
@@ -159,11 +219,93 @@ export default function OfflineStoreSettingsPage() {
                       </span>
                     </div>
                   </div>
+
+                  {!accepting && (
+                    <div className="rounded-lg border border-amber-200 bg-amber-50 p-4">
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="min-w-0">
+                          <p className="text-xs font-medium uppercase tracking-wide text-amber-900">
+                            Message shown to customers
+                          </p>
+                          <p className="mt-1 text-sm text-amber-950 break-words whitespace-pre-line">
+                            {message ||
+                              "No message set. Customers see the default notice."}
+                          </p>
+                        </div>
+                        <Button
+                          type="button"
+                          variant="secondary"
+                          onClick={openEditMessage}
+                          disabled={!isSuperAdmin || saving}
+                        >
+                          Edit
+                        </Button>
+                      </div>
+                    </div>
+                  )}
                 </>
               )}
             </CardContent>
           </Card>
         </div>
+
+        <Modal
+          isOpen={modalOpen}
+          onClose={() => {
+            if (!saving) setModalOpen(false);
+          }}
+          title={accepting ? "Close online store" : "Edit closure message"}
+          size="md"
+        >
+          <form onSubmit={handleMessageSubmit} className="space-y-4">
+            <p className="text-sm text-gray-500">
+              Customers will see this on the storefront banner and when checkout
+              is blocked. A message is required to close the store.
+            </p>
+            <div>
+              <label
+                htmlFor="closure-message"
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
+                Closure message <span className="text-red-500">*</span>
+              </label>
+              <textarea
+                id="closure-message"
+                value={draft}
+                onChange={(e) => setDraft(e.target.value)}
+                rows={4}
+                maxLength={CLOSURE_MESSAGE_MAX_LENGTH}
+                autoFocus
+                placeholder="e.g. Closed for Diwali until Nov 3. Online orders reopen Monday."
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm resize-y focus:outline-none focus:ring-2 focus:ring-[#13aaff] focus:border-transparent"
+              />
+              <div className="mt-1 flex items-center justify-between text-xs text-gray-500">
+                <span>Write it in the language your customers read.</span>
+                <span className="tabular-nums">
+                  {draft.trim().length}/{CLOSURE_MESSAGE_MAX_LENGTH}
+                </span>
+              </div>
+            </div>
+            {modalError && <p className="text-sm text-red-600">{modalError}</p>}
+            <div className="flex justify-end gap-2 pt-2">
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => setModalOpen(false)}
+                disabled={saving}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                variant={accepting ? "danger" : "primary"}
+                disabled={saving || !draft.trim()}
+              >
+                {saving ? "Saving..." : accepting ? "Close store" : "Save message"}
+              </Button>
+            </div>
+          </form>
+        </Modal>
       </PermissionGuard>
     </DashboardLayout>
   );
