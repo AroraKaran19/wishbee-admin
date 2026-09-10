@@ -152,6 +152,11 @@ export const navigationItems: NavItem[] = [
         id: 'offline-store',
         label: 'Online store status',
         href: '/settings/offline-store'
+      },
+      {
+        id: 'announcement',
+        label: 'Announcement banner',
+        href: '/settings/announcement'
       }
     ]
   },
