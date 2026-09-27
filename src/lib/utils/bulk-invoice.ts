@@ -37,6 +37,8 @@ interface OrderForInvoice {
   totalAmount: number;
   itemsTotal?: number;
   shippingCharges?: number;
+  miniBasketCharge?: number;
+  heavyLiftCharge?: number;
   walkin?: boolean;
   couponDiscount?: number;
   couponCode?: string;
@@ -134,6 +136,8 @@ async function prepareOrderForInvoice(apiOrder: OrderForInvoice) {
     totalAmount: apiOrder.totalAmount,
     itemsTotal: apiOrder.itemsTotal,
     shippingCharges: apiOrder.shippingCharges,
+    miniBasketCharge: apiOrder.miniBasketCharge,
+    heavyLiftCharge: apiOrder.heavyLiftCharge,
     walkin: apiOrder.walkin === true,
     couponDiscount: apiOrder.couponDiscount,
     couponCode: apiOrder.couponCode,

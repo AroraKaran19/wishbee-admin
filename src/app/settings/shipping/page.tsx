@@ -3,7 +3,9 @@
 import { DashboardLayout } from '@/components/layout/dashboard-layout';
 import { PermissionGuard } from '@/components/layout/permission-guard';
 import { ADMIN_PERMISSIONS } from '@/lib/constants/permissions';
-import { shippingApi } from '@/lib/api/shipping';
+import { shippingApi, type MiniBasketTier } from '@/lib/api/shipping';
+import { MiniBasketTiersCard } from '@/components/settings/mini-basket-tiers-card';
+import Link from 'next/link';
 import { formatCurrency } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -14,6 +16,7 @@ import toast from 'react-hot-toast';
 
 export default function ShippingPricePage() {
   const [charges, setCharges] = useState<string>('');
+  const [miniBasketTiers, setMiniBasketTiers] = useState<MiniBasketTier[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -26,6 +29,7 @@ export default function ShippingPricePage() {
         const res = await shippingApi.getCharges();
         const value = res.data?.charges ?? 0;
         setCharges(String(value));
+        setMiniBasketTiers(res.data?.miniBasketTiers ?? []);
       } catch (err) {
         console.error('Error fetching shipping charges:', err);
         setError(err instanceof Error ? err.message : 'Failed to load shipping charges');
@@ -132,6 +136,16 @@ export default function ShippingPricePage() {
               )}
             </CardContent>
           </Card>
+
+          {!loading && <MiniBasketTiersCard initialTiers={miniBasketTiers} />}
+
+          <p className="text-sm text-gray-500">
+            Per-item charges for heavy products are set under{' '}
+            <Link href="/settings/heavy-lift" className="text-blue-600 hover:underline">
+              Heavy Lift Charge
+            </Link>
+            .
+          </p>
         </div>
       </PermissionGuard>
     </DashboardLayout>

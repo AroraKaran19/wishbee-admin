@@ -92,6 +92,8 @@ export async function downloadOrderInvoice(orderId: string): Promise<void> {
       totalAmount: apiOrder.totalAmount,
       itemsTotal: apiOrder.itemsTotal,
       shippingCharges: apiOrder.shippingCharges,
+      miniBasketCharge: apiOrder.miniBasketCharge,
+      heavyLiftCharge: apiOrder.heavyLiftCharge,
       walkin: apiOrder.walkin === true,
       couponDiscount: apiOrder.couponDiscount,
       couponCode: apiOrder.couponCode,

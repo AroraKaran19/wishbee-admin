@@ -222,6 +222,9 @@ export interface Order {
   itemsTotal?: number;
   /** Delivery fee; 0 when free */
   shippingCharges?: number;
+  miniBasketCharge?: number;
+  /** Paid in full to the delivery partner */
+  heavyLiftCharge?: number;
   /** Discount from applied coupon */
   couponDiscount?: number;
   /** Applied coupon code when discount was used */

@@ -206,14 +206,6 @@ export function OrderDetailsModal({ orderId, isOpen, onClose }: OrderDetailsModa
                         <span className="font-medium">{formatCurrency(order.itemsTotal)}</span>
                       </div>
                     )}
-                    {!order.walkin && typeof order.shippingCharges === 'number' && (
-                      <div className="flex justify-between text-gray-700">
-                        <span>Shipping Charges</span>
-                        <span className="font-medium">
-                          {order.shippingCharges === 0 ? 'Free' : formatCurrency(order.shippingCharges)}
-                        </span>
-                      </div>
-                    )}
                     {typeof order.couponDiscount === 'number' && order.couponDiscount > 0 && (
                       <div className="flex justify-between text-gray-700">
                         <span>
@@ -235,6 +227,26 @@ export function OrderDetailsModal({ orderId, isOpen, onClose }: OrderDetailsModa
                         <span className="font-medium text-green-600">
                           - {formatCurrency(order.loyaltyDiscountAmount)}
                         </span>
+                      </div>
+                    )}
+                    {!order.walkin && typeof order.shippingCharges === 'number' && (
+                      <div className="flex justify-between text-gray-700">
+                        <span>Shipping Charges</span>
+                        <span className="font-medium">
+                          {order.shippingCharges === 0 ? 'Free' : formatCurrency(order.shippingCharges)}
+                        </span>
+                      </div>
+                    )}
+                    {!order.walkin && (order.miniBasketCharge ?? 0) > 0 && (
+                      <div className="flex justify-between text-gray-700">
+                        <span>Mini Basket Charge</span>
+                        <span className="font-medium">{formatCurrency(order.miniBasketCharge ?? 0)}</span>
+                      </div>
+                    )}
+                    {!order.walkin && (order.heavyLiftCharge ?? 0) > 0 && (
+                      <div className="flex justify-between text-gray-700">
+                        <span>Heavy Lift Charge (owed to rider)</span>
+                        <span className="font-medium">{formatCurrency(order.heavyLiftCharge ?? 0)}</span>
                       </div>
                     )}
                     <div className="flex justify-between text-gray-900 font-semibold pt-2 border-t border-gray-200">

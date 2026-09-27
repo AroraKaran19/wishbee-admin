@@ -23,6 +23,9 @@ interface OrderItem {
   itemsTotal?: number;
   /** Delivery fee; 0 when free (optional) */
   shippingCharges?: number;
+  miniBasketCharge?: number;
+  /** Paid in full to the delivery partner */
+  heavyLiftCharge?: number;
   /** Discount from applied coupon (optional) */
   couponDiscount?: number;
   /** Applied coupon code when discount was used (optional) */
@@ -837,7 +840,7 @@ export class InvoiceGenerator {
   }
 
   private addSummary(order: OrderItem): void {
-    // Order breakdown: itemsTotal + shippingCharges - couponDiscount - loyaltyDiscountAmount = totalAmount (per API)
+    // Discounts apply to items; delivery, Mini Basket and Heavy Lift are added after
     const hasBreakdown =
       typeof order.itemsTotal === "number" ||
       typeof order.shippingCharges === "number" ||
@@ -845,7 +848,7 @@ export class InvoiceGenerator {
       typeof order.loyaltyDiscountAmount === "number";
 
     if (hasBreakdown) {
-      if (this.currentY > this.pageHeight - 45) {
+      if (this.currentY > this.pageHeight - 60) {
         this.doc.addPage();
         this.currentPage++;
         this.currentY = 25;
@@ -874,17 +877,6 @@ export class InvoiceGenerator {
       });
       this.currentY += lineHeight;
 
-      if (!order.walkin) {
-        this.doc.text("Shipping Charges:", 15, this.currentY);
-        this.doc.text(
-          shippingCharges === 0 ? "Free" : `Rs. ${shippingCharges.toFixed(2)}`,
-          amountRightX,
-          this.currentY,
-          { align: "right" }
-        );
-        this.currentY += lineHeight;
-      }
-
       if (couponDiscount > 0) {
         const couponLabel = order.couponCode
           ? `Coupon Discount (${order.couponCode}):`
@@ -907,6 +899,35 @@ export class InvoiceGenerator {
           align: "right",
         });
         this.currentY += lineHeight;
+      }
+
+      if (!order.walkin) {
+        this.doc.text("Shipping Charges:", 15, this.currentY);
+        this.doc.text(
+          shippingCharges === 0 ? "Free" : `Rs. ${shippingCharges.toFixed(2)}`,
+          amountRightX,
+          this.currentY,
+          { align: "right" }
+        );
+        this.currentY += lineHeight;
+
+        const miniBasketCharge = order.miniBasketCharge ?? 0;
+        if (miniBasketCharge > 0) {
+          this.doc.text("Mini Basket Charge:", 15, this.currentY);
+          this.doc.text(`Rs. ${miniBasketCharge.toFixed(2)}`, amountRightX, this.currentY, {
+            align: "right",
+          });
+          this.currentY += lineHeight;
+        }
+
+        const heavyLiftCharge = order.heavyLiftCharge ?? 0;
+        if (heavyLiftCharge > 0) {
+          this.doc.text("Heavy Lift Charge (paid to delivery partner):", 15, this.currentY);
+          this.doc.text(`Rs. ${heavyLiftCharge.toFixed(2)}`, amountRightX, this.currentY, {
+            align: "right",
+          });
+          this.currentY += lineHeight;
+        }
       }
 
       this.doc.setFont("helvetica", "bold");

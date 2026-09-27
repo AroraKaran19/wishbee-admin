@@ -680,6 +680,8 @@ export const convertApiOrderToUIOrder = (apiOrder: any): Order => {
       : undefined,
     itemsTotal: apiOrder.itemsTotal,
     shippingCharges: apiOrder.shippingCharges,
+    miniBasketCharge: apiOrder.miniBasketCharge,
+    heavyLiftCharge: apiOrder.heavyLiftCharge,
     couponDiscount: apiOrder.couponDiscount,
     couponCode: apiOrder.couponCode,
     loyaltyDiscountPercent: apiOrder.loyaltyDiscountPercent,

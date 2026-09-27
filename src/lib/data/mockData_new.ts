@@ -144,6 +144,11 @@ export const navigationItems: NavItem[] = [
         href: '/settings/shipping'
       },
       {
+        id: 'heavy-lift',
+        label: 'Heavy Lift Charge',
+        href: '/settings/heavy-lift'
+      },
+      {
         id: 'loyalty-tiers',
         label: 'Loyalty tiers',
         href: '/settings/loyalty-tiers'
