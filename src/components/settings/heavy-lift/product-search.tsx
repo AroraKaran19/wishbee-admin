@@ -3,19 +3,22 @@
 import { useEffect, useId, useState } from 'react';
 import { Loader2, Search } from 'lucide-react';
 import { productApi } from '@/lib/api/products';
-import type { HeavyLiftGroup, HeavyLiftGroupProduct } from '@/lib/api/heavy-lift';
+import type { HeavyLiftGroupProduct } from '@/lib/api/heavy-lift';
 import { ProductThumb } from './product-thumb';
 
 interface ProductSearchProps {
-  groupId: string;
-  draftIds: Set<string>;
-  savedGroupOf: Map<string, HeavyLiftGroup>;
+  groupId: string | null;
+  addedIds: Set<string>;
+  removedIds: Set<string>;
+  groupNames: Map<string, string>;
   onPick: (product: HeavyLiftGroupProduct) => void;
 }
 
-type Status = { label: string; hint: string; tone: 'add' | 'move' | 'restore' | 'none' };
+type Status = { label: string; hint: string; tone: 'add' | 'move' | 'keep' | 'none' };
 
-export function ProductSearch({ groupId, draftIds, savedGroupOf, onPick }: ProductSearchProps) {
+const toneClass = { add: 'text-primary', move: 'text-amber-700', keep: 'text-gray-700', none: '' };
+
+export function ProductSearch({ groupId, addedIds, removedIds, groupNames, onPick }: ProductSearchProps) {
   const listId = useId();
   const inputId = useId();
   const [query, setQuery] = useState('');
@@ -54,17 +57,26 @@ export function ProductSearch({ groupId, draftIds, savedGroupOf, onPick }: Produ
   }, [debounced]);
 
   const statusOf = (product: HeavyLiftGroupProduct): Status => {
-    const sku = product.sku ? `SKU ${product.sku}` : '';
-    if (draftIds.has(product._id)) return { label: '', hint: 'Already in this group', tone: 'none' };
-    const saved = savedGroupOf.get(product._id);
-    if (saved?._id === groupId) return { label: 'Keep', hint: 'Marked for removal', tone: 'restore' };
-    if (saved) return { label: 'Move here', hint: `In ${saved.name}`, tone: 'move' };
-    return { label: 'Add', hint: sku, tone: 'add' };
+    const current = product.heavyLiftGroup ? String(product.heavyLiftGroup) : null;
+    if (addedIds.has(product._id)) return { label: '', hint: 'Adding to this group', tone: 'none' };
+    if (current && current === groupId) {
+      return removedIds.has(product._id)
+        ? { label: 'Keep', hint: 'Marked for removal', tone: 'keep' }
+        : { label: '', hint: 'Already in this group', tone: 'none' };
+    }
+    if (current) return { label: 'Move here', hint: `In ${groupNames.get(current) ?? 'another group'}`, tone: 'move' };
+    return { label: 'Add', hint: product.sku ? `SKU ${product.sku}` : '', tone: 'add' };
   };
 
   const pick = (product: HeavyLiftGroupProduct) => {
-    if (draftIds.has(product._id)) return;
-    onPick({ _id: product._id, name: product.name, sku: product.sku, images: product.images });
+    if (statusOf(product).tone === 'none') return;
+    onPick({
+      _id: product._id,
+      name: product.name,
+      sku: product.sku,
+      images: product.images,
+      heavyLiftGroup: product.heavyLiftGroup ? String(product.heavyLiftGroup) : null,
+    });
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -78,18 +90,18 @@ export function ProductSearch({ groupId, draftIds, savedGroupOf, onPick }: Produ
     } else if (e.key === 'Enter') {
       e.preventDefault();
       if (results[active]) pick(results[active]);
-    } else if (e.key === 'Escape') {
+    } else if (e.key === 'Escape' && open) {
+      e.stopPropagation();
       setOpen(false);
     }
   };
 
   const showList = open && query.trim().length > 0;
   const optionId = (i: number) => `${listId}-${i}`;
-  const toneClass = { add: 'text-primary', move: 'text-amber-700', restore: 'text-gray-700', none: '' };
 
   return (
     <div className="relative">
-      <label htmlFor={inputId} className="block text-xs font-medium text-gray-600 mb-1">
+      <label htmlFor={inputId} className="mb-1 block text-xs font-medium text-gray-600">
         Add products
       </label>
       <div className="relative">
@@ -123,7 +135,7 @@ export function ProductSearch({ groupId, draftIds, savedGroupOf, onPick }: Produ
           id={listId}
           role="listbox"
           aria-label="Matching products"
-          className="absolute z-30 mt-1 max-h-80 w-full overflow-y-auto rounded-lg border border-gray-200 bg-white py-1 shadow-lg"
+          className="absolute z-30 mt-1 max-h-72 w-full overflow-y-auto rounded-lg border border-gray-200 bg-white py-1 shadow-lg"
         >
           {results.length === 0 && (
             <li className="px-3 py-3 text-sm text-gray-500">
